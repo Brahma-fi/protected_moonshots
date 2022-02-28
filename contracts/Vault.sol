@@ -145,6 +145,7 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
         emit UpdateManagementFee(managementFee);
     }
 
+    // TODO: deposit to convex pool 
     function deposit(uint256 _amount, address recepient) external override
     nonReentrant
     onlyBatcher
@@ -160,7 +161,6 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
         if (totalSupply == 0) {
             return shares;
         }
-
         return shares * (totalAssets() / totalSupply);
     }
 
@@ -183,11 +183,20 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
         _maxAvailableShares = _sharesForAmount(totalAssets());
     }
 
-
+    // TODO: get staking balance in convex, lp token tokens in this address and USDC--> lp tokens price conversion
     function totalAssets() public view override returns (uint256) {
         return token.balanceOf(address(this)) ; // + USDC balance in vault from rewards.
     }
 
+
+    // TODO: unstake from convex pool and convert usdc lying around. --> curve lp token.
+    function withdraw(
+        uint256 maxShares,
+        address recepient,
+        uint256 maxLoss
+    ) external override nonReentrant returns (uint256) {
+    
+    }
     function _issueSharesForAmount(address to, uint256 amount)
         internal
         returns (uint256 shares)
