@@ -11,11 +11,21 @@ interface IVault {
 
     function batcher() external view returns (address);
 
+    function governance() external view returns (address);
+
+    function managementFee() external view returns (uint256);
+
+    function performanceFee() external view returns (uint256);
+
+    function depositLimit() external view returns (uint256);
+
+    function emergencyShutdown() external view returns (bool);
+    
     function pendingGovernance() external view returns (address);
 
-    function setGovernance(address _governance) external;
-
     function acceptGovernance() external;
+
+    function setGovernance(address _governance) external;
 
     function setDepositLimit(uint256 _depositLimit) external;
 
@@ -43,8 +53,5 @@ interface IVault {
         address recepient,
         uint256 maxLoss
     ) external returns (uint256);
-
-    function pricePerShare() external view returns (uint256);
-
-    function sweep(address token, uint256 amount) external;
+    
 }
