@@ -2,56 +2,63 @@
 pragma solidity ^0.8.0;
 pragma abicoder v2;
 
+import "./IConvexRewards.sol";
+import "./ICurvePool.sol";
+import "../contracts/solmate/ERC20.sol";
+
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 interface IVault {
-    function token() external view returns (IERC20Metadata);
+  function token() external view returns (ERC20);
 
-    function apiVersion() external view returns (string memory _apiVersion);
+  function apiVersion() external view returns (string memory _apiVersion);
 
-    function batcher() external view returns (address);
+  function batcher() external view returns (address);
 
-    function governance() external view returns (address);
+  function baseRewardPool() external view returns (IConvexRewards);
 
-    function managementFee() external view returns (uint256);
+  function ust3Pool() external view returns (ICurvePool);
 
-    function performanceFee() external view returns (uint256);
+  function governance() external view returns (address);
 
-    function depositLimit() external view returns (uint256);
+  function managementFee() external view returns (uint256);
 
-    function emergencyShutdown() external view returns (bool);
-    
-    function pendingGovernance() external view returns (address);
+  function performanceFee() external view returns (uint256);
 
-    function acceptGovernance() external;
+  function depositLimit() external view returns (uint256);
 
-    function setGovernance(address _governance) external;
+  function emergencyShutdown() external view returns (bool);
 
-    function setDepositLimit(uint256 _depositLimit) external;
+  function pendingGovernance() external view returns (address);
 
-    function setPerformanceFee(uint256 _performanceFee) external;
+  function acceptGovernance() external;
 
-    function setManagementFee(uint256 _managementFee) external;
+  function setGovernance(address _governance) external;
 
-    function setBatcher(address _batcher) external;
+  function setDepositLimit(uint256 _depositLimit) external;
 
-    function setEmergencyShutdown(bool _active) external;
+  function setPerformanceFee(uint256 _performanceFee) external;
 
-    function totalAssets() external view returns (uint256);
+  function setManagementFee(uint256 _managementFee) external;
 
-    function deposit(uint256 _amount, address recepient)
-        external
-        returns (uint256 sharesOut);
+  function setBatcher(address _batcher) external;
 
-    function maxAvailableShares()
-        external
-        view
-        returns (uint256 _maxAvailableShares);
+  function setEmergencyShutdown(bool _active) external;
 
-    function withdraw(
-        uint256 maxShares,
-        address recepient,
-        uint256 maxLoss
-    ) external returns (uint256);
-    
+  function totalAssets() external view returns (uint256);
+
+  function deposit(uint256 _amount, address recepient)
+    external
+    returns (uint256 sharesOut);
+
+  function maxAvailableShares()
+    external
+    view
+    returns (uint256 _maxAvailableShares);
+
+  function withdraw(
+    uint256 maxShares,
+    address recepient,
+    uint256 maxLoss
+  ) external returns (uint256);
 }
