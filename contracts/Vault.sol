@@ -204,9 +204,7 @@ contract Vault is ConvexHandler, IVault, ERC20, ReentrancyGuard {
   }
 
   function totalAssets() public view override returns (uint256) {
-    uint256 ust3wcrvPrice = ust3Pool.get_virtual_price();
-
-    return _UST3WCRVBalance() * ust3wcrvPrice;
+    return _UST3WCRVBalance() * _UST3WCRVPrice();
   }
 
   // TODO: unstake from convex pool and convert usdc lying around. --> curve lp token.

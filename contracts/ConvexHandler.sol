@@ -49,6 +49,10 @@ contract ConvexHandler is IConvexHandler {
       baseRewardPool.balanceOf(address(this));
   }
 
+  function _UST3WCRVPrice() internal view returns (uint256) {
+    return ust3Pool.get_virtual_price();
+  }
+
   function _vault() internal view returns (IVault) {
     return IVault(address(this));
   }
