@@ -16,6 +16,10 @@ interface ICurvePool {
     uint256 min_amount
   ) external;
 
+  function add_liquidity(uint256[3] memory amounts, uint256 min_mint_amount)
+    external
+    returns (uint256);
+
   function get_dy(
     int128 i,
     int128 j,
@@ -23,4 +27,6 @@ interface ICurvePool {
   ) external view returns (uint256);
 
   function get_virtual_price() external view returns (uint256);
+
+  function base_coins(uint256 i) external view returns (address);
 }
