@@ -52,19 +52,23 @@ contract ConvexHandler is IConvexHandler {
     );
 
     if (amountToWithdraw > lpTokenBalance) {
+      uint256 lpTokensUnstaked = 0;
+
       if (stakedLpBalance > 0) {
+        lpTokensUnstaked =
+          amountToWithdraw -
+          lpTokenBalance -
+          usdcBalanceInLpToken;
+
         require(
-          baseRewardPool.withdraw(
-            amountToWithdraw - lpTokenBalance - usdcBalanceInLpToken,
-            true
-          ),
+          baseRewardPool.withdraw(lpTokensUnstaked, true),
           "could not unstake"
         );
       }
 
       uint256 usdcBalanceToConvert = amountToWithdraw -
         lpTokenBalance -
-        stakedLpBalance;
+        lpTokensUnstaked;
 
       if (usdcBalanceToConvert > 0) {
         uint256 usdcToDeposit = usdcBalanceToConvert / usdcBalanceInLpToken;
