@@ -2,6 +2,8 @@
 pragma solidity ^0.8.4;
 pragma abicoder v2;
 
+import "./ConvexHandler.sol";
+
 import "./solmate/ERC20.sol";
 import "./solmate/SafeTransferLib.sol";
 
@@ -14,7 +16,7 @@ import "../interfaces/ICurvePool.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract Vault is IVault, ERC20, ReentrancyGuard {
+contract Vault is ConvexHandler, IVault, ERC20, ReentrancyGuard {
   using SafeTransferLib for ERC20;
 
   ERC20 public override token;
@@ -29,11 +31,6 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
   string public constant API_VERSION = "1.0.0";
 
   bool public override emergencyShutdown = false;
-
-  // 0x7e2b9B5244bcFa5108A76D5E7b507CFD5581AD4A
-  IConvexRewards public override baseRewardPool;
-  // 0xCEAF7747579696A2F0bb206a14210e3c9e6fB269
-  ICurvePool public override ust3Pool;
 
   event UpdateGovernance(
     address governance // New active governance
@@ -180,11 +177,6 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
     _depositToConvex(_amount);
   }
 
-  function _depositToConvex(uint256 _amount) internal {
-    require(token.balanceOf(address(this)) >= _amount, "insufficient balance");
-    require(baseRewardPool.stake(_amount), "convex staking failed");
-  }
-
   function _shareValue(uint256 shares) internal view returns (uint256) {
     if (totalSupply == 0) {
       return shares;
@@ -211,39 +203,22 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
     _maxAvailableShares = _sharesForAmount(totalAssets());
   }
 
-  // TODO: get staking balance in convex, lp token tokens in this address and USDC--> lp tokens price conversion
   function totalAssets() public view override returns (uint256) {
     uint256 ust3wcrvPrice = ust3Pool.get_virtual_price();
 
     return _UST3WCRVBalance() * ust3wcrvPrice;
   }
 
-  function _UST3WCRVBalance() internal view returns (uint256) {
-    return
-      token.balanceOf(address(this)) + baseRewardPool.balanceOf(address(this));
-  }
-
   // TODO: unstake from convex pool and convert usdc lying around. --> curve lp token.
-  function withdraw(
-    uint256 maxShares,
-    address recepient,
-    uint256 maxLoss
-  ) external override nonReentrant returns (uint256 amountToWithdraw) {
+  function withdraw(uint256 maxShares, address recepient)
+    external
+    override
+    nonReentrant
+    returns (uint256 amountToWithdraw)
+  {
     uint256 maxWithdraw = _shareValue(maxShares);
-    uint256 stakedLpBalance = baseRewardPool.balanceOf(address(this));
-    uint256 lpTokenBalance = token.balanceOf(address(this));
 
-    amountToWithdraw = Math.min(
-      maxWithdraw,
-      (stakedLpBalance + lpTokenBalance)
-    );
-
-    if (amountToWithdraw > lpTokenBalance) {
-      require(
-        baseRewardPool.withdraw(amountToWithdraw - lpTokenBalance, true),
-        "could not unstake"
-      );
-    }
+    amountToWithdraw = _calcAmountsAndUnstake(maxWithdraw);
 
     token.safeTransfer(recepient, amountToWithdraw);
   }

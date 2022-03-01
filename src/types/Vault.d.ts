@@ -57,7 +57,7 @@ interface VaultInterface extends ethers.utils.Interface {
     "transfer(address,uint256)": FunctionFragment;
     "transferFrom(address,address,uint256)": FunctionFragment;
     "ust3Pool()": FunctionFragment;
-    "withdraw(uint256,address,uint256)": FunctionFragment;
+    "withdraw(uint256,address)": FunctionFragment;
   };
 
   encodeFunctionData(
@@ -184,7 +184,7 @@ interface VaultInterface extends ethers.utils.Interface {
   encodeFunctionData(functionFragment: "ust3Pool", values?: undefined): string;
   encodeFunctionData(
     functionFragment: "withdraw",
-    values: [BigNumberish, string, BigNumberish]
+    values: [BigNumberish, string]
   ): string;
 
   decodeFunctionResult(
@@ -504,7 +504,6 @@ export class Vault extends BaseContract {
     withdraw(
       maxShares: BigNumberish,
       recepient: string,
-      maxLoss: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
   };
@@ -634,7 +633,6 @@ export class Vault extends BaseContract {
   withdraw(
     maxShares: BigNumberish,
     recepient: string,
-    maxLoss: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
@@ -759,7 +757,6 @@ export class Vault extends BaseContract {
     withdraw(
       maxShares: BigNumberish,
       recepient: string,
-      maxLoss: BigNumberish,
       overrides?: CallOverrides
     ): Promise<BigNumber>;
   };
@@ -968,7 +965,6 @@ export class Vault extends BaseContract {
     withdraw(
       maxShares: BigNumberish,
       recepient: string,
-      maxLoss: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
   };
@@ -1107,7 +1103,6 @@ export class Vault extends BaseContract {
     withdraw(
       maxShares: BigNumberish,
       recepient: string,
-      maxLoss: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
   };

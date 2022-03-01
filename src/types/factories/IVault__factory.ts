@@ -297,11 +297,6 @@ const _abi = [
         name: "recepient",
         type: "address",
       },
-      {
-        internalType: "uint256",
-        name: "maxLoss",
-        type: "uint256",
-      },
     ],
     name: "withdraw",
     outputs: [

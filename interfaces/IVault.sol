@@ -2,24 +2,22 @@
 pragma solidity ^0.8.0;
 pragma abicoder v2;
 
+import "./IConvexHandler.sol";
+
 import "./IConvexRewards.sol";
 import "./ICurvePool.sol";
 import "../contracts/solmate/ERC20.sol";
 
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-interface IVault {
+interface IVault is IConvexHandler {
   function token() external view returns (ERC20);
 
   function apiVersion() external view returns (string memory _apiVersion);
 
-  function batcher() external view returns (address);
-
-  function baseRewardPool() external view returns (IConvexRewards);
-
-  function ust3Pool() external view returns (ICurvePool);
-
   function governance() external view returns (address);
+
+  function batcher() external view returns (address);
 
   function managementFee() external view returns (uint256);
 
@@ -56,9 +54,7 @@ interface IVault {
     view
     returns (uint256 _maxAvailableShares);
 
-  function withdraw(
-    uint256 maxShares,
-    address recepient,
-    uint256 maxLoss
-  ) external returns (uint256);
+  function withdraw(uint256 maxShares, address recepient)
+    external
+    returns (uint256);
 }
