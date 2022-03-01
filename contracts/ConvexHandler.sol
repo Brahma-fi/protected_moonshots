@@ -9,9 +9,12 @@ import "../interfaces/ICurvePool.sol";
 
 import "../library/Math.sol";
 
-import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import "./solmate/ERC20.sol";
+import "./solmate/SafeTransferLib.sol";
 
 contract ConvexHandler is IConvexHandler {
+  using SafeTransferLib for ERC20;
+
   enum UST3PoolCoinIndexes {
     DAI,
     USDC,
@@ -20,7 +23,7 @@ contract ConvexHandler is IConvexHandler {
 
   // 0x7e2b9B5244bcFa5108A76D5E7b507CFD5581AD4A
   IConvexRewards public override baseRewardPool;
-  // 0xCEAF7747579696A2F0bb206a14210e3c9e6fB269
+  // 0x890f4e345B1dAED0367A877a1612f86A1f86985f
   ICurvePool public override ust3Pool;
 
   function _depositToConvex(uint256 _amount) internal {
@@ -38,11 +41,10 @@ contract ConvexHandler is IConvexHandler {
     uint256 stakedLpBalance = baseRewardPool.balanceOf(address(this));
     uint256 lpTokenBalance = _vault().token().balanceOf(address(this));
 
-    uint256 usdcBalance = IERC20Metadata(
-      ust3Pool.base_coins(uint256(UST3PoolCoinIndexes.USDC))
-    ).balanceOf(address(this));
+    ERC20 usdc = ERC20(ust3Pool.base_coins(uint256(UST3PoolCoinIndexes.USDC)));
     uint256 usdcPriceInLpToken = 1 / _UST3WCRVPrice();
-    uint256 usdcBalanceInLpToken = usdcBalance * usdcPriceInLpToken;
+    uint256 usdcBalanceInLpToken = usdc.balanceOf(address(this)) *
+      usdcPriceInLpToken;
 
     amountToWithdraw = Math.min(
       maxWithdraw,
@@ -68,6 +70,7 @@ contract ConvexHandler is IConvexHandler {
         uint256 usdcToDeposit = usdcBalanceToConvert / usdcBalanceInLpToken;
         uint256[3] memory liquidityAmounts = [usdcToDeposit, 0, 0];
 
+        usdc.safeApprove(address(ust3Pool), usdcToDeposit);
         ust3Pool.add_liquidity(liquidityAmounts, usdcBalanceInLpToken);
       }
     }
