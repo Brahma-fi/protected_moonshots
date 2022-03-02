@@ -59,6 +59,7 @@ contract Vault is ConvexHandler, IVault, ERC20, ReentrancyGuard {
     address _batcher,
     address _baseRewardPool,
     address _ust3Pool,
+    address _harvester,
     string memory _name,
     string memory _symbol,
     uint8 _decimal
@@ -69,7 +70,8 @@ contract Vault is ConvexHandler, IVault, ERC20, ReentrancyGuard {
       _governance,
       _batcher,
       _baseRewardPool,
-      _ust3Pool
+      _ust3Pool,
+      _harvester
     );
   }
 
@@ -79,13 +81,15 @@ contract Vault is ConvexHandler, IVault, ERC20, ReentrancyGuard {
     address _governance,
     address _batcher,
     address _baseRewardPool,
-    address _ust3Pool
+    address _ust3Pool,
+    address _harvester
   ) internal {
     depositLimit = _depositLimit;
     token = ERC20(_token);
 
     baseRewardPool = IConvexRewards(_baseRewardPool);
     ust3Pool = ICurvePool(_ust3Pool);
+    harvester = IHarvester(_harvester);
 
     governance = _governance;
     batcher = _batcher;
@@ -219,6 +223,15 @@ contract Vault is ConvexHandler, IVault, ERC20, ReentrancyGuard {
     amountToWithdraw = _calcAmountsAndUnstake(maxWithdraw);
 
     token.safeTransfer(recepient, amountToWithdraw);
+  }
+
+  function harvestRewards() external override returns (uint256) {
+    _claimAndHarvest();
+
+    return
+      ERC20(ust3Pool.base_coins(uint256(UST3PoolCoinIndexes.USDC))).balanceOf(
+        address(this)
+      );
   }
 
   function _issueSharesForAmount(address to, uint256 amount)

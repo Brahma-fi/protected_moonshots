@@ -6,6 +6,7 @@ import "../interfaces/IVault.sol";
 import "../interfaces/IConvexHandler.sol";
 import "../interfaces/IConvexRewards.sol";
 import "../interfaces/ICurvePool.sol";
+import "../interfaces/IHarvester.sol";
 
 import "../library/Math.sol";
 
@@ -25,6 +26,8 @@ contract ConvexHandler is IConvexHandler {
   IConvexRewards public override baseRewardPool;
   // 0x890f4e345B1dAED0367A877a1612f86A1f86985f
   ICurvePool public override ust3Pool;
+
+  IHarvester public override harvester;
 
   function _depositToConvex(uint256 _amount) internal {
     require(
@@ -78,6 +81,11 @@ contract ConvexHandler is IConvexHandler {
         ust3Pool.add_liquidity(liquidityAmounts, usdcBalanceInLpToken);
       }
     }
+  }
+
+  function _claimAndHarvest() internal {
+    require(baseRewardPool.getReward(), "reward claim failed");
+    harvester.harvest();
   }
 
   function _UST3WCRVBalance() internal view returns (uint256) {
