@@ -57,6 +57,4 @@ interface IVault is IConvexHandler {
   function withdraw(uint256 maxShares, address recepient)
     external
     returns (uint256);
-
-  function harvestRewards() external returns (uint256);
 }

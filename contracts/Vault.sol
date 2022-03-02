@@ -211,7 +211,6 @@ contract Vault is ConvexHandler, IVault, ERC20, ReentrancyGuard {
     return _UST3WCRVBalance() * _UST3WCRVPrice();
   }
 
-  // TODO: unstake from convex pool and convert usdc lying around. --> curve lp token.
   function withdraw(uint256 maxShares, address recepient)
     external
     override
@@ -223,15 +222,6 @@ contract Vault is ConvexHandler, IVault, ERC20, ReentrancyGuard {
     amountToWithdraw = _calcAmountsAndUnstake(maxWithdraw);
 
     token.safeTransfer(recepient, amountToWithdraw);
-  }
-
-  function harvestRewards() external override returns (uint256) {
-    _claimAndHarvest();
-
-    return
-      ERC20(ust3Pool.base_coins(uint256(UST3PoolCoinIndexes.USDC))).balanceOf(
-        address(this)
-      );
   }
 
   function _issueSharesForAmount(address to, uint256 amount)

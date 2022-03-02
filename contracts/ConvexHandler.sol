@@ -29,6 +29,29 @@ contract ConvexHandler is IConvexHandler {
 
   IHarvester public override harvester;
 
+  function approveRewardTokensToHarvester(address[] memory tokens)
+    external
+    override
+  {
+    require(msg.sender == _vault().governance(), "access :: Governance");
+
+    for (uint256 idx = 0; idx < tokens.length; idx++) {
+      ERC20(tokens[idx]).safeApprove(
+        address(_vault().harvester()),
+        type(uint256).max
+      );
+    }
+  }
+
+  function harvestRewards() external override returns (uint256) {
+    _claimAndHarvest();
+
+    return
+      ERC20(ust3Pool.base_coins(uint256(UST3PoolCoinIndexes.USDC))).balanceOf(
+        address(this)
+      );
+  }
+
   function _depositToConvex(uint256 _amount) internal {
     require(
       _vault().token().balanceOf(address(this)) >= _amount,

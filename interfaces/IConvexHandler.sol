@@ -12,4 +12,8 @@ interface IConvexHandler {
   function ust3Pool() external view returns (ICurvePool);
 
   function harvester() external view returns (IHarvester);
+
+  function approveRewardTokensToHarvester(address[] memory tokens) external;
+
+  function harvestRewards() external returns (uint256);
 }

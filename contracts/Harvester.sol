@@ -35,8 +35,6 @@ contract Harvester is IHarvester {
 
   uint256 public override slippage;
 
-  mapping(address => bool) public override positionHandlers;
-
   constructor(
     address _strategist,
     IERC20Metadata _wantToken,
@@ -65,31 +63,6 @@ contract Harvester is IHarvester {
   {
     swapTokens.push(_addr);
     numTokens++;
-  }
-
-  function addPositionHandler(address _positionHandler)
-    external
-    override
-    onlyGovernance
-  {
-    require(_positionHandler != address(0), "Harvester :: zero address");
-    require(
-      !(positionHandlers[_positionHandler]),
-      "Harvester :: already present"
-    );
-
-    positionHandlers[_positionHandler] = true;
-  }
-
-  function removePositionHandler(address _positionHandler)
-    external
-    override
-    onlyGovernance
-  {
-    require(_positionHandler != address(0), "Harvester :: zero address");
-    require((positionHandlers[_positionHandler]), "Harvester :: not found");
-
-    positionHandlers[_positionHandler] = false;
   }
 
   function setStrategist(address _strategist) external override {
@@ -149,7 +122,7 @@ contract Harvester is IHarvester {
     }
   }
 
-  function harvest() external override onlyHandler {
+  function harvest() external override {
     for (uint256 idx = 0; idx < swapTokens.length; idx++) {
       IERC20 _token = IERC20(swapTokens[idx]);
       _token.safeTransferFrom(
@@ -209,7 +182,7 @@ contract Harvester is IHarvester {
     );
   }
 
-  function migrate(address _newHarvester) external override onlyHandler {
+  function migrate(address _newHarvester) external override {
     for (uint256 idx = 0; idx < swapTokens.length; idx++) {
       IERC20 _token = IERC20(swapTokens[idx]);
       _token.safeTransfer(_newHarvester, _token.balanceOf(address(this)));
@@ -228,11 +201,6 @@ contract Harvester is IHarvester {
 
   modifier onlyStrategist() {
     require(msg.sender == strategist, "auth: strategist");
-    _;
-  }
-
-  modifier onlyHandler() {
-    require(positionHandlers[msg.sender], "Harvester :: onlyHandler");
     _;
   }
 }

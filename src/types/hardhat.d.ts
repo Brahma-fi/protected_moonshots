@@ -25,6 +25,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ConvexHandler__factory>;
     getContractFactory(
+      name: "Harvester",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.Harvester__factory>;
+    getContractFactory(
       name: "ERC20",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ERC20__factory>;
@@ -45,6 +49,26 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ICurvePool__factory>;
     getContractFactory(
+      name: "IHarvester",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IHarvester__factory>;
+    getContractFactory(
+      name: "IQuoter",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IQuoter__factory>;
+    getContractFactory(
+      name: "IUniswapSwapRouter",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IUniswapSwapRouter__factory>;
+    getContractFactory(
+      name: "IUniswapV3Factory",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IUniswapV3Factory__factory>;
+    getContractFactory(
+      name: "IUniswapV3SwapCallback",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IUniswapV3SwapCallback__factory>;
+    getContractFactory(
       name: "IVault",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IVault__factory>;
@@ -64,6 +88,11 @@ declare module "hardhat/types/runtime" {
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.ConvexHandler>;
+    getContractAt(
+      name: "Harvester",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.Harvester>;
     getContractAt(
       name: "ERC20",
       address: string,
@@ -89,6 +118,31 @@ declare module "hardhat/types/runtime" {
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.ICurvePool>;
+    getContractAt(
+      name: "IHarvester",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IHarvester>;
+    getContractAt(
+      name: "IQuoter",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IQuoter>;
+    getContractAt(
+      name: "IUniswapSwapRouter",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IUniswapSwapRouter>;
+    getContractAt(
+      name: "IUniswapV3Factory",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IUniswapV3Factory>;
+    getContractAt(
+      name: "IUniswapV3SwapCallback",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IUniswapV3SwapCallback>;
     getContractAt(
       name: "IVault",
       address: string,
