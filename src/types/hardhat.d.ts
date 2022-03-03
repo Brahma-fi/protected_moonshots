@@ -13,15 +13,141 @@ import * as Contracts from ".";
 declare module "hardhat/types/runtime" {
   interface HardhatEthersHelpers extends HardhatEthersHelpersBase {
     getContractFactory(
-      name: "Greeter",
+      name: "IERC20Metadata",
       signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.Greeter__factory>;
+    ): Promise<Contracts.IERC20Metadata__factory>;
+    getContractFactory(
+      name: "IERC20",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IERC20__factory>;
+    getContractFactory(
+      name: "ConvexHandler",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ConvexHandler__factory>;
+    getContractFactory(
+      name: "Harvester",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.Harvester__factory>;
+    getContractFactory(
+      name: "ERC20",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ERC20__factory>;
+    getContractFactory(
+      name: "Vault",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.Vault__factory>;
+    getContractFactory(
+      name: "IConvexHandler",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IConvexHandler__factory>;
+    getContractFactory(
+      name: "IConvexRewards",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IConvexRewards__factory>;
+    getContractFactory(
+      name: "ICurvePool",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ICurvePool__factory>;
+    getContractFactory(
+      name: "IHarvester",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IHarvester__factory>;
+    getContractFactory(
+      name: "IQuoter",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IQuoter__factory>;
+    getContractFactory(
+      name: "IUniswapSwapRouter",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IUniswapSwapRouter__factory>;
+    getContractFactory(
+      name: "IUniswapV3Factory",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IUniswapV3Factory__factory>;
+    getContractFactory(
+      name: "IUniswapV3SwapCallback",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IUniswapV3SwapCallback__factory>;
+    getContractFactory(
+      name: "IVault",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IVault__factory>;
 
     getContractAt(
-      name: "Greeter",
+      name: "IERC20Metadata",
       address: string,
       signer?: ethers.Signer
-    ): Promise<Contracts.Greeter>;
+    ): Promise<Contracts.IERC20Metadata>;
+    getContractAt(
+      name: "IERC20",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IERC20>;
+    getContractAt(
+      name: "ConvexHandler",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ConvexHandler>;
+    getContractAt(
+      name: "Harvester",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.Harvester>;
+    getContractAt(
+      name: "ERC20",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ERC20>;
+    getContractAt(
+      name: "Vault",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.Vault>;
+    getContractAt(
+      name: "IConvexHandler",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IConvexHandler>;
+    getContractAt(
+      name: "IConvexRewards",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IConvexRewards>;
+    getContractAt(
+      name: "ICurvePool",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ICurvePool>;
+    getContractAt(
+      name: "IHarvester",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IHarvester>;
+    getContractAt(
+      name: "IQuoter",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IQuoter>;
+    getContractAt(
+      name: "IUniswapSwapRouter",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IUniswapSwapRouter>;
+    getContractAt(
+      name: "IUniswapV3Factory",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IUniswapV3Factory>;
+    getContractAt(
+      name: "IUniswapV3SwapCallback",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IUniswapV3SwapCallback>;
+    getContractAt(
+      name: "IVault",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IVault>;
 
     // default types
     getContractFactory(
