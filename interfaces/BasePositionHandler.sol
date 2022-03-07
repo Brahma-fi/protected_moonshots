@@ -8,10 +8,10 @@ abstract contract BasePositionHandler {
   }
 
   function positionInWantToken()
-    public
+    external
     view
     virtual
-    returns (Position memory position);
+    returns (uint256, uint256);
 
   function _openPosition(bytes calldata _data) internal virtual;
 

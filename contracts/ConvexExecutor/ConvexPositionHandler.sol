@@ -25,6 +25,11 @@ contract ConvexHandler is BasePositionHandler {
     uint256 _amount;
   }
 
+  struct WithdrawParams {
+    uint256 _maxWithdraw;
+    address _recipient;
+  }
+
   address governance;
 
   ERC20 public wantToken;
@@ -121,21 +126,24 @@ contract ConvexHandler is BasePositionHandler {
 
   function _withdraw(bytes calldata _data) internal override {
     // _amount here is the maxWithdraw
-    AmountParams memory withdrawParams = abi.decode(_data, (AmountParams));
+    WithdrawParams memory withdrawParams = abi.decode(_data, (WithdrawParams));
     (
       uint256 stakedLpBalance,
       uint256 lpTokenBalance,
       uint256 usdcBalanceInLpToken
     ) = _getTotalBalancesInLp();
 
+    // calculate maximum amount that can be withdrawn
     uint256 amountToWithdraw = Math.min(
-      withdrawParams._amount,
+      withdrawParams._maxWithdraw,
       (stakedLpBalance + lpTokenBalance + usdcBalanceInLpToken)
     );
 
+    // if lp token balance is insufficient
     if (amountToWithdraw > lpTokenBalance) {
       uint256 lpTokensUnstaked = 0;
 
+      // unstake convex position partially
       if (stakedLpBalance > 0) {
         lpTokensUnstaked =
           amountToWithdraw -
@@ -152,6 +160,7 @@ contract ConvexHandler is BasePositionHandler {
         lpTokenBalance -
         lpTokensUnstaked;
 
+      // if balance still insufficient, convert usdc balance to lp token
       if (usdcBalanceToConvert > 0) {
         uint256 usdcToDeposit = usdcBalanceToConvert / usdcBalanceInLpToken;
         uint256[3] memory liquidityAmounts = [usdcToDeposit, 0, 0];
@@ -160,6 +169,9 @@ contract ConvexHandler is BasePositionHandler {
         ust3Pool.add_liquidity(liquidityAmounts, usdcBalanceInLpToken);
       }
     }
+
+    // transfer lp tokens to recipient
+    lpToken.safeTransfer(withdrawParams._recipient, amountToWithdraw);
   }
 
   function _claimRewards(bytes calldata _data) internal override {
