@@ -47,14 +47,42 @@ contract Harvester is IHarvester {
     governance = _governance;
   }
 
-  function setWantToken(address _addr) external override validAddress(_addr) {
+  /// @notice Strategist function to set want token to convert swapTokens into
+  /// @param _addr address of the want token
+  function setWantToken(address _addr)
+    external
+    override
+    validAddress(_addr)
+    onlyStrategist
+  {
     wantToken = IERC20Metadata(_addr);
   }
 
+  /// @notice Strategist function to set max accepted slippage of swaps
+  /// @param _slippage Max accepted slippage during harvesting
   function setSlippage(uint256 _slippage) external override onlyStrategist {
     slippage = _slippage;
   }
 
+  /// @notice Strategist&Governance function to set a new strategist
+  /// @param _strategist address of new strategist
+  function setStrategist(address _strategist) external override {
+    require(
+      msg.sender == strategist || msg.sender == governance,
+      "Harvester :: strategist|governance"
+    );
+
+    strategist = _strategist;
+  }
+
+  /// @notice Governance function to set a new governance
+  /// @param _governance address of new governance
+  function setGovernance(address _governance) external override onlyGovernance {
+    governance = _governance;
+  }
+
+  /// @notice Strategist function to add a new swap token
+  /// @param _addr address of the new swap token
   function addSwapToken(address _addr)
     external
     override
@@ -65,19 +93,8 @@ contract Harvester is IHarvester {
     numTokens++;
   }
 
-  function setStrategist(address _strategist) external override {
-    require(
-      msg.sender == strategist || msg.sender == governance,
-      "Harvester :: strategist|governance"
-    );
-
-    strategist = _strategist;
-  }
-
-  function setGovernance(address _governance) external override onlyGovernance {
-    governance = _governance;
-  }
-
+  /// @notice Strategist function to remove a swap token
+  /// @param _addr address of the swap token to remove
   function removeSwapToken(address _addr)
     external
     override
@@ -98,6 +115,8 @@ contract Harvester is IHarvester {
     }
   }
 
+  /// @notice Swap a single token thats present in the Harvester using UniV3
+  /// @param sourceToken address of the token to swap into wantToken
   function swap(address sourceToken) public override {
     require(sourceToken != address(0), "sourceToken invalid");
 
@@ -122,6 +141,8 @@ contract Harvester is IHarvester {
     }
   }
 
+  /// @notice Harvest the entire swap tokens list, i.e convert them into wantToken
+  /// @dev Pulls all swap token balances from the msg.sender, swaps them into wantToken, and sends back the wantToken balance
   function harvest() external override {
     for (uint256 idx = 0; idx < swapTokens.length; idx++) {
       IERC20 _token = IERC20(swapTokens[idx]);
@@ -137,6 +158,8 @@ contract Harvester is IHarvester {
     wantToken.safeTransfer(msg.sender, wantToken.balanceOf(address(this)));
   }
 
+  /// @notice estimates output and swaps a token
+  /// @dev Internal helper function to perform UniV3 output estimations and call swap
   function _estimateAndSwap(
     address token,
     uint256 amountToSwap,
@@ -153,6 +176,8 @@ contract Harvester is IHarvester {
     _swapTokens(token, fee, amountToSwap, amountOutMinimum);
   }
 
+  /// @notice swaps a token on UniV3
+  /// @dev Internal helper function to perform token swap on UniV3
   function _swapTokens(
     address token,
     uint24 fee,
@@ -175,6 +200,8 @@ contract Harvester is IHarvester {
     uniswapRouter.exactInputSingle(params);
   }
 
+  /// @notice Governance function to sweep a token's balance lying in Harvester
+  /// @param _token address of token to sweep
   function sweep(address _token) external override onlyGovernance {
     ERC20(_token).safeTransfer(
       governance,
@@ -182,6 +209,9 @@ contract Harvester is IHarvester {
     );
   }
 
+  /// @notice Used to migrate to a new Harvester contract
+  /// @dev Transfers all swapToken balances to the new contract address
+  /// @param _newHarvester address of new Harvester contract
   function migrate(address _newHarvester) external override {
     for (uint256 idx = 0; idx < swapTokens.length; idx++) {
       IERC20 _token = IERC20(swapTokens[idx]);

@@ -59,9 +59,10 @@ contract ConvexHandler is BasePositionHandler {
 
   /// @notice Governance function to approve tokens to harvester for swaps
   /// @param tokens An array of token addresses to approve
-  function approveRewardTokensToHarvester(address[] memory tokens) external {
-    require(msg.sender == governance, "access :: Governance");
-
+  function approveRewardTokensToHarvester(address[] memory tokens)
+    external
+    onlyGovernance
+  {
     for (uint256 idx = 0; idx < tokens.length; idx++) {
       ERC20(tokens[idx]).safeApprove(address(harvester), type(uint256).max);
     }
@@ -225,5 +226,10 @@ contract ConvexHandler is BasePositionHandler {
   /// @notice price of lpToken in wantToken
   function _UST3WCRVPrice() internal view returns (uint256) {
     return ust3Pool.get_virtual_price();
+  }
+
+  modifier onlyGovernance() {
+    require(msg.sender == governance, "access :: Governance");
+    _;
   }
 }
