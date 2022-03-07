@@ -64,11 +64,22 @@ contract ConvexHandler is BasePositionHandler {
     }
   }
 
-  function setPosValue() internal {
-    positionInWantToken.posValue =
-      lpToken.balanceOf(address(this)) *
+  function positionInWantToken()
+    public
+    view
+    override
+    returns (Position memory position)
+  {
+    (
+      uint256 stakedLpBalance,
+      uint256 lpTokenBalance,
+      uint256 usdcBalanceInLpToken
+    ) = _getTotalBalancesInLp();
+
+    position.posValue =
+      (stakedLpBalance + lpTokenBalance + usdcBalanceInLpToken) *
       _UST3WCRVPrice();
-    positionInWantToken.lastUpdatedBlock = block.number;
+    position.lastUpdatedBlock = block.number;
   }
 
   function _deposit(bytes calldata _data) internal override {
@@ -111,13 +122,11 @@ contract ConvexHandler is BasePositionHandler {
   function _withdraw(bytes calldata _data) internal override {
     // _amount here is the maxWithdraw
     AmountParams memory withdrawParams = abi.decode(_data, (AmountParams));
-
-    uint256 stakedLpBalance = baseRewardPool.balanceOf(address(this));
-    uint256 lpTokenBalance = lpToken.balanceOf(address(this));
-
-    uint256 usdcPriceInLpToken = 1 / _UST3WCRVPrice();
-    uint256 usdcBalanceInLpToken = wantToken.balanceOf(address(this)) *
-      usdcPriceInLpToken;
+    (
+      uint256 stakedLpBalance,
+      uint256 lpTokenBalance,
+      uint256 usdcBalanceInLpToken
+    ) = _getTotalBalancesInLp();
 
     uint256 amountToWithdraw = Math.min(
       withdrawParams._amount,
@@ -154,9 +163,28 @@ contract ConvexHandler is BasePositionHandler {
   }
 
   function _claimRewards(bytes calldata _data) internal override {
+    // _data is not needed here (no params)
     require(baseRewardPool.getReward(), "reward claim failed");
 
     harvester.harvest();
+  }
+
+  function _getTotalBalancesInLp()
+    internal
+    view
+    returns (
+      uint256 stakedLpBalance,
+      uint256 lpTokenBalance,
+      uint256 usdcBalanceInLpToken
+    )
+  {
+    stakedLpBalance = baseRewardPool.balanceOf(address(this));
+    lpTokenBalance = lpToken.balanceOf(address(this));
+
+    uint256 usdcPriceInLpToken = 1 / _UST3WCRVPrice();
+    usdcBalanceInLpToken =
+      wantToken.balanceOf(address(this)) *
+      usdcPriceInLpToken;
   }
 
   function _UST3WCRVBalance() internal view returns (uint256) {
