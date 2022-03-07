@@ -25,13 +25,26 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 
 const config: HardhatUserConfig = {
   solidity: {
-    version: "0.8.4",
-    settings: {
-      optimizer: {
-        enabled: true,
-        runs: 100,
+    compilers: [
+      {
+        version: "0.8.4",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 100,
+          }
+        }
+      },
+      {
+        version: "0.7.6",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 100,
+          }
+        }
       }
-    }
+    ]
   },
   networks: {
     hardhat: {
@@ -56,8 +69,8 @@ const config: HardhatUserConfig = {
   typechain: {
     outDir: 'src/types',
     target: 'ethers-v5',
-    alwaysGenerateOverloads: false, 
-    externalArtifacts: ['externalArtifacts/*.json'], 
+    alwaysGenerateOverloads: false,
+    externalArtifacts: ['externalArtifacts/*.json'],
   },
   contractSizer: {
     alphaSort: true,
