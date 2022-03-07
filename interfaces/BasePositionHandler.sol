@@ -7,7 +7,11 @@ abstract contract BasePositionHandler {
     uint256 lastUpdatedBlock;
   }
 
-  Position public positionInWantToken;
+  function positionInWantToken()
+    public
+    view
+    virtual
+    returns (Position memory position);
 
   function _openPosition(bytes calldata _data) internal virtual;
 
