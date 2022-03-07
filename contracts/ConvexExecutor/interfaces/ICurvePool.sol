@@ -14,7 +14,7 @@ interface ICurvePool {
     uint256 _token_amount,
     int128 i,
     uint256 min_amount
-  ) external;
+  ) external returns (uint256);
 
   function add_liquidity(uint256[3] memory amounts, uint256 min_mint_amount)
     external
