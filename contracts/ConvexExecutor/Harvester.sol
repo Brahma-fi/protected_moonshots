@@ -1,16 +1,16 @@
 /// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
-import "../interfaces/IHarvester.sol";
-import "../interfaces/IUniswapSwapRouter.sol";
-import "../interfaces/IUniswapV3Factory.sol";
-import "../interfaces/IQuoter.sol";
+import "./interfaces/IHarvester.sol";
+import "./interfaces/IUniswapSwapRouter.sol";
+import "./interfaces/IUniswapV3Factory.sol";
+import "./interfaces/IQuoter.sol";
 
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import { SafeTransferLib } from "./solmate/SafeTransferLib.sol";
-import "./solmate/ERC20.sol";
+import { SafeTransferLib } from "../solmate/SafeTransferLib.sol";
+import "../solmate/ERC20.sol";
 
 contract Harvester is IHarvester {
   using SafeTransferLib for ERC20;
