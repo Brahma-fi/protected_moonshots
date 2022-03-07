@@ -107,6 +107,11 @@ contract Harvester is IHarvester {
       if (swapTokens[idx] == _addr) {
         delete swapTokens[idx];
         numTokens--;
+
+        for (uint256 delIdx = idx; delIdx < numTokens - 1; delIdx++) {
+          swapTokens[delIdx] = swapTokens[delIdx + 1];
+        }
+        swapTokens.pop();
       }
     }
 
