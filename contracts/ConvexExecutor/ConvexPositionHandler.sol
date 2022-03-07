@@ -64,6 +64,13 @@ contract ConvexHandler is BasePositionHandler {
     }
   }
 
+  function setPosValue() internal {
+    positionInWantToken.posValue =
+      lpToken.balanceOf(address(this)) *
+      _UST3WCRVPrice();
+    positionInWantToken.lastUpdatedBlock = block.number;
+  }
+
   function _deposit(bytes calldata _data) internal override {
     AmountParams memory depositParams = abi.decode(_data, (AmountParams));
 
@@ -108,9 +115,8 @@ contract ConvexHandler is BasePositionHandler {
     uint256 stakedLpBalance = baseRewardPool.balanceOf(address(this));
     uint256 lpTokenBalance = lpToken.balanceOf(address(this));
 
-    ERC20 usdc = ERC20(ust3Pool.base_coins(uint256(UST3PoolCoinIndexes.USDC)));
     uint256 usdcPriceInLpToken = 1 / _UST3WCRVPrice();
-    uint256 usdcBalanceInLpToken = usdc.balanceOf(address(this)) *
+    uint256 usdcBalanceInLpToken = wantToken.balanceOf(address(this)) *
       usdcPriceInLpToken;
 
     uint256 amountToWithdraw = Math.min(
@@ -141,7 +147,7 @@ contract ConvexHandler is BasePositionHandler {
         uint256 usdcToDeposit = usdcBalanceToConvert / usdcBalanceInLpToken;
         uint256[3] memory liquidityAmounts = [usdcToDeposit, 0, 0];
 
-        usdc.safeApprove(address(ust3Pool), usdcToDeposit);
+        wantToken.safeApprove(address(ust3Pool), usdcToDeposit);
         ust3Pool.add_liquidity(liquidityAmounts, usdcBalanceInLpToken);
       }
     }
