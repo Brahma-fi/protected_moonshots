@@ -14,7 +14,7 @@ import "../solmate/SafeTransferLib.sol";
 
 /// @title Convexhandler
 /// @notice Used to control the long position handler interacting with Convex
-contract ConvexHandler is BasePositionHandler {
+contract ConvexPositionHandler is BasePositionHandler {
   using SafeTransferLib for ERC20;
 
   struct AmountParams {
@@ -26,7 +26,8 @@ contract ConvexHandler is BasePositionHandler {
     address _recipient;
   }
 
-  address governance;
+  address public governance;
+  address public keeper;
 
   ERC20 public wantToken;
   ERC20 public lpToken;
@@ -44,7 +45,8 @@ contract ConvexHandler is BasePositionHandler {
     address _token,
     address _lpToken,
     address _harvester,
-    address _governance
+    address _governance,
+    address _keeper
   ) internal {
     baseRewardPool = IConvexRewards(_baseRewardPool);
     ust3Pool = ICurvePool(_ust3Pool);
@@ -55,6 +57,7 @@ contract ConvexHandler is BasePositionHandler {
     harvester = IHarvester(_harvester);
 
     governance = _governance;
+    keeper = _keeper;
   }
 
   /// @notice Governance function to approve tokens to harvester for swaps
@@ -230,6 +233,11 @@ contract ConvexHandler is BasePositionHandler {
 
   modifier onlyGovernance() {
     require(msg.sender == governance, "access :: Governance");
+    _;
+  }
+
+  modifier onlyKeeper() {
+    require(msg.sender == keeper, "access :: Keeper");
     _;
   }
 }
