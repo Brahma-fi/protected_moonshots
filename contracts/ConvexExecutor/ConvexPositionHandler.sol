@@ -12,14 +12,10 @@ import "../../library/Math.sol";
 import "./../solmate/ERC20.sol";
 import "../solmate/SafeTransferLib.sol";
 
+/// @title Convexhandler
+/// @notice Used to control the long position handler interacting with Convex
 contract ConvexHandler is BasePositionHandler {
   using SafeTransferLib for ERC20;
-
-  enum UST3PoolCoinIndexes {
-    DAI,
-    USDC,
-    USDT
-  }
 
   struct AmountParams {
     uint256 _amount;
@@ -61,6 +57,8 @@ contract ConvexHandler is BasePositionHandler {
     governance = _governance;
   }
 
+  /// @notice Governance function to approve tokens to harvester for swaps
+  /// @param tokens An array of token addresses to approve
   function approveRewardTokensToHarvester(address[] memory tokens) external {
     require(msg.sender == governance, "access :: Governance");
 
@@ -69,11 +67,12 @@ contract ConvexHandler is BasePositionHandler {
     }
   }
 
+  /// @notice To get the total balances of the contract in want token price
   function positionInWantToken()
     public
     view
     override
-    returns (Position memory position)
+    returns (uint256, uint256)
   {
     (
       uint256 stakedLpBalance,
@@ -81,12 +80,16 @@ contract ConvexHandler is BasePositionHandler {
       uint256 usdcBalanceInLpToken
     ) = _getTotalBalancesInLp();
 
-    position.posValue =
+    return (
       (stakedLpBalance + lpTokenBalance + usdcBalanceInLpToken) *
-      _UST3WCRVPrice();
-    position.lastUpdatedBlock = block.number;
+        _UST3WCRVPrice(),
+      block.number
+    );
   }
 
+  /// @notice To deposit into the ConvexHandler
+  /// @dev Pulls UST2CRV lp tokens into ConvexHandler
+  /// @param _data Encoded AmountParams as _data
   function _deposit(bytes calldata _data) internal override {
     AmountParams memory depositParams = abi.decode(_data, (AmountParams));
 
@@ -94,6 +97,9 @@ contract ConvexHandler is BasePositionHandler {
     lpToken.safeTransferFrom(msg.sender, address(this), depositParams._amount);
   }
 
+  /// @notice To use ConvexHandler balance to open position on Convex
+  /// @dev stakes the specified into Convex's UST3-Wormhole pool
+  /// @param _data Encoded AmountParams as _data
   function _openPosition(bytes calldata _data) internal override {
     AmountParams memory openPositionParams = abi.decode(_data, (AmountParams));
 
@@ -107,6 +113,9 @@ contract ConvexHandler is BasePositionHandler {
     );
   }
 
+  /// @notice To close Convex position
+  /// @dev Unstakes and claims the required portion from Convex position
+  /// @param _data Encoded AmountParams as _data
   function _closePosition(bytes calldata _data) internal override {
     AmountParams memory closePositionParams = abi.decode(_data, (AmountParams));
 
@@ -124,6 +133,9 @@ contract ConvexHandler is BasePositionHandler {
     }
   }
 
+  /// @notice To withdraw from ConvexHandler
+  /// @dev Finds max amount that can be withdrawn, unstake position or convert usdc balance to withdraw
+  /// @param _data Encoded WithdrawParams as _data
   function _withdraw(bytes calldata _data) internal override {
     // _amount here is the maxWithdraw
     WithdrawParams memory withdrawParams = abi.decode(_data, (WithdrawParams));
@@ -174,13 +186,17 @@ contract ConvexHandler is BasePositionHandler {
     lpToken.safeTransfer(withdrawParams._recipient, amountToWithdraw);
   }
 
+  /// @notice To claim rewards from Convex position
+  /// @dev Claims Convex position rewards, and converts them to wantToken
+  /// @param _data is not needed here (empty param)
   function _claimRewards(bytes calldata _data) internal override {
-    // _data is not needed here (no params)
     require(baseRewardPool.getReward(), "reward claim failed");
-
+    // convert all rewards to usdc
     harvester.harvest();
   }
 
+  /// @notice To get total contract balances in terms of lp tokens
+  /// @dev Gets lp token balance from contract and from staked position on convex, and converts usdc balance of contract to lp tokens.
   function _getTotalBalancesInLp()
     internal
     view
@@ -199,12 +215,14 @@ contract ConvexHandler is BasePositionHandler {
       usdcPriceInLpToken;
   }
 
+  /// @notice Balance of lp token --> contract + staked position
   function _UST3WCRVBalance() internal view returns (uint256) {
     return
       lpToken.balanceOf(address(this)) +
       baseRewardPool.balanceOf(address(this));
   }
 
+  /// @notice price of lpToken in wantToken
   function _UST3WCRVPrice() internal view returns (uint256) {
     return ust3Pool.get_virtual_price();
   }
