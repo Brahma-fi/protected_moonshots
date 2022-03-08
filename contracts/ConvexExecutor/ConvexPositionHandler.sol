@@ -5,6 +5,7 @@ pragma abicoder v2;
 import "../../interfaces/BasePositionHandler.sol";
 import "./interfaces/IConvexRewards.sol";
 import "./interfaces/ICurvePool.sol";
+import "./interfaces/ICurveDepositZapper.sol";
 import "./interfaces/IHarvester.sol";
 
 import "../../library/Math.sol";
@@ -45,8 +46,10 @@ contract ConvexPositionHandler is BasePositionHandler {
 
   // 0x7e2b9B5244bcFa5108A76D5E7b507CFD5581AD4A
   IConvexRewards public baseRewardPool;
-  // 0x890f4e345B1dAED0367A877a1612f86A1f86985f
+  // 0xCEAF7747579696A2F0bb206a14210e3c9e6fB269
   ICurvePool public ust3Pool;
+  // 0xA79828DF1850E8a3A3064576f380D90aECDD3359
+  ICurveDepositZapper public curve3PoolZap;
 
   function _initHandler(
     address _baseRewardPool,

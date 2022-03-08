@@ -27,6 +27,4 @@ interface ICurvePool {
   ) external view returns (uint256);
 
   function get_virtual_price() external view returns (uint256);
-
-  function base_coins(uint256 i) external view returns (address);
 }
