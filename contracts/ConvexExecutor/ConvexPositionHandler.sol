@@ -175,9 +175,11 @@ contract ConvexPositionHandler is BasePositionHandler {
     if (amountToWithdraw > usdcBalance) {
       // unstake convex position partially
       if (stakedLpBalance > 0) {
-        uint256 lpTokensToUnstake = (amountToWithdraw -
-          lpTokenBalance -
-          usdcBalance) / _UST3WCRVPrice();
+        uint256 lpTokensToUnstake = _USDCValueInLpToken(
+          (amountToWithdraw - lpTokenBalance - usdcBalance),
+          18,
+          true
+        );
 
         require(
           baseRewardPool.withdraw(lpTokensToUnstake, true),
@@ -186,8 +188,11 @@ contract ConvexPositionHandler is BasePositionHandler {
       }
     }
 
-    uint256 lpTokensToConvert = (amountToWithdraw - usdcBalance) /
-      _UST3WCRVPrice();
+    uint256 lpTokensToConvert = _USDCValueInLpToken(
+      (amountToWithdraw - usdcBalance),
+      18,
+      true
+    );
 
     // if lp tokens are required to convert, then convert to usdc and update amountToWithdraw
     if (lpTokensToConvert > 0) {
@@ -224,44 +229,67 @@ contract ConvexPositionHandler is BasePositionHandler {
       uint256 usdcBalance
     )
   {
-    stakedLpBalance =
-      baseRewardPool.balanceOf(address(this)) *
-      _UST3WCRVPrice();
-    lpTokenBalance = lpToken.balanceOf(address(this)) * _UST3WCRVPrice();
+    stakedLpBalance = _lpTokenValueInUSDC(
+      baseRewardPool.balanceOf(address(this)),
+      18
+    );
+    lpTokenBalance = _lpTokenValueInUSDC(lpToken.balanceOf(address(this)), 18);
     usdcBalance = _normaliseDecimals(wantToken.balanceOf(address(this)), true);
   }
 
   function _convertLpTokenIntoUSDC(uint256 _amount)
     internal
-    returns (uint256 receivedLpTokens)
+    returns (uint256 receivedWantTokens)
   {
     lpToken.safeApprove(address(ust3Pool), _amount);
 
-    receivedLpTokens = ust3Pool.remove_liquidity_one_coin(
+    receivedWantTokens = ust3Pool.remove_liquidity_one_coin(
       _amount,
       int128(int256(uint256(UST3PoolCoinIndexes.USDC))),
-      ((_amount * _UST3WCRVPrice()) * (MAX_BPS - maxSlippage)) / (MAX_BPS)
+      (_lpTokenValueInUSDC(_amount, 18) * (MAX_BPS - maxSlippage)) / (MAX_BPS)
     );
   }
 
   function _convertUSDCIntoLpToken(uint256 _amount)
     internal
-    returns (uint256 receivedWantTokens)
+    returns (uint256 receivedLpTokens)
   {
     uint256[3] memory liquidityAmounts = [_amount, 0, 0];
 
     wantToken.safeApprove(address(ust3Pool), _amount);
 
-    receivedWantTokens = ust3Pool.add_liquidity(
+    receivedLpTokens = ust3Pool.add_liquidity(
       liquidityAmounts,
-      ((_amount / _normaliseDecimals(_UST3WCRVPrice(), false)) *
-        (MAX_BPS - maxSlippage)) / (MAX_BPS)
+      (_USDCValueInLpToken(_amount, 6, false) * (MAX_BPS - maxSlippage)) /
+        (MAX_BPS)
     );
   }
 
   /// @notice price of lpToken in wantToken
   function _UST3WCRVPrice() internal view returns (uint256) {
     return ust3Pool.get_virtual_price();
+  }
+
+  function _lpTokenValueInUSDC(uint256 _value, uint256 _decimals)
+    internal
+    view
+    returns (uint256)
+  {
+    return
+      (((_value / 10**_decimals) * _UST3WCRVPrice()) / 1e18) * 10**_decimals;
+  }
+
+  function _USDCValueInLpToken(
+    uint256 _value,
+    uint256 _decimals,
+    bool _is18Decimals
+  ) internal view returns (uint256) {
+    return
+      (
+        _is18Decimals
+          ? _value
+          : _normaliseDecimals(_value, false) / _UST3WCRVPrice()
+      ) * 10**_decimals;
   }
 
   /// @notice helper to normalise decimals
