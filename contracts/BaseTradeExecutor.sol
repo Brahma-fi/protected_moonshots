@@ -2,16 +2,27 @@
 pragma solidity ^0.8.0;
 
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "../interfaces/ITradeExecutor.sol";
+import "../interfaces/IMetaRouter.sol";
 
 
 abstract contract BaseTradeExecutor is ITradeExecutor {
 
+    uint256 constant MAX_INT = 2**256 - 1;
 
-    ActionStatus public depositStatus;
-    ActionStatus public withdrawalStatus;
+    ActionStatus public override depositStatus;
+    ActionStatus public override withdrawalStatus;
+
+    address public router;
+    address public wantToken;
+    
+    constructor(address _router) {
+        router = _router;
+        wantToken = IMetaRouter(router).wantToken();
+        IERC20(wantToken).approve(router, MAX_INT);
+    }
 
 
     function initiateDeposit (bytes calldata _data) public override{
@@ -38,8 +49,6 @@ abstract contract BaseTradeExecutor is ITradeExecutor {
         withdrawalStatus.inProcess = false;
 
     }
-
-    function totalFunds() public virtual returns(uint256 _sharePrice, uint256 lastUpdatedBlock);
 
 
     /// Internal Funcs
