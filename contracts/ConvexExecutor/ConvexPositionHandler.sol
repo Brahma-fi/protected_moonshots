@@ -10,13 +10,13 @@ import "./interfaces/IHarvester.sol";
 
 import "../../library/Math.sol";
 
-import "./../solmate/ERC20.sol";
-import "../solmate/SafeTransferLib.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title Convexhandler
 /// @notice Used to control the long position handler interacting with Convex
 contract ConvexPositionHandler is BasePositionHandler {
-  using SafeTransferLib for ERC20;
+  using SafeERC20 for IERC20;
 
   enum UST3PoolCoinIndexes {
     UST,
@@ -40,8 +40,8 @@ contract ConvexPositionHandler is BasePositionHandler {
   address public governance;
   address public keeper;
 
-  ERC20 public wantToken;
-  ERC20 public lpToken;
+  IERC20 public wantToken;
+  IERC20 public lpToken;
 
   IHarvester public harvester;
 
@@ -66,8 +66,8 @@ contract ConvexPositionHandler is BasePositionHandler {
     ust3Pool = ICurvePool(_ust3Pool);
     curve3PoolZap = ICurveDepositZapper(_curve3PoolZap);
 
-    wantToken = ERC20(_token);
-    lpToken = ERC20(_lpToken);
+    wantToken = IERC20(_token);
+    lpToken = IERC20(_lpToken);
 
     harvester = IHarvester(_harvester);
 
@@ -82,7 +82,7 @@ contract ConvexPositionHandler is BasePositionHandler {
     onlyGovernance
   {
     for (uint256 idx = 0; idx < tokens.length; idx++) {
-      ERC20(tokens[idx]).safeApprove(address(harvester), type(uint256).max);
+      IERC20(tokens[idx]).safeApprove(address(harvester), type(uint256).max);
     }
   }
 
