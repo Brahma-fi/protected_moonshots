@@ -8,6 +8,7 @@ contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
   constructor(
     address _baseRewardPool,
     address _ust3Pool,
+    address _curve3PoolZap,
     address _token,
     address _lpToken,
     address _harvester,
@@ -17,6 +18,7 @@ contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
     _initHandler(
       _baseRewardPool,
       _ust3Pool,
+      _curve3PoolZap,
       _token,
       _lpToken,
       _harvester,
@@ -28,6 +30,7 @@ contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
   function setHandler(
     address _baseRewardPool,
     address _ust3Pool,
+    address _curve3PoolZap,
     address _token,
     address _lpToken,
     address _harvester,
@@ -37,6 +40,7 @@ contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
     _initHandler(
       _baseRewardPool,
       _ust3Pool,
+      _curve3PoolZap,
       _token,
       _lpToken,
       _harvester,
