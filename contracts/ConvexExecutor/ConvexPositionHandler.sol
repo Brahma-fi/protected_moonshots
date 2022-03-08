@@ -237,6 +237,9 @@ contract ConvexPositionHandler is BasePositionHandler {
     usdcBalance = _normaliseDecimals(wantToken.balanceOf(address(this)), true);
   }
 
+  /// @notice Helper to convert Lp tokens into USDC
+  /// @dev Burns LpTokens on UST3-Wormhole pool on curve to get USDC
+  /// @param _amount amount of Lp tokens to burn to get USDC
   function _convertLpTokenIntoUSDC(uint256 _amount)
     internal
     returns (uint256 receivedWantTokens)
@@ -250,6 +253,9 @@ contract ConvexPositionHandler is BasePositionHandler {
     );
   }
 
+  /// @notice Helper to convert USDC into Lp tokens
+  /// @dev Provides USDC liquidity on UST3-Wormhole pool on curve to get Lp Tokens
+  /// @param _amount amount of USDC to deposit to get Lp Tokens
   function _convertUSDCIntoLpToken(uint256 _amount)
     internal
     returns (uint256 receivedLpTokens)
@@ -260,7 +266,7 @@ contract ConvexPositionHandler is BasePositionHandler {
 
     receivedLpTokens = ust3Pool.add_liquidity(
       liquidityAmounts,
-      (_USDCValueInLpToken(_amount, 6, false) * (MAX_BPS - maxSlippage)) /
+      (_USDCValueInLpToken(_amount, 18, false) * (MAX_BPS - maxSlippage)) /
         (MAX_BPS)
     );
   }
@@ -270,15 +276,22 @@ contract ConvexPositionHandler is BasePositionHandler {
     return ust3Pool.get_virtual_price();
   }
 
+  /// @notice to get value of an amount in USDC
+  /// @param _value value to be converted
+  /// @param _decimals the output decimals
   function _lpTokenValueInUSDC(uint256 _value, uint256 _decimals)
     internal
     view
     returns (uint256)
   {
     return
-      (((_value / 10**_decimals) * _UST3WCRVPrice()) / 1e18) * 10**_decimals;
+      (((_value * _UST3WCRVPrice()) / 10**_decimals) / 1e18) * 10**_decimals;
   }
 
+  /// @notice to get value of an amount in Lp Tokens
+  /// @param _value value to be converted
+  /// @param _decimals the output decimals
+  /// @param _is18Decimals True if input is 1e18, else false
   function _USDCValueInLpToken(
     uint256 _value,
     uint256 _decimals,
