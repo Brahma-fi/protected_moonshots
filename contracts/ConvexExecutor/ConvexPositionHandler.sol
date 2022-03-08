@@ -93,7 +93,13 @@ contract ConvexPositionHandler is BasePositionHandler {
       uint256 usdcBalance
     ) = _getTotalBalancesInWantToken();
 
-    return ((stakedLpBalance + lpTokenBalance + usdcBalance), block.number);
+    return (
+      _normaliseDecimals(
+        (stakedLpBalance + lpTokenBalance + usdcBalance),
+        false
+      ),
+      block.number
+    );
   }
 
   /// @notice To deposit into the ConvexHandler
@@ -161,7 +167,7 @@ contract ConvexPositionHandler is BasePositionHandler {
 
     // calculate maximum amount that can be withdrawn
     uint256 amountToWithdraw = Math.min(
-      withdrawParams._maxWithdraw,
+      _normaliseDecimals(withdrawParams._maxWithdraw, true),
       (stakedLpBalance + lpTokenBalance + usdcBalance)
     );
 
@@ -192,7 +198,10 @@ contract ConvexPositionHandler is BasePositionHandler {
     }
 
     // transfer lp tokens to recipient
-    wantToken.safeTransfer(withdrawParams._recipient, (amountToWithdraw));
+    wantToken.safeTransfer(
+      withdrawParams._recipient,
+      _normaliseDecimals(amountToWithdraw, false)
+    );
   }
 
   /// @notice To claim rewards from Convex position
@@ -219,7 +228,7 @@ contract ConvexPositionHandler is BasePositionHandler {
       baseRewardPool.balanceOf(address(this)) *
       _UST3WCRVPrice();
     lpTokenBalance = lpToken.balanceOf(address(this)) * _UST3WCRVPrice();
-    usdcBalance = wantToken.balanceOf(address(this));
+    usdcBalance = _normaliseDecimals(wantToken.balanceOf(address(this)), true);
   }
 
   function _convertLpTokenIntoUSDC(uint256 _amount)
@@ -252,6 +261,17 @@ contract ConvexPositionHandler is BasePositionHandler {
   /// @notice price of lpToken in wantToken
   function _UST3WCRVPrice() internal view returns (uint256) {
     return ust3Pool.get_virtual_price();
+  }
+
+  /// @notice helper to normalise decimals
+  /// @param _value value to normalise
+  /// @param _direction True -> 6 decimals to 18 decimals ; False -> 18 decimals -> 6 decimals
+  function _normaliseDecimals(uint256 _value, bool _direction)
+    internal
+    pure
+    returns (uint256)
+  {
+    return (_value * (_direction ? 1e18 : 1e6)) / (_direction ? 1e6 : 1e18);
   }
 
   modifier onlyGovernance() {
