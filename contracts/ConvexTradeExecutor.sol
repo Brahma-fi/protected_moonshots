@@ -11,17 +11,16 @@ contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
     address _token,
     address _lpToken,
     address _harvester,
-    address _governance,
-    address _keeper
-  ) {
+    address _router
+  ) BaseTradeExecutor(_router){
     _initHandler(
       _baseRewardPool,
       _ust3Pool,
       _token,
       _lpToken,
       _harvester,
-      _governance,
-      _keeper
+      governance,
+      keeper
     );
   }
 
