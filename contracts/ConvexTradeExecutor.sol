@@ -25,6 +25,26 @@ contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
     );
   }
 
+  function setHandler(
+    address _baseRewardPool,
+    address _ust3Pool,
+    address _token,
+    address _lpToken,
+    address _harvester,
+    address _governance,
+    address _keeper
+  ) external onlyGovernance {
+    _initHandler(
+      _baseRewardPool,
+      _ust3Pool,
+      _token,
+      _lpToken,
+      _harvester,
+      _governance,
+      _keeper
+    );
+  }
+
   function openPosition(bytes calldata _data) public onlyKeeper {
     _openPosition(_data);
   }
@@ -37,12 +57,7 @@ contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
     _claimRewards(_data);
   }
 
-  function totalFunds()
-    public
-    view
-    override
-    returns (uint256 _sharePrice, uint256 lastUpdatedBlock)
-  {
+  function totalFunds() public view override returns (uint256, uint256) {
     return positionInWantToken();
   }
 

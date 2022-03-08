@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import "./interfaces/IHarvester.sol";
 import "./interfaces/IUniswapSwapRouter.sol";
 import "./interfaces/IUniswapV3Factory.sol";
-import "./interfaces/IQuoter.sol";
 
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -23,10 +22,8 @@ contract Harvester is IHarvester {
     IUniswapV3Factory(0x1F98431c8aD98523631AE4a59f267346ea31F984);
   IUniswapSwapRouter private immutable uniswapRouter =
     IUniswapSwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
-  IQuoter public immutable quoter =
-    IQuoter(0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6);
 
-  address public override strategist;
+  address public override keeper;
   address public override governance;
 
   IERC20Metadata public wantToken;
@@ -36,43 +33,43 @@ contract Harvester is IHarvester {
   uint256 public override slippage;
 
   constructor(
-    address _strategist,
+    address _keeper,
     IERC20Metadata _wantToken,
     uint256 _slippage,
     address _governance
   ) {
-    strategist = _strategist;
+    keeper = _keeper;
     wantToken = _wantToken;
     slippage = _slippage;
     governance = _governance;
   }
 
-  /// @notice Strategist function to set want token to convert swapTokens into
+  /// @notice Keeper function to set want token to convert swapTokens into
   /// @param _addr address of the want token
   function setWantToken(address _addr)
     external
     override
     validAddress(_addr)
-    onlyStrategist
+    onlyKeeper
   {
     wantToken = IERC20Metadata(_addr);
   }
 
-  /// @notice Strategist function to set max accepted slippage of swaps
+  /// @notice Keeper function to set max accepted slippage of swaps
   /// @param _slippage Max accepted slippage during harvesting
-  function setSlippage(uint256 _slippage) external override onlyStrategist {
+  function setSlippage(uint256 _slippage) external override onlyKeeper {
     slippage = _slippage;
   }
 
-  /// @notice Strategist&Governance function to set a new strategist
-  /// @param _strategist address of new strategist
-  function setStrategist(address _strategist) external override {
+  /// @notice Keeper&Governance function to set a new keeper
+  /// @param _keeper address of new keeper
+  function setKeeper(address _keeper) external override {
     require(
-      msg.sender == strategist || msg.sender == governance,
-      "Harvester :: strategist|governance"
+      msg.sender == keeper || msg.sender == governance,
+      "Harvester :: keeper|governance"
     );
 
-    strategist = _strategist;
+    keeper = _keeper;
   }
 
   /// @notice Governance function to set a new governance
@@ -81,24 +78,24 @@ contract Harvester is IHarvester {
     governance = _governance;
   }
 
-  /// @notice Strategist function to add a new swap token
+  /// @notice Keeper function to add a new swap token
   /// @param _addr address of the new swap token
   function addSwapToken(address _addr)
     external
     override
-    onlyStrategist
+    onlyKeeper
     validAddress(_addr)
   {
     swapTokens.push(_addr);
-    numTokens++;
+    numTokens += 1;
   }
 
-  /// @notice Strategist function to remove a swap token
+  /// @notice Keeper function to remove a swap token
   /// @param _addr address of the swap token to remove
   function removeSwapToken(address _addr)
     external
     override
-    onlyStrategist
+    onlyKeeper
     validAddress(_addr)
   {
     uint256 _initialNumTokens = numTokens;
@@ -106,7 +103,7 @@ contract Harvester is IHarvester {
     for (uint256 idx = 0; idx < _initialNumTokens; idx++) {
       if (swapTokens[idx] == _addr) {
         delete swapTokens[idx];
-        numTokens--;
+        numTokens -= 1;
 
         for (uint256 delIdx = idx; delIdx < numTokens - 1; delIdx++) {
           swapTokens[delIdx] = swapTokens[delIdx + 1];
@@ -142,7 +139,7 @@ contract Harvester is IHarvester {
         }
       }
 
-      _estimateAndSwap(sourceToken, sourceTokenBalance, fee);
+      _swapTokens(sourceToken, fee, sourceTokenBalance, 0);
     }
   }
 
@@ -161,24 +158,6 @@ contract Harvester is IHarvester {
     }
 
     wantToken.safeTransfer(msg.sender, wantToken.balanceOf(address(this)));
-  }
-
-  /// @notice estimates output and swaps a token
-  /// @dev Internal helper function to perform UniV3 output estimations and call swap
-  function _estimateAndSwap(
-    address token,
-    uint256 amountToSwap,
-    uint24 fee
-  ) internal {
-    uint256 amountOutMinimum = (quoter.quoteExactInputSingle(
-      address(token),
-      address(wantToken),
-      fee,
-      amountToSwap,
-      0
-    ) * (MAX_BPS - slippage)) / (MAX_BPS);
-
-    _swapTokens(token, fee, amountToSwap, amountOutMinimum);
   }
 
   /// @notice swaps a token on UniV3
@@ -234,8 +213,8 @@ contract Harvester is IHarvester {
     _;
   }
 
-  modifier onlyStrategist() {
-    require(msg.sender == strategist, "auth: strategist");
+  modifier onlyKeeper() {
+    require(msg.sender == keeper, "auth: keeper");
     _;
   }
 }

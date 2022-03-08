@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 interface IHarvester {
-  function strategist() external view returns (address);
+  function keeper() external view returns (address);
 
   function governance() external view returns (address);
 
@@ -14,7 +14,7 @@ interface IHarvester {
 
   function setWantToken(address _addr) external;
 
-  function setStrategist(address _strategist) external;
+  function setKeeper(address _keeper) external;
 
   function setGovernance(address _governance) external;
 
