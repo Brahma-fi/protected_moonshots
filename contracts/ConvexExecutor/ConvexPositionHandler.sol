@@ -32,7 +32,7 @@ contract ConvexPositionHandler is BasePositionHandler {
     address _recipient;
   }
 
-  uint256 public immutable MAX_BPS = 100;
+  uint256 public immutable MAX_BPS = 10000;
   uint256 public maxSlippage = 30;
 
   address public governance;
@@ -93,14 +93,11 @@ contract ConvexPositionHandler is BasePositionHandler {
       uint256 usdcBalance
     ) = _getTotalBalancesInWantToken();
 
-    return (
-      (stakedLpBalance + lpTokenBalance + usdcBalance) * _UST3WCRVPrice(),
-      block.number
-    );
+    return ((stakedLpBalance + lpTokenBalance + usdcBalance), block.number);
   }
 
   /// @notice To deposit into the ConvexHandler
-  /// @dev Pulls UST2CRV lp tokens into ConvexHandler
+  /// @dev Pulls USDC lp tokens into ConvexHandler
   /// @param _data Encoded AmountParams as _data
   function _deposit(bytes calldata _data) internal override {
     AmountParams memory depositParams = abi.decode(_data, (AmountParams));
@@ -161,7 +158,6 @@ contract ConvexPositionHandler is BasePositionHandler {
       uint256 lpTokenBalance,
       uint256 usdcBalance
     ) = _getTotalBalancesInWantToken();
-    uint256 usdcPriceInLpToken = 1 / _UST3WCRVPrice();
 
     // calculate maximum amount that can be withdrawn
     uint256 amountToWithdraw = Math.min(
@@ -175,7 +171,7 @@ contract ConvexPositionHandler is BasePositionHandler {
       if (stakedLpBalance > 0) {
         uint256 lpTokensToUnstake = (amountToWithdraw -
           lpTokenBalance -
-          usdcBalance) * usdcPriceInLpToken;
+          usdcBalance) / _UST3WCRVPrice();
 
         require(
           baseRewardPool.withdraw(lpTokensToUnstake, true),
@@ -184,8 +180,8 @@ contract ConvexPositionHandler is BasePositionHandler {
       }
     }
 
-    uint256 lpTokensToConvert = (amountToWithdraw - usdcBalance) *
-      usdcPriceInLpToken;
+    uint256 lpTokensToConvert = (amountToWithdraw - usdcBalance) /
+      _UST3WCRVPrice();
 
     // if lp tokens are required to convert, then convert to usdc and update amountToWithdraw
     if (lpTokensToConvert > 0) {
@@ -235,7 +231,7 @@ contract ConvexPositionHandler is BasePositionHandler {
     receivedLpTokens = ust3Pool.remove_liquidity_one_coin(
       _amount,
       int128(int256(uint256(UST3PoolCoinIndexes.USDC))),
-      ((_amount * _UST3WCRVPrice()) * maxSlippage) / (100 * MAX_BPS)
+      ((_amount * _UST3WCRVPrice()) * (100 - maxSlippage)) / (MAX_BPS)
     );
   }
 
@@ -243,22 +239,14 @@ contract ConvexPositionHandler is BasePositionHandler {
     internal
     returns (uint256 receivedWantTokens)
   {
-    uint256 usdcPriceInLpToken = 1 / _UST3WCRVPrice();
     uint256[3] memory liquidityAmounts = [_amount, 0, 0];
 
     wantToken.safeApprove(address(ust3Pool), _amount);
 
     receivedWantTokens = ust3Pool.add_liquidity(
       liquidityAmounts,
-      ((_amount * usdcPriceInLpToken) * maxSlippage) / (100 * MAX_BPS)
+      ((_amount / _UST3WCRVPrice()) * (100 - maxSlippage)) / (MAX_BPS)
     );
-  }
-
-  /// @notice Balance of lp token --> contract + staked position
-  function _UST3WCRVBalance() internal view returns (uint256) {
-    return
-      lpToken.balanceOf(address(this)) +
-      baseRewardPool.balanceOf(address(this));
   }
 
   /// @notice price of lpToken in wantToken
