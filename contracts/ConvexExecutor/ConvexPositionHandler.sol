@@ -40,7 +40,9 @@ contract ConvexPositionHandler is BasePositionHandler {
   address public governance;
   address public keeper;
 
+  // 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
   ERC20 public wantToken;
+  // 0xCEAF7747579696A2F0bb206a14210e3c9e6fB269
   ERC20 public lpToken;
 
   IHarvester public harvester;

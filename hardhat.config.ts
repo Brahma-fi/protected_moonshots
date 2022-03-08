@@ -6,7 +6,7 @@ import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
-import 'hardhat-contract-sizer';
+import "hardhat-contract-sizer";
 
 dotenv.config();
 
@@ -31,7 +31,7 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 100,
+            runs: 100
           }
         }
       },
@@ -40,7 +40,7 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 100,
+            runs: 100
           }
         }
       }
@@ -49,35 +49,36 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       forking: {
-        url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}`,
-        blockNumber: 14127490, // Comment line for latest block automatically
+        url: process.env.MAINNET_URL
+        // blockNumber: 14127490, // Comment line for latest block automatically
       }
     },
     ropsten: {
-      url: `https://eth-ropsten.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}` || "",
+      url:
+        `https://eth-ropsten.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}` || "",
       accounts:
-        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
-    },
+        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : []
+    }
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,
-    currency: "USD",
+    currency: "USD"
   },
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY,
+    apiKey: process.env.ETHERSCAN_API_KEY
   },
   typechain: {
-    outDir: 'src/types',
-    target: 'ethers-v5',
+    outDir: "src/types",
+    target: "ethers-v5",
     alwaysGenerateOverloads: false,
-    externalArtifacts: ['externalArtifacts/*.json'],
+    externalArtifacts: ["externalArtifacts/*.json"]
   },
   contractSizer: {
     alphaSort: true,
     disambiguatePaths: false,
     runOnCompile: true,
     strict: true
-  },
+  }
 };
 
 export default config;
