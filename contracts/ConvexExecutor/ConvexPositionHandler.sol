@@ -254,7 +254,8 @@ contract ConvexPositionHandler is BasePositionHandler {
 
     receivedWantTokens = ust3Pool.add_liquidity(
       liquidityAmounts,
-      ((_amount / _UST3WCRVPrice()) * (MAX_BPS - maxSlippage)) / (MAX_BPS)
+      ((_amount / _normaliseDecimals(_UST3WCRVPrice(), false)) *
+        (MAX_BPS - maxSlippage)) / (MAX_BPS)
     );
   }
 
