@@ -40,11 +40,29 @@ contract MetaRouter is IMetaRouter, ERC20 {
     }
 
 
+    function deposit(uint amountIn, address receiver) public returns (uint256 shares) {
+        require(amountIn > 0);
+        require(receiver != address(0));
+
+        shares = totalSupply() * amountIn / totalRouterFunds();
+
+        IERC20(wantToken).transferFrom(receiver, address(this), amountIn);
+        _mint(receiver, shares);
+    }
+
+    function withdraw(uint sharesIn, address receiver) public returns (uint256 amountOut) {
+        require(sharesIn > 0);
+        require(receiver != address(0));
+
+        amountOut = sharesIn * totalRouterFunds() / totalSupply();
+        _burn(receiver, sharesIn);
+        IERC20(wantToken).transfer(receiver, amountOut);
+    }
 
 
-    function sharePrice() public view returns (uint) {
-        uint totalWantTokenBalance = IERC20(wantToken).balanceOf(address(this)) + totalExecutorFunds();
-        return totalWantTokenBalance/totalSupply();
+
+    function totalRouterFunds() public view returns (uint) {
+        return IERC20(wantToken).balanceOf(address(this)) + totalExecutorFunds();
     }
 
     function depositIntoExecutor(address _executor, uint _amount) public isActiveExecutor(_executor) onlyKeeper {
@@ -105,15 +123,15 @@ contract MetaRouter is IMetaRouter, ERC20 {
     }
 
     // access modifiers - governance (only emergency)
-    // keeper - add, remove, 
+    //✅ keeper - add, remove, 
 
     //✅ Iterable mapping of trade executors
     //✅ TE with their active flags (active or inactve) - controls all functions relevant to the TE 
 
     //✅ add TE 
     //✅ remove TE 
-    //deposit  - return LP tokens to user (needs updated totalfunds)
-    //withdraw  - burn LP tokens of a user (needs updated totalfunds)
+    //✅ deposit  - return LP tokens to user (needs updated totalfunds)
+    //✅ withdraw  - burn LP tokens of a user (needs updated totalfunds)
 
     // TODO: discuss this with bapi - ideally a keeper job
     // ability to call initDeposit, confirmDeposit, initWithdraw, confirmWithdraw on active TE 
