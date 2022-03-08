@@ -55,6 +55,7 @@ contract ConvexPositionHandler is BasePositionHandler {
   function _initHandler(
     address _baseRewardPool,
     address _ust3Pool,
+    address _curve3PoolZap,
     address _token,
     address _lpToken,
     address _harvester,
@@ -63,6 +64,7 @@ contract ConvexPositionHandler is BasePositionHandler {
   ) internal {
     baseRewardPool = IConvexRewards(_baseRewardPool);
     ust3Pool = ICurvePool(_ust3Pool);
+    curve3PoolZap = ICurveDepositZapper(_curve3PoolZap);
 
     wantToken = ERC20(_token);
     lpToken = ERC20(_lpToken);
