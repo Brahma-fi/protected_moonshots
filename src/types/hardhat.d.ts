@@ -13,6 +13,10 @@ import * as Contracts from ".";
 declare module "hardhat/types/runtime" {
   interface HardhatEthersHelpers extends HardhatEthersHelpersBase {
     getContractFactory(
+      name: "ERC20",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ERC20__factory>;
+    getContractFactory(
       name: "IERC20Metadata",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IERC20Metadata__factory>;
@@ -21,25 +25,45 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IERC20__factory>;
     getContractFactory(
-      name: "ConvexHandler",
+      name: "IAccountBalance",
       signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.ConvexHandler__factory>;
+    ): Promise<Contracts.IAccountBalance__factory>;
+    getContractFactory(
+      name: "IClearingHouse",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IClearingHouse__factory>;
+    getContractFactory(
+      name: "IClearingHouseConfig",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IClearingHouseConfig__factory>;
+    getContractFactory(
+      name: "IExchange",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IExchange__factory>;
+    getContractFactory(
+      name: "IOrderBook",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IOrderBook__factory>;
+    getContractFactory(
+      name: "IVault",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IVault__factory>;
+    getContractFactory(
+      name: "IVirtualToken",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IVirtualToken__factory>;
+    getContractFactory(
+      name: "BaseTradeExecutor",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.BaseTradeExecutor__factory>;
+    getContractFactory(
+      name: "ConvexPositionHandler",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ConvexPositionHandler__factory>;
     getContractFactory(
       name: "Harvester",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Harvester__factory>;
-    getContractFactory(
-      name: "ERC20",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.ERC20__factory>;
-    getContractFactory(
-      name: "Vault",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.Vault__factory>;
-    getContractFactory(
-      name: "IConvexHandler",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.IConvexHandler__factory>;
     getContractFactory(
       name: "IConvexRewards",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -69,10 +93,67 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IUniswapV3SwapCallback__factory>;
     getContractFactory(
-      name: "IVault",
+      name: "ConvexTradeExecutor",
       signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.IVault__factory>;
+    ): Promise<Contracts.ConvexTradeExecutor__factory>;
+    getContractFactory(
+      name: "ICrossDomainMessenger",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ICrossDomainMessenger__factory>;
+    getContractFactory(
+      name: "OptimismWrapper",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.OptimismWrapper__factory>;
+    getContractFactory(
+      name: "PerpPositionHandler",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.PerpPositionHandler__factory>;
+    getContractFactory(
+      name: "ICrossDomainMessenger",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ICrossDomainMessenger__factory>;
+    getContractFactory(
+      name: "IERC20",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IERC20__factory>;
+    getContractFactory(
+      name: "IPositionHandler",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IPositionHandler__factory>;
+    getContractFactory(
+      name: "OptimismL2Wrapper",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.OptimismL2Wrapper__factory>;
+    getContractFactory(
+      name: "PerpV2Controller",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.PerpV2Controller__factory>;
+    getContractFactory(
+      name: "ShortPositionHandlerL2",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ShortPositionHandlerL2__factory>;
+    getContractFactory(
+      name: "PerpTradeExecutor",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.PerpTradeExecutor__factory>;
+    getContractFactory(
+      name: "ERC20",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ERC20__factory>;
+    getContractFactory(
+      name: "BasePositionHandler",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.BasePositionHandler__factory>;
+    getContractFactory(
+      name: "ITradeExecutor",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ITradeExecutor__factory>;
 
+    getContractAt(
+      name: "ERC20",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ERC20>;
     getContractAt(
       name: "IERC20Metadata",
       address: string,
@@ -84,30 +165,55 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.IERC20>;
     getContractAt(
-      name: "ConvexHandler",
+      name: "IAccountBalance",
       address: string,
       signer?: ethers.Signer
-    ): Promise<Contracts.ConvexHandler>;
+    ): Promise<Contracts.IAccountBalance>;
+    getContractAt(
+      name: "IClearingHouse",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IClearingHouse>;
+    getContractAt(
+      name: "IClearingHouseConfig",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IClearingHouseConfig>;
+    getContractAt(
+      name: "IExchange",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IExchange>;
+    getContractAt(
+      name: "IOrderBook",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IOrderBook>;
+    getContractAt(
+      name: "IVault",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IVault>;
+    getContractAt(
+      name: "IVirtualToken",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IVirtualToken>;
+    getContractAt(
+      name: "BaseTradeExecutor",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.BaseTradeExecutor>;
+    getContractAt(
+      name: "ConvexPositionHandler",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ConvexPositionHandler>;
     getContractAt(
       name: "Harvester",
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.Harvester>;
-    getContractAt(
-      name: "ERC20",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.ERC20>;
-    getContractAt(
-      name: "Vault",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.Vault>;
-    getContractAt(
-      name: "IConvexHandler",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.IConvexHandler>;
     getContractAt(
       name: "IConvexRewards",
       address: string,
@@ -144,10 +250,75 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.IUniswapV3SwapCallback>;
     getContractAt(
-      name: "IVault",
+      name: "ConvexTradeExecutor",
       address: string,
       signer?: ethers.Signer
-    ): Promise<Contracts.IVault>;
+    ): Promise<Contracts.ConvexTradeExecutor>;
+    getContractAt(
+      name: "ICrossDomainMessenger",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ICrossDomainMessenger>;
+    getContractAt(
+      name: "OptimismWrapper",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.OptimismWrapper>;
+    getContractAt(
+      name: "PerpPositionHandler",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.PerpPositionHandler>;
+    getContractAt(
+      name: "ICrossDomainMessenger",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ICrossDomainMessenger>;
+    getContractAt(
+      name: "IERC20",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IERC20>;
+    getContractAt(
+      name: "IPositionHandler",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IPositionHandler>;
+    getContractAt(
+      name: "OptimismL2Wrapper",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.OptimismL2Wrapper>;
+    getContractAt(
+      name: "PerpV2Controller",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.PerpV2Controller>;
+    getContractAt(
+      name: "ShortPositionHandlerL2",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ShortPositionHandlerL2>;
+    getContractAt(
+      name: "PerpTradeExecutor",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.PerpTradeExecutor>;
+    getContractAt(
+      name: "ERC20",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ERC20>;
+    getContractAt(
+      name: "BasePositionHandler",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.BasePositionHandler>;
+    getContractAt(
+      name: "ITradeExecutor",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ITradeExecutor>;
 
     // default types
     getContractFactory(
