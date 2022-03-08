@@ -301,8 +301,8 @@ contract ConvexPositionHandler is BasePositionHandler {
       (
         _is18Decimals
           ? _value
-          : _normaliseDecimals(_value, false) / _UST3WCRVPrice()
-      ) * 10**_decimals;
+          : _normaliseDecimals(_value, false) * 10**_decimals
+      ) / _UST3WCRVPrice();
   }
 
   /// @notice helper to normalise decimals
