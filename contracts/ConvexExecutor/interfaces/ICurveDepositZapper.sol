@@ -18,14 +18,12 @@ interface ICurveDepositZapper {
     address _pool,
     uint256 _burn_amount,
     int128 i,
-    uint256 _min_amount,
-    address _receiver
+    uint256 _min_amount
   ) external returns (uint256);
 
   function add_liquidity(
     address _pool,
     uint256[4] memory _deposit_amounts,
-    uint256 _min_mint_amount,
-    address _receiver
+    uint256 _min_mint_amount
   ) external returns (uint256);
 }

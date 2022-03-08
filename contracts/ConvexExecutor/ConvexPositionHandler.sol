@@ -19,6 +19,7 @@ contract ConvexPositionHandler is BasePositionHandler {
   using SafeTransferLib for ERC20;
 
   enum UST3PoolCoinIndexes {
+    UST,
     DAI,
     USDC,
     USDT
@@ -249,10 +250,20 @@ contract ConvexPositionHandler is BasePositionHandler {
   {
     lpToken.safeApprove(address(ust3Pool), _amount);
 
-    receivedWantTokens = ust3Pool.remove_liquidity_one_coin(
+    int128 usdcIndexInPool = int128(int256(uint256(UST3PoolCoinIndexes.USDC)));
+
+    // estimate amount of USDC received on burning Lp tokens
+    uint256 expectedWantTokensOut = curve3PoolZap.calc_withdraw_one_coin(
+      address(ust3Pool),
       _amount,
-      int128(int256(uint256(UST3PoolCoinIndexes.USDC))),
-      (_lpTokenValueInUSDC(_amount, 18) * (MAX_BPS - maxSlippage)) / (MAX_BPS)
+      usdcIndexInPool
+    );
+    // burn Lp tokens to receive USDC with a slippage of `maxSlippage`
+    receivedWantTokens = curve3PoolZap.remove_liquidity_one_coin(
+      address(ust3Pool),
+      _amount,
+      usdcIndexInPool,
+      (expectedWantTokensOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)
     );
   }
 
@@ -263,14 +274,21 @@ contract ConvexPositionHandler is BasePositionHandler {
     internal
     returns (uint256 receivedLpTokens)
   {
-    uint256[3] memory liquidityAmounts = [_amount, 0, 0];
+    uint256[4] memory liquidityAmounts = [0, 0, _amount, 0];
 
     wantToken.safeApprove(address(ust3Pool), _amount);
 
-    receivedLpTokens = ust3Pool.add_liquidity(
+    // estimate amount of Lp Tokens received on depositing USDC
+    uint256 expectedLpOut = curve3PoolZap.calc_token_amount(
+      address(ust3Pool),
       liquidityAmounts,
-      (_USDCValueInLpToken(_amount, 18, false) * (MAX_BPS - maxSlippage)) /
-        (MAX_BPS)
+      true
+    );
+    // Provide USDC liquidity to receive Lp tokens with a slippage of `maxSlippage`
+    receivedLpTokens = curve3PoolZap.add_liquidity(
+      address(ust3Pool),
+      liquidityAmounts,
+      (expectedLpOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)
     );
   }
 
