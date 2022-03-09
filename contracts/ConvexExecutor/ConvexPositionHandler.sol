@@ -5,19 +5,21 @@ pragma abicoder v2;
 import "../../interfaces/BasePositionHandler.sol";
 import "./interfaces/IConvexRewards.sol";
 import "./interfaces/ICurvePool.sol";
+import "./interfaces/ICurveDepositZapper.sol";
 import "./interfaces/IHarvester.sol";
 
 import "../../library/Math.sol";
 
-import "./../solmate/ERC20.sol";
-import "../solmate/SafeTransferLib.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title Convexhandler
 /// @notice Used to control the long position handler interacting with Convex
 contract ConvexPositionHandler is BasePositionHandler {
-  using SafeTransferLib for ERC20;
+  using SafeERC20 for IERC20;
 
   enum UST3PoolCoinIndexes {
+    UST,
     DAI,
     USDC,
     USDT
@@ -29,44 +31,46 @@ contract ConvexPositionHandler is BasePositionHandler {
 
   struct WithdrawParams {
     uint256 _maxWithdraw;
-    address _recipient;
   }
 
   uint256 public immutable MAX_BPS = 10000;
   uint256 public maxSlippage = 30;
 
-  ERC20 public wantToken;
-  ERC20 public lpToken;
+  IERC20 public wantToken;
+  IERC20 public lpToken;
 
   IHarvester public harvester;
 
   // 0x7e2b9B5244bcFa5108A76D5E7b507CFD5581AD4A
   IConvexRewards public baseRewardPool;
-  // 0x890f4e345B1dAED0367A877a1612f86A1f86985f
+  // 0xCEAF7747579696A2F0bb206a14210e3c9e6fB269
   ICurvePool public ust3Pool;
+  // 0xA79828DF1850E8a3A3064576f380D90aECDD3359
+  ICurveDepositZapper public curve3PoolZap;
 
   function _initHandler(
     address _baseRewardPool,
     address _ust3Pool,
+    address _curve3PoolZap,
     address _token,
     address _lpToken,
     address _harvester
   ) internal {
     baseRewardPool = IConvexRewards(_baseRewardPool);
     ust3Pool = ICurvePool(_ust3Pool);
+    curve3PoolZap = ICurveDepositZapper(_curve3PoolZap);
 
-    wantToken = ERC20(_token);
-    lpToken = ERC20(_lpToken);
+    wantToken = IERC20(_token);
+    lpToken = IERC20(_lpToken);
 
     harvester = IHarvester(_harvester);
   }
 
   /// @notice Governance function to approve tokens to harvester for swaps
   /// @param tokens An array of token addresses to approve
-  function _approveRewardTokensToHarvester(address[] memory tokens) internal
-  {
+  function _approveRewardTokensToHarvester(address[] memory tokens) internal {
     for (uint256 idx = 0; idx < tokens.length; idx++) {
-      ERC20(tokens[idx]).safeApprove(address(harvester), type(uint256).max);
+      IERC20(tokens[idx]).safeApprove(address(harvester), type(uint256).max);
     }
   }
 
@@ -97,13 +101,11 @@ contract ConvexPositionHandler is BasePositionHandler {
   /// @param _data Encoded AmountParams as _data
   function _deposit(bytes calldata _data) internal override {
     AmountParams memory depositParams = abi.decode(_data, (AmountParams));
-    require(depositParams._amount > 0, "invalid deposit amount");
-
-    wantToken.safeTransferFrom(
-      msg.sender,
-      address(this),
-      depositParams._amount
+    require(
+      depositParams._amount <= wantToken.balanceOf(address(this)),
+      "invalid deposit amount"
     );
+
     _convertUSDCIntoLpToken(depositParams._amount);
   }
 
@@ -191,12 +193,6 @@ contract ConvexPositionHandler is BasePositionHandler {
       );
       amountToWithdraw = usdcBalance + usdcReceivedAfterConversion;
     }
-
-    // transfer lp tokens to recipient
-    wantToken.safeTransfer(
-      withdrawParams._recipient,
-      _normaliseDecimals(amountToWithdraw, false)
-    );
   }
 
   /// @notice To claim rewards from Convex position
@@ -236,10 +232,20 @@ contract ConvexPositionHandler is BasePositionHandler {
   {
     lpToken.safeApprove(address(ust3Pool), _amount);
 
-    receivedWantTokens = ust3Pool.remove_liquidity_one_coin(
+    int128 usdcIndexInPool = int128(int256(uint256(UST3PoolCoinIndexes.USDC)));
+
+    // estimate amount of USDC received on burning Lp tokens
+    uint256 expectedWantTokensOut = curve3PoolZap.calc_withdraw_one_coin(
+      address(ust3Pool),
       _amount,
-      int128(int256(uint256(UST3PoolCoinIndexes.USDC))),
-      (_lpTokenValueInUSDC(_amount, 18) * (MAX_BPS - maxSlippage)) / (MAX_BPS)
+      usdcIndexInPool
+    );
+    // burn Lp tokens to receive USDC with a slippage of `maxSlippage`
+    receivedWantTokens = curve3PoolZap.remove_liquidity_one_coin(
+      address(ust3Pool),
+      _amount,
+      usdcIndexInPool,
+      (expectedWantTokensOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)
     );
   }
 
@@ -250,14 +256,21 @@ contract ConvexPositionHandler is BasePositionHandler {
     internal
     returns (uint256 receivedLpTokens)
   {
-    uint256[3] memory liquidityAmounts = [_amount, 0, 0];
+    uint256[4] memory liquidityAmounts = [0, 0, _amount, 0];
 
     wantToken.safeApprove(address(ust3Pool), _amount);
 
-    receivedLpTokens = ust3Pool.add_liquidity(
+    // estimate amount of Lp Tokens received on depositing USDC
+    uint256 expectedLpOut = curve3PoolZap.calc_token_amount(
+      address(ust3Pool),
       liquidityAmounts,
-      (_USDCValueInLpToken(_amount, 18, false) * (MAX_BPS - maxSlippage)) /
-        (MAX_BPS)
+      true
+    );
+    // Provide USDC liquidity to receive Lp tokens with a slippage of `maxSlippage`
+    receivedLpTokens = curve3PoolZap.add_liquidity(
+      address(ust3Pool),
+      liquidityAmounts,
+      (expectedLpOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)
     );
   }
 
@@ -302,6 +315,4 @@ contract ConvexPositionHandler is BasePositionHandler {
   {
     return (_value * (_direction ? 1e18 : 1e6)) / (_direction ? 1e6 : 1e18);
   }
-
-
 }
