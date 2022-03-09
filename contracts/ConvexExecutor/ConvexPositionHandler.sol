@@ -10,13 +10,13 @@ import "./interfaces/IHarvester.sol";
 
 import "../../library/Math.sol";
 
-import "./../solmate/ERC20.sol";
-import "../solmate/SafeTransferLib.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title Convexhandler
 /// @notice Used to control the long position handler interacting with Convex
 contract ConvexPositionHandler is BasePositionHandler {
-  using SafeTransferLib for ERC20;
+  using SafeERC20 for IERC20;
 
   enum UST3PoolCoinIndexes {
     UST,
@@ -37,13 +37,8 @@ contract ConvexPositionHandler is BasePositionHandler {
   uint256 public immutable MAX_BPS = 10000;
   uint256 public maxSlippage = 30;
 
-  address public governance;
-  address public keeper;
-
-  // 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48
-  ERC20 public wantToken;
-  // 0xCEAF7747579696A2F0bb206a14210e3c9e6fB269
-  ERC20 public lpToken;
+  IERC20 public wantToken;
+  IERC20 public lpToken;
 
   IHarvester public harvester;
 
@@ -60,31 +55,23 @@ contract ConvexPositionHandler is BasePositionHandler {
     address _curve3PoolZap,
     address _token,
     address _lpToken,
-    address _harvester,
-    address _governance,
-    address _keeper
+    address _harvester
   ) internal {
     baseRewardPool = IConvexRewards(_baseRewardPool);
     ust3Pool = ICurvePool(_ust3Pool);
     curve3PoolZap = ICurveDepositZapper(_curve3PoolZap);
 
-    wantToken = ERC20(_token);
-    lpToken = ERC20(_lpToken);
+    wantToken = IERC20(_token);
+    lpToken = IERC20(_lpToken);
 
     harvester = IHarvester(_harvester);
-
-    governance = _governance;
-    keeper = _keeper;
   }
 
   /// @notice Governance function to approve tokens to harvester for swaps
   /// @param tokens An array of token addresses to approve
-  function approveRewardTokensToHarvester(address[] memory tokens)
-    external
-    onlyGovernance
-  {
+  function _approveRewardTokensToHarvester(address[] memory tokens) internal {
     for (uint256 idx = 0; idx < tokens.length; idx++) {
-      ERC20(tokens[idx]).safeApprove(address(harvester), type(uint256).max);
+      IERC20(tokens[idx]).safeApprove(address(harvester), type(uint256).max);
     }
   }
 
@@ -336,15 +323,5 @@ contract ConvexPositionHandler is BasePositionHandler {
     returns (uint256)
   {
     return (_value * (_direction ? 1e18 : 1e6)) / (_direction ? 1e6 : 1e18);
-  }
-
-  modifier onlyGovernance() {
-    require(msg.sender == governance, "access :: Governance");
-    _;
-  }
-
-  modifier onlyKeeper() {
-    require(msg.sender == keeper, "access :: Keeper");
-    _;
   }
 }

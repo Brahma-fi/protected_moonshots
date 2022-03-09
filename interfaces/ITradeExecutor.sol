@@ -8,6 +8,8 @@ interface ITradeExecutor {
         address from;
     }
 
+    function depositStatus() external returns (bool, address);
+    function withdrawalStatus() external returns (bool, address);
 
     function initiateDeposit(bytes calldata _data) external;
 
@@ -16,5 +18,7 @@ interface ITradeExecutor {
     function initateWithdraw(bytes calldata _data) external;
 
     function confirmWithdraw() external;
+
+    function totalFunds() view external returns(uint256 posValue, uint256 lastUpdatedBlock);
 
 }

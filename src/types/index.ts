@@ -22,6 +22,7 @@ export type { IUniswapSwapRouter } from "./IUniswapSwapRouter";
 export type { IUniswapV3Factory } from "./IUniswapV3Factory";
 export type { IUniswapV3SwapCallback } from "./IUniswapV3SwapCallback";
 export type { ConvexTradeExecutor } from "./ConvexTradeExecutor";
+export type { MetaRouter } from "./MetaRouter";
 export type { ICrossDomainMessenger } from "./ICrossDomainMessenger";
 export type { OptimismWrapper } from "./OptimismWrapper";
 export type { PerpPositionHandler } from "./PerpPositionHandler";
@@ -31,6 +32,7 @@ export type { PerpV2Controller } from "./PerpV2Controller";
 export type { ShortPositionHandlerL2 } from "./ShortPositionHandlerL2";
 export type { PerpTradeExecutor } from "./PerpTradeExecutor";
 export type { BasePositionHandler } from "./BasePositionHandler";
+export type { IMetaRouter } from "./IMetaRouter";
 export type { ITradeExecutor } from "./ITradeExecutor";
 
 export { ERC20__factory } from "./factories/ERC20__factory";
@@ -54,6 +56,7 @@ export { IUniswapSwapRouter__factory } from "./factories/IUniswapSwapRouter__fac
 export { IUniswapV3Factory__factory } from "./factories/IUniswapV3Factory__factory";
 export { IUniswapV3SwapCallback__factory } from "./factories/IUniswapV3SwapCallback__factory";
 export { ConvexTradeExecutor__factory } from "./factories/ConvexTradeExecutor__factory";
+export { MetaRouter__factory } from "./factories/MetaRouter__factory";
 export { ICrossDomainMessenger__factory } from "./factories/ICrossDomainMessenger__factory";
 export { OptimismWrapper__factory } from "./factories/OptimismWrapper__factory";
 export { PerpPositionHandler__factory } from "./factories/PerpPositionHandler__factory";
@@ -63,4 +66,5 @@ export { PerpV2Controller__factory } from "./factories/PerpV2Controller__factory
 export { ShortPositionHandlerL2__factory } from "./factories/ShortPositionHandlerL2__factory";
 export { PerpTradeExecutor__factory } from "./factories/PerpTradeExecutor__factory";
 export { BasePositionHandler__factory } from "./factories/BasePositionHandler__factory";
+export { IMetaRouter__factory } from "./factories/IMetaRouter__factory";
 export { ITradeExecutor__factory } from "./factories/ITradeExecutor__factory";

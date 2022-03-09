@@ -97,6 +97,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ConvexTradeExecutor__factory>;
     getContractFactory(
+      name: "MetaRouter",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.MetaRouter__factory>;
+    getContractFactory(
       name: "ICrossDomainMessenger",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ICrossDomainMessenger__factory>;
@@ -144,6 +148,10 @@ declare module "hardhat/types/runtime" {
       name: "BasePositionHandler",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.BasePositionHandler__factory>;
+    getContractFactory(
+      name: "IMetaRouter",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IMetaRouter__factory>;
     getContractFactory(
       name: "ITradeExecutor",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -255,6 +263,11 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.ConvexTradeExecutor>;
     getContractAt(
+      name: "MetaRouter",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.MetaRouter>;
+    getContractAt(
       name: "ICrossDomainMessenger",
       address: string,
       signer?: ethers.Signer
@@ -314,6 +327,11 @@ declare module "hardhat/types/runtime" {
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.BasePositionHandler>;
+    getContractAt(
+      name: "IMetaRouter",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IMetaRouter>;
     getContractAt(
       name: "ITradeExecutor",
       address: string,
