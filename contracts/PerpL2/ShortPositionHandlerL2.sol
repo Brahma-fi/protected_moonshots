@@ -9,11 +9,18 @@ import "./interfaces/IPositionHandler.sol";
 import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import "./interfaces/IERC20.sol";
 
-/// @title ShortPositionHandlerL2
+/// @title PerpPositionHandlerL2
 /// @author 0xAd1
 /// @notice Acts as positon handler and token bridger on L2 Optimism
-contract ShortPositionHandlerL2 is IPositionHandler, PerpV2Controller, MovrV1Controller, OptimismL2Wrapper{
+contract PerpPositionHandlerL2 is IPositionHandler, PerpV2Controller, MovrV1Controller, OptimismL2Wrapper{
     using SafeMathUpgradeable for uint256;
+
+    struct PerpPosition {
+        uint256 entryMarkTwap;
+        uint256 entryAmount;
+        bool isShort;
+        bool isActive;
+    }
 
     /// @notice wantTokenL1 getter
     /// @return address of wantTokenL1 contract
@@ -28,6 +35,8 @@ contract ShortPositionHandlerL2 is IPositionHandler, PerpV2Controller, MovrV1Con
     address public SPHL1Address;
 
     address public keeper;
+
+    PerpPosition public perpPosition;
 
     function init(
         address _wantTokenL1,
@@ -58,19 +67,16 @@ contract ShortPositionHandlerL2 is IPositionHandler, PerpV2Controller, MovrV1Con
     }
 
 
-    bool activePosition = false;
+
 
     /// @inheritdoc IPositionHandler
     // opens short position by default and accepts 
-    function openPosition(uint256 amountIn, uint24 slippage) public override onlyAuthorized{
+    function openPosition(bool isShort, uint256 amountIn, uint24 slippage) public override onlyAuthorized{
+        require (perpPosition.isActive == false, "Position already open");
         uint256 wantTokenBalance = IERC20(wantTokenL2).balanceOf(address(this));
         _depositToPerp(wantTokenBalance);
-        // if (activePosition) {
-        //     _closePosition(slippage);
-        // }
-        _openPositionByAmount(true, amountIn, slippage);
-        activePosition = true;
-        // positionIsShort = isShort;
+        perpPosition = PerpPosition({entryMarkTwap: formatSqrtPriceX96(getTwapPrice()), entryAmount: amountIn, isShort: isShort, isActive: true});
+        _openPositionByAmount(isShort, amountIn, slippage);
     }
 
     /// @inheritdoc IPositionHandler
@@ -80,31 +86,17 @@ contract ShortPositionHandlerL2 is IPositionHandler, PerpV2Controller, MovrV1Con
         onlyAuthorized
         returns (uint256 actualAmount)
     {
-        require(activePosition, "No active position");
-        _openPositionByAmount(false, amountOut, slippage);   // _closePosition(slippage);
-        // activePosition = false;
+        require(perpPosition.isActive, "No active position");
+        _closePosition(slippage);
+        perpPosition.isActive = false;
+        _withdrawFromPerp(getFreeCollateral());
 
-        // actualAmount = IERC20(wantTokenL2).balanceOf(address(this));
-        // if (actualAmount > amountOut) {
-        //     // _depositToPerp(actualAmount - amountOut);
-        //     // _openPositionByAmount(
-        //     //     positionIsShort,
-        //     //     getFreeCollateral()*(1e12), // decimal adjust
-        //     //     slippage
-        //     // );
-        //     activePosition = true;
-        //     actualAmount = amountOut;
-        // }
+
     }
 
     /// @inheritdoc IPositionHandler
     function withdraw(uint256 amountOut, address allowanceTarget, address movrRegistry, bytes calldata movrData) public override onlyAuthorized{
-        uint256 looseAmount = IERC20(wantTokenL2).balanceOf(address(this));
-        uint256 amountFromPerp = amountOut;
-        if (amountOut > looseAmount) {
-            amountFromPerp = amountOut.sub(looseAmount);
-        }
-        _withdrawFromPerp(amountFromPerp.mul(1e12));
+
         sendWantTokens(wantTokenL2, allowanceTarget, movrRegistry, amountOut, movrData);
 
     }
