@@ -17,6 +17,7 @@ contract MetaRouter is IMetaRouter, ERC20 {
 
     // TODO Define this arbitrary limit
     uint constant BLOCK_LIMIT = 50;
+    uint constant DUST_LIMIT = 10**6;
 
     IterableMapping.Map private tradeExecutorsList;
 
@@ -44,7 +45,11 @@ contract MetaRouter is IMetaRouter, ERC20 {
         require(amountIn > 0);
         require(receiver != address(0));
 
-        shares = totalSupply() * amountIn / totalRouterFunds();
+        if (totalSupply() > 0) {
+            shares = totalSupply() * amountIn / totalRouterFunds();
+        } else {
+            shares = amountIn;
+        }
 
         IERC20(wantToken).transferFrom(receiver, address(this), amountIn);
         _mint(receiver, shares);
@@ -94,11 +99,10 @@ contract MetaRouter is IMetaRouter, ERC20 {
         uint totalFunds = 0;
         for (uint i = 0; i < tradeExecutorsList.size(); i++) {
             (address executor, uint status) = executorByIndex(i);
-            if (status == 1) {
-                (uint executorFunds, uint blockUpdated) = ITradeExecutor(executor).totalFunds();
-                require (block.number <= blockUpdated + BLOCK_LIMIT, 'Executor funds are not up to date');
-                totalFunds += executorFunds;
-            }
+            require (status == 1, 'Invalid executor');
+            (uint executorFunds, uint blockUpdated) = ITradeExecutor(executor).totalFunds();
+            require (block.number <= blockUpdated + BLOCK_LIMIT, 'Executor funds are not up to date');
+            totalFunds += executorFunds;
 
         }
         return totalFunds;
@@ -111,18 +115,13 @@ contract MetaRouter is IMetaRouter, ERC20 {
     }
 
     function removeExecutor(address _tradeExecutor) public isValidAddress(_tradeExecutor) onlyKeeper {
+        (uint executorFunds, uint blockUpdated) = ITradeExecutor(_tradeExecutor).totalFunds();
+        require (block.number <= blockUpdated + BLOCK_LIMIT, 'Executor funds are not up to date');
+        require (executorFunds < DUST_LIMIT, 'Executor not empty');
         tradeExecutorsList.remove(_tradeExecutor);
     }
 
-    function enableExecutor(address _tradeExecutor) public isValidAddress(_tradeExecutor) onlyKeeper {
-        tradeExecutorsList.set(_tradeExecutor, 1);
-    }
-
-    function disableExecutor(address _tradeExecutor) public isValidAddress(_tradeExecutor) onlyKeeper {
-        tradeExecutorsList.set(_tradeExecutor, 0);
-    }
-
-    // access modifiers - governance (only emergency)
+    //✅ access modifiers - governance (only emergency)
     //✅ keeper - add, remove, 
 
     //✅ Iterable mapping of trade executors
@@ -132,9 +131,8 @@ contract MetaRouter is IMetaRouter, ERC20 {
     //✅ remove TE 
     //✅ deposit  - return LP tokens to user (needs updated totalfunds)
     //✅ withdraw  - burn LP tokens of a user (needs updated totalfunds)
+    // Add performance fee management
 
-    // TODO: discuss this with bapi - ideally a keeper job
-    // ability to call initDeposit, confirmDeposit, initWithdraw, confirmWithdraw on active TE 
 
     function setGovernance(address _governance) public onlyGovernance{
         pendingGovernance = _governance;
