@@ -21,6 +21,18 @@ interface IBatcher {
 
   /**
    * @notice Stores the deposits for future batching via periphery
+   * @param amountIn Value of Lp token to be deposited
+   * @param routerAddress address of router to deposit into
+   * @param signature signature verifying that depositor has enough karma and is authorized to deposit by brahma
+   */
+  function depositFundsInCurveLpToken(
+    uint256 amountIn,
+    address routerAddress,
+    bytes memory signature
+  ) external;
+
+  /**
+   * @notice Stores the deposits for future batching via periphery
    * @param amountOut Value of token to be deposited
    * @param routerAddress address of router to deposit into
    */
