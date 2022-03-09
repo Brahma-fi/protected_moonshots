@@ -8,13 +8,15 @@ contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
   constructor(
     address _baseRewardPool,
     address _ust3Pool,
+    address _curve3PoolZap,
     address _lpToken,
     address _harvester,
     address _router
-  ) BaseTradeExecutor(_router){
+  ) BaseTradeExecutor(_router) {
     _initHandler(
       _baseRewardPool,
       _ust3Pool,
+      _curve3PoolZap,
       routerWantToken(),
       _lpToken,
       _harvester
@@ -24,12 +26,14 @@ contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
   function setHandler(
     address _baseRewardPool,
     address _ust3Pool,
+    address _curve3PoolZap,
     address _lpToken,
     address _harvester
   ) external onlyGovernance {
     _initHandler(
       _baseRewardPool,
       _ust3Pool,
+      _curve3PoolZap,
       routerWantToken(),
       _lpToken,
       _harvester
@@ -52,7 +56,10 @@ contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
     return positionInWantToken();
   }
 
-  function approveRewardTokensToHarvester(address[] memory tokens) public onlyGovernance {
+  function approveRewardTokensToHarvester(address[] memory tokens)
+    public
+    onlyGovernance
+  {
     _approveRewardTokensToHarvester(tokens);
   }
 

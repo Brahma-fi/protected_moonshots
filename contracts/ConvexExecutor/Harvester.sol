@@ -8,11 +8,7 @@ import "./interfaces/IUniswapV3Factory.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import { SafeTransferLib } from "../solmate/SafeTransferLib.sol";
-import "../solmate/ERC20.sol";
-
 contract Harvester is IHarvester {
-  using SafeTransferLib for ERC20;
   using SafeERC20 for IERC20;
   using SafeERC20 for IERC20Metadata;
 
@@ -187,7 +183,7 @@ contract Harvester is IHarvester {
   /// @notice Governance function to sweep a token's balance lying in Harvester
   /// @param _token address of token to sweep
   function sweep(address _token) external override onlyGovernance {
-    ERC20(_token).safeTransfer(
+    IERC20(_token).safeTransfer(
       governance,
       IERC20Metadata(_token).balanceOf(address(this))
     );
