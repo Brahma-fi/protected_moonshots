@@ -31,7 +31,6 @@ contract ConvexPositionHandler is BasePositionHandler {
 
   struct WithdrawParams {
     uint256 _maxWithdraw;
-    address _recipient;
   }
 
   uint256 public immutable MAX_BPS = 10000;
@@ -104,11 +103,6 @@ contract ConvexPositionHandler is BasePositionHandler {
     AmountParams memory depositParams = abi.decode(_data, (AmountParams));
     require(depositParams._amount > 0, "invalid deposit amount");
 
-    wantToken.safeTransferFrom(
-      msg.sender,
-      address(this),
-      depositParams._amount
-    );
     _convertUSDCIntoLpToken(depositParams._amount);
   }
 
@@ -196,12 +190,6 @@ contract ConvexPositionHandler is BasePositionHandler {
       );
       amountToWithdraw = usdcBalance + usdcReceivedAfterConversion;
     }
-
-    // transfer lp tokens to recipient
-    wantToken.safeTransfer(
-      withdrawParams._recipient,
-      _normaliseDecimals(amountToWithdraw, false)
-    );
   }
 
   /// @notice To claim rewards from Convex position
