@@ -6,7 +6,9 @@ import "./PerpHandler/PerpPositionHandler.sol";
 
 contract PerpTradeExecutor is BaseTradeExecutor, PerpPositionHandler {
 
-    // constructor()
+    constructor(address router) BaseTradeExecutor(router){
+
+    }
 
     function _initateDeposit (bytes calldata _data) internal override{
         PerpPositionHandler._deposit(_data);
@@ -20,17 +22,12 @@ contract PerpTradeExecutor is BaseTradeExecutor, PerpPositionHandler {
 
     function _confirmWithdraw() internal override {}
 
-    function totalFunds() public override returns (uint256 _sharePrice, uint256 lastUpdatedBlock) {
+    function totalFunds() public view override returns (uint256 posValue, uint256 lastUpdatedBlock) {
         return ( positionInWantToken.posValue, positionInWantToken.lastUpdatedBlock );
     }
 
     function openPosition(bytes calldata _data) public onlyKeeper{
         _openPosition(_data);
-    }
-
-    modifier onlyKeeper {
-        // require (msg.sender == keeper);
-        _;
     }
 
 }
