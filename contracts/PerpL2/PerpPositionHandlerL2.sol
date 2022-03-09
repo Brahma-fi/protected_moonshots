@@ -96,7 +96,7 @@ contract PerpPositionHandlerL2 is IPositionHandler, PerpV2Controller, MovrV1Cont
 
     /// @inheritdoc IPositionHandler
     function withdraw(uint256 amountOut, address allowanceTarget, address movrRegistry, bytes calldata movrData) public override onlyAuthorized{
-
+        require(IERC20(wantTokenL2).balanceOf(address(this)) >= amountOut, "Insufficient balance");
         sendWantTokens(wantTokenL2, allowanceTarget, movrRegistry, amountOut, movrData);
 
     }
