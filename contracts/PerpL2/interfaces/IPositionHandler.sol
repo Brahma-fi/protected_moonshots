@@ -8,7 +8,7 @@ interface IPositionHandler {
     /// @param _amount the amountIn with respect to free collateral on perp for new position
     /// @param _slippage slippage while opening position, calculated out of 10000
     function openPosition(
-        // bool _isShort,
+        bool _isShort,
         uint256 _amount,
         uint24 _slippage
     ) external;

@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import "../library/IterableMapping.sol";
+import "../library/AddArrayLib.sol";
 
 import "../interfaces/ITradeExecutor.sol";
 import "../interfaces/IMetaRouter.sol";
@@ -12,14 +12,13 @@ import "../interfaces/IMetaRouter.sol";
 
 contract MetaRouter is IMetaRouter, ERC20 {
 
-    using IterableMapping for IterableMapping.Map;
-
+    using AddrArrayLib for AddrArrayLib.Addresses;
 
     // TODO Define this arbitrary limit
     uint constant BLOCK_LIMIT = 50;
     uint constant DUST_LIMIT = 10**6;
 
-    IterableMapping.Map private tradeExecutorsList;
+    AddrArrayLib.Addresses tradeExecutorsList;
 
     address public immutable override wantToken;
     uint8 private immutable tokenDecimals;
@@ -85,21 +84,15 @@ contract MetaRouter is IMetaRouter, ERC20 {
         return tradeExecutorsList.size();
     }
 
-    function getExecutorStatus(address _executor) public view isValidAddress(_executor) returns (uint) {
-        return tradeExecutorsList.get(_executor);
-    }
-
-    function executorByIndex(uint _index) public view returns (address, uint) {
-        address executor = tradeExecutorsList.getKeyAtIndex(_index);
-        uint status = getExecutorStatus(executor);
-        return (executor, status);
+    function executorByIndex(uint _index) public view returns (address) {
+        require(_index < totalExecutors(), 'Index out of bounds');
+        return tradeExecutorsList.getAddressAtIndex(_index);
     }
 
     function totalExecutorFunds() public view returns (uint) {
         uint totalFunds = 0;
-        for (uint i = 0; i < tradeExecutorsList.size(); i++) {
-            (address executor, uint status) = executorByIndex(i);
-            require (status == 1, 'Invalid executor');
+        for (uint i = 0; i < totalExecutors(); i++) {
+            address executor = executorByIndex(i);
             (uint executorFunds, uint blockUpdated) = ITradeExecutor(executor).totalFunds();
             require (block.number <= blockUpdated + BLOCK_LIMIT, 'Executor funds are not up to date');
             totalFunds += executorFunds;
@@ -111,14 +104,14 @@ contract MetaRouter is IMetaRouter, ERC20 {
 
     /// EXECUTOR MANAGEMENT ///
     function addExecutor(address _tradeExecutor) public isValidAddress(_tradeExecutor) onlyKeeper {
-        tradeExecutorsList.set(_tradeExecutor, 1);
+        tradeExecutorsList.pushAddress(_tradeExecutor);
     }
 
     function removeExecutor(address _tradeExecutor) public isValidAddress(_tradeExecutor) onlyKeeper {
         (uint executorFunds, uint blockUpdated) = ITradeExecutor(_tradeExecutor).totalFunds();
         require (block.number <= blockUpdated + BLOCK_LIMIT, 'Executor funds are not up to date');
         require (executorFunds < DUST_LIMIT, 'Executor not empty');
-        tradeExecutorsList.remove(_tradeExecutor);
+        tradeExecutorsList.removeAddress(_tradeExecutor);
     }
 
     //✅ access modifiers - governance (only emergency)
@@ -163,36 +156,11 @@ contract MetaRouter is IMetaRouter, ERC20 {
     }
 
     modifier isActiveExecutor(address _tradeExecutor) {
-        require(getExecutorStatus(_tradeExecutor) == 1, "Executor is not active or doesnt exist");
+        require(tradeExecutorsList.exists(_tradeExecutor), "Executor is not active or doesnt exist");
         _;
     }
 
     
 
 }
-
-
-// TE Perp - totalFunds - x USDC, block - updated
- 
-// TE Convex - totalFunds - y USDC, block - updated
-
-// deposit into metaRouter -  meta
-
-
-
-
-
-
-// TotalFunds  Convex + Perp = 10010
-
-
-// Idea arch
-// 1 user deposits into metarouter, metaroputer checks totalfunds of all TEs and issues LP. USDC is kept in metarouter
-// 2 backend later calls the async deposit functions on TEs with chosen USDC amounts
-
-// Current arch
-
-// 1 user deposits into metarouter, metaroputer checks totalfunds on specific TEs to priotritize L1 syncrobnous operation, and issue LP token in same txn as deposit
-// 2. 
-
 
