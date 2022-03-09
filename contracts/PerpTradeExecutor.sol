@@ -30,9 +30,4 @@ contract PerpTradeExecutor is BaseTradeExecutor, PerpPositionHandler {
         _openPosition(_data);
     }
 
-    modifier onlyKeeper {
-        // require (msg.sender == keeper);
-        _;
-    }
-
 }

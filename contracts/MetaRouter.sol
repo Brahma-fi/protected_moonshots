@@ -20,7 +20,7 @@ contract MetaRouter is IMetaRouter, ERC20 {
 
     IterableMapping.Map private tradeExecutorsList;
 
-    address public immutable wantToken;
+    address public immutable override wantToken;
     uint8 private immutable tokenDecimals;
 
     address public override keeper;

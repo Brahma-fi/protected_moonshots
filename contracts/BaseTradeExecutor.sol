@@ -16,12 +16,32 @@ abstract contract BaseTradeExecutor is ITradeExecutor {
     ActionStatus public override withdrawalStatus;
 
     address public router;
-    address public wantToken;
     
     constructor(address _router) {
         router = _router;
-        wantToken = IMetaRouter(router).wantToken();
-        IERC20(wantToken).approve(router, MAX_INT);
+        IERC20(routerWantToken()).approve(router, MAX_INT);
+    }
+
+    function routerWantToken() public view returns (address) {
+        return IMetaRouter(router).wantToken();
+    }
+
+    function governance() public view returns (address) {
+        return IMetaRouter(router).governance();
+    }
+
+    function keeper() public view returns (address) {
+        return IMetaRouter(router).keeper();
+    }
+
+    modifier onlyGovernance {
+        require(msg.sender == governance(), "access :: Governance");
+        _;
+    }
+
+    modifier onlyKeeper {
+        require(msg.sender == keeper(), "access :: Keeper");
+        _;
     }
 
 
