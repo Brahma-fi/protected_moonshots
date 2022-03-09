@@ -44,7 +44,7 @@ library AddrArrayLib {
      * @param self Storage array containing address type variables
      * @param index the index in the array
      */
-    function getAddressAtIndex(Addresses storage self, uint256 index) internal view returns (address) {
+    function getAddressAtIndex(Addresses memory self, uint256 index) internal view returns (address) {
         require(index < size(self), "the index is out of bounds");
         return self._items[index];
     }
@@ -53,7 +53,7 @@ library AddrArrayLib {
      * @notice get the size of the array
      * @param self Storage array containing address type variables
      */
-    function size(Addresses storage self) internal view returns (uint256) {
+    function size(Addresses memory self) internal view returns (uint256) {
       return self._items.length;
     }
 
@@ -62,7 +62,7 @@ library AddrArrayLib {
      * @param self Storage array containing address type variables
      * @param element the element to check if it exists in the array
      */
-    function exists(Addresses storage self, address element) internal view returns (bool) {
+    function exists(Addresses memory self, address element) internal view returns (bool) {
         for (uint i = 0; i < self.size(); i++) {
             if (self._items[i] == element) {
                 return true;
@@ -75,7 +75,7 @@ library AddrArrayLib {
      * @notice get the array
      * @param self Storage array containing address type variables
      */
-    function getAllAddresses(Addresses storage self) internal view returns(address[] memory) {
+    function getAllAddresses(Addresses memory self) internal view returns(address[] memory) {
         return self._items;
     }
 
