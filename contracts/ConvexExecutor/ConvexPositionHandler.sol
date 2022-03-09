@@ -35,9 +35,6 @@ contract ConvexPositionHandler is BasePositionHandler {
   uint256 public immutable MAX_BPS = 10000;
   uint256 public maxSlippage = 30;
 
-  address public governance;
-  address public keeper;
-
   ERC20 public wantToken;
   ERC20 public lpToken;
 
@@ -53,9 +50,7 @@ contract ConvexPositionHandler is BasePositionHandler {
     address _ust3Pool,
     address _token,
     address _lpToken,
-    address _harvester,
-    address _governance,
-    address _keeper
+    address _harvester
   ) internal {
     baseRewardPool = IConvexRewards(_baseRewardPool);
     ust3Pool = ICurvePool(_ust3Pool);
@@ -64,16 +59,11 @@ contract ConvexPositionHandler is BasePositionHandler {
     lpToken = ERC20(_lpToken);
 
     harvester = IHarvester(_harvester);
-
-    governance = _governance;
-    keeper = _keeper;
   }
 
   /// @notice Governance function to approve tokens to harvester for swaps
   /// @param tokens An array of token addresses to approve
-  function approveRewardTokensToHarvester(address[] memory tokens)
-    external
-    onlyGovernance
+  function _approveRewardTokensToHarvester(address[] memory tokens) internal
   {
     for (uint256 idx = 0; idx < tokens.length; idx++) {
       ERC20(tokens[idx]).safeApprove(address(harvester), type(uint256).max);
@@ -313,13 +303,5 @@ contract ConvexPositionHandler is BasePositionHandler {
     return (_value * (_direction ? 1e18 : 1e6)) / (_direction ? 1e6 : 1e18);
   }
 
-  modifier onlyGovernance() {
-    require(msg.sender == governance, "access :: Governance");
-    _;
-  }
 
-  modifier onlyKeeper() {
-    require(msg.sender == keeper, "access :: Keeper");
-    _;
-  }
 }

@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 interface IMetaRouter{
 
-    function keeper() external returns (address);
-    function governance() external returns (address);
-    function wantToken() external returns (address);
+    function keeper() external view returns (address);
+    function governance() external view returns (address);
+    function wantToken() external view returns (address);
 }
