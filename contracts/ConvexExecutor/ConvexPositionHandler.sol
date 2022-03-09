@@ -101,7 +101,10 @@ contract ConvexPositionHandler is BasePositionHandler {
   /// @param _data Encoded AmountParams as _data
   function _deposit(bytes calldata _data) internal override {
     AmountParams memory depositParams = abi.decode(_data, (AmountParams));
-    require(depositParams._amount > 0, "invalid deposit amount");
+    require(
+      depositParams._amount <= wantToken.balanceOf(address(this)),
+      "invalid deposit amount"
+    );
 
     _convertUSDCIntoLpToken(depositParams._amount);
   }
