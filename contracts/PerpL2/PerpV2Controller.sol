@@ -128,7 +128,6 @@ contract PerpV2Controller {
             sqrtPriceLimitX96: 0,
             referralCode: referralCode
         });
-        emit Damn(amountIn, amountOut, price);
 
         (uint256 base, uint256 quote) = clearingHouse.openPosition(params);
         
