@@ -65,7 +65,7 @@ contract PerpV2Controller {
     /// @notice Formats SqrtX96 amount to regular price
     /// @param sqrtPriceX96 SqrtX96 amount
     /// @return price formatted output
-    function formatSqrtPriceX96(uint160 sqrtPriceX96) public view returns (uint256 price) {
+    function formatSqrtPriceX96(uint160 sqrtPriceX96) public pure returns (uint256 price) {
         return uint(sqrtPriceX96).mul(uint(sqrtPriceX96)) >> (96 * 2);
     }
 
@@ -129,7 +129,7 @@ contract PerpV2Controller {
             referralCode: referralCode
         });
 
-        (uint256 base, uint256 quote) = clearingHouse.openPosition(params);
+        clearingHouse.openPosition(params);
         
         return accountBalance.getTakerPositionSize(address(this), address(baseTokenvCRV));
     }
@@ -137,7 +137,6 @@ contract PerpV2Controller {
     /// @notice Closes short or long position on Perp against baseToken 
     /// @param slippage slippage while opening position
     function _closePosition(uint slippage) internal {
-        bool short = getTotalPerpPositionSize() < 0;
         
         uint256 price = formatSqrtPriceX96(getTwapPrice());
         uint256 amountOut = (getTotalPerpPositionSize() < 0) ? uint256(-1*getTotalPerpPositionSize()) : uint256(getTotalPerpPositionSize());
@@ -152,7 +151,7 @@ contract PerpV2Controller {
             referralCode: referralCode 
         });
 
-        (uint256 base, uint256 quote) = clearingHouse.closePosition(params);
+        clearingHouse.closePosition(params);
         
     }
 }

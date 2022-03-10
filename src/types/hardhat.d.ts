@@ -13,6 +13,10 @@ import * as Contracts from ".";
 declare module "hardhat/types/runtime" {
   interface HardhatEthersHelpers extends HardhatEthersHelpersBase {
     getContractFactory(
+      name: "Ownable",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.Ownable__factory>;
+    getContractFactory(
       name: "ERC20",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ERC20__factory>;
@@ -56,6 +60,14 @@ declare module "hardhat/types/runtime" {
       name: "BaseTradeExecutor",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.BaseTradeExecutor__factory>;
+    getContractFactory(
+      name: "Batcher",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.Batcher__factory>;
+    getContractFactory(
+      name: "IBatcher",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IBatcher__factory>;
     getContractFactory(
       name: "ConvexPositionHandler",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -129,13 +141,13 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.OptimismL2Wrapper__factory>;
     getContractFactory(
+      name: "PerpPositionHandlerL2",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.PerpPositionHandlerL2__factory>;
+    getContractFactory(
       name: "PerpV2Controller",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.PerpV2Controller__factory>;
-    getContractFactory(
-      name: "ShortPositionHandlerL2",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.ShortPositionHandlerL2__factory>;
     getContractFactory(
       name: "PerpTradeExecutor",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -157,6 +169,11 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ITradeExecutor__factory>;
 
+    getContractAt(
+      name: "Ownable",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.Ownable>;
     getContractAt(
       name: "ERC20",
       address: string,
@@ -212,6 +229,16 @@ declare module "hardhat/types/runtime" {
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.BaseTradeExecutor>;
+    getContractAt(
+      name: "Batcher",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.Batcher>;
+    getContractAt(
+      name: "IBatcher",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IBatcher>;
     getContractAt(
       name: "ConvexPositionHandler",
       address: string,
@@ -303,15 +330,15 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.OptimismL2Wrapper>;
     getContractAt(
+      name: "PerpPositionHandlerL2",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.PerpPositionHandlerL2>;
+    getContractAt(
       name: "PerpV2Controller",
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.PerpV2Controller>;
-    getContractAt(
-      name: "ShortPositionHandlerL2",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.ShortPositionHandlerL2>;
     getContractAt(
       name: "PerpTradeExecutor",
       address: string,

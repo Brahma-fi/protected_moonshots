@@ -40,7 +40,7 @@ contract MetaRouter is IMetaRouter, ERC20 {
     }
 
 
-    function deposit(uint amountIn, address receiver) public returns (uint256 shares) {
+    function deposit(uint amountIn, address receiver) public override returns (uint256 shares) {
         require(amountIn > 0);
         require(receiver != address(0));
 
@@ -54,7 +54,7 @@ contract MetaRouter is IMetaRouter, ERC20 {
         _mint(receiver, shares);
     }
 
-    function withdraw(uint sharesIn, address receiver) public returns (uint256 amountOut) {
+    function withdraw(uint sharesIn, address receiver) public override returns (uint256 amountOut) {
         require(sharesIn > 0);
         require(receiver != address(0));
 

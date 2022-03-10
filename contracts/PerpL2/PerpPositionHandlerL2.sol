@@ -80,11 +80,10 @@ contract PerpPositionHandlerL2 is IPositionHandler, PerpV2Controller, MovrV1Cont
     }
 
     /// @inheritdoc IPositionHandler
-    function closePosition(uint256 amountOut, uint24 slippage)
+    function closePosition(uint24 slippage)
         public
         override
         onlyAuthorized
-        returns (uint256 actualAmount)
     {
         require(perpPosition.isActive, "No active position");
         _closePosition(slippage);
