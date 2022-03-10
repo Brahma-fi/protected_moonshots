@@ -39,7 +39,7 @@ contract Batcher is Ownable, IBatcher, EIP712 {
   address public verificationAuthority;
   address public governance;
   address public pendingGovernance;
-
+  uint256 public slippageForCurveLp = 30;
   constructor(address _verificationAuthority, address _governance) {
     verificationAuthority = _verificationAuthority;
     governance = _governance;
@@ -302,8 +302,16 @@ contract Batcher is Ownable, IBatcher, EIP712 {
       address(ust3Pool),
       _amount,
       usdcIndexInPool,
-      (expectedWantTokensOut * (MAX_BPS - 30)) / (MAX_BPS)
+      (expectedWantTokensOut * (MAX_BPS - slippageForCurveLp)) / (MAX_BPS)
     );
+  }
+
+  function setSlippage(uint256 _slippage) external override onlyOwner {
+    require(
+      _slippage >= 0 && _slippage <= 10000,
+      "Slippage must be between 0 and 10000"
+    );
+    slippageForCurveLp = _slippage;
   }
 
   modifier onlyGovernance() {

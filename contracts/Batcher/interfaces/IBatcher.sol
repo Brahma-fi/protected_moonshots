@@ -59,4 +59,10 @@ interface IBatcher {
    * @param token address of token which is to be deposited into router
    */
   function setRouterTokenAddress(address routerAddress, address token) external;
+
+  /**
+   * @notice To set slippage param for curve lp token conversion
+   * @param slippage for curve lp token to usdc conversion
+   */
+  function setSlippage(uint256 slippage) external;
 }
