@@ -61,7 +61,7 @@ contract ConvexPositionHandler is BasePositionHandler {
 
     wantToken = IERC20(_token);
     lpToken = IERC20(_ust3Pool);
-    
+
     harvester = IHarvester(_harvester);
   }
 
@@ -230,7 +230,7 @@ contract ConvexPositionHandler is BasePositionHandler {
     internal
     returns (uint256 receivedWantTokens)
   {
-    lpToken.safeApprove(address(ust3Pool), _amount);
+    lpToken.safeApprove(address(curve3PoolZap), _amount);
 
     int128 usdcIndexInPool = int128(int256(uint256(UST3PoolCoinIndexes.USDC)));
 
