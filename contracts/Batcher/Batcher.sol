@@ -5,8 +5,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "../../interfaces/IMetaRouter.sol";
 import "./interfaces/IBatcher.sol";
+import "../../interfaces/IMetaRouter.sol";
+import "../ConvexExecutor/interfaces/ICurvePool.sol";
+import "../ConvexExecutor/interfaces/ICurveDepositZapper.sol";
 
 import "./EIP712.sol";
 
@@ -37,7 +39,7 @@ contract Batcher is Ownable, IBatcher, EIP712 {
   address public verificationAuthority;
   address public governance;
   address public pendingGovernance;
-
+  uint256 public slippageForCurveLp = 30;
   constructor(address _verificationAuthority, address _governance) {
     verificationAuthority = _verificationAuthority;
     governance = _governance;
@@ -52,22 +54,7 @@ contract Batcher is Ownable, IBatcher, EIP712 {
     uint256 amountIn,
     address routerAddress,
     bytes memory signature
-  ) external override {
-    require(
-      verifySignatureAgainstAuthority(signature, verificationAuthority),
-      "Signature is not valid"
-    );
-
-    require(
-      tokenAddress[routerAddress] != address(0),
-      "Invalid router address"
-    );
-
-    require(
-      withdrawLedger[routerAddress][msg.sender] == 0,
-      "Cannot deposit funds to router while waiting to withdraw"
-    );
-
+  ) external override validDeposit(routerAddress, signature) {
     require(
       IERC20(tokenAddress[routerAddress]).allowance(
         msg.sender,
@@ -82,6 +69,31 @@ contract Batcher is Ownable, IBatcher, EIP712 {
       amountIn
     );
 
+    _completeDeposit(routerAddress, amountIn);
+  }
+
+  /// @inheritdoc IBatcher
+  function depositFundsInCurveLpToken(
+    uint256 amountIn,
+    address routerAddress,
+    bytes memory signature
+  ) external override validDeposit(routerAddress, signature) {
+    /// Curve Lp Token - UST_Wormhole
+    IERC20 lpToken = IERC20(0xCEAF7747579696A2F0bb206a14210e3c9e6fB269);
+
+    require(
+      lpToken.allowance(msg.sender, address(this)) >= amountIn,
+      "No allowance"
+    );
+
+    lpToken.safeTransferFrom(msg.sender, address(this), amountIn);
+
+    uint256 usdcReceived = _convertLpTokenIntoUSDC(lpToken);
+
+    _completeDeposit(routerAddress, usdcReceived);
+  }
+
+  function _completeDeposit(address routerAddress, uint256 amountIn) internal {
     depositLedger[routerAddress][msg.sender] =
       depositLedger[routerAddress][msg.sender] +
       (amountIn);
@@ -257,8 +269,72 @@ contract Batcher is Ownable, IBatcher, EIP712 {
     governance = pendingGovernance;
   }
 
+  /// @notice Helper to convert Lp tokens into USDC
+  /// @dev Burns LpTokens on UST3-Wormhole pool on curve to get USDC
+  /// @param lpToken Curve Lp Token
+  function _convertLpTokenIntoUSDC(IERC20 lpToken)
+    internal
+    returns (uint256 receivedWantTokens)
+  {
+    uint256 MAX_BPS = 10000;
+
+    ICurvePool ust3Pool = ICurvePool(
+      0xCEAF7747579696A2F0bb206a14210e3c9e6fB269
+    );
+    ICurveDepositZapper curve3PoolZap = ICurveDepositZapper(
+      0xA79828DF1850E8a3A3064576f380D90aECDD3359
+    );
+
+    uint256 _amount = lpToken.balanceOf(address(this));
+
+    lpToken.safeApprove(address(ust3Pool), _amount);
+
+    int128 usdcIndexInPool = int128(int256(uint256(2)));
+
+    // estimate amount of USDC received on burning Lp tokens
+    uint256 expectedWantTokensOut = curve3PoolZap.calc_withdraw_one_coin(
+      address(ust3Pool),
+      _amount,
+      usdcIndexInPool
+    );
+    // burn Lp tokens to receive USDC with a slippage of 0.3%
+    receivedWantTokens = curve3PoolZap.remove_liquidity_one_coin(
+      address(ust3Pool),
+      _amount,
+      usdcIndexInPool,
+      (expectedWantTokensOut * (MAX_BPS - slippageForCurveLp)) / (MAX_BPS)
+    );
+  }
+
+  function setSlippage(uint256 _slippage) external override onlyOwner {
+    require(
+      _slippage >= 0 && _slippage <= 10000,
+      "Slippage must be between 0 and 10000"
+    );
+    slippageForCurveLp = _slippage;
+  }
+
   modifier onlyGovernance() {
     require(governance == msg.sender, "Only governance can call this");
+    _;
+  }
+
+  modifier validDeposit(address routerAddress, bytes memory signature) {
+    require(
+      verifySignatureAgainstAuthority(signature, verificationAuthority),
+      "Signature is not valid"
+    );
+
+    require(
+      tokenAddress[routerAddress] != address(0),
+      "Invalid router address"
+    );
+
+    require(
+      withdrawLedger[routerAddress][msg.sender] == 0,
+      "Cannot deposit funds to router while waiting to withdraw"
+    );
+
     _;
   }
 }
