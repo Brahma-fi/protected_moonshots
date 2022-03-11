@@ -177,12 +177,6 @@ contract Batcher is Ownable, IBatcher, EIP712 {
         uint256 userShare = (userAmount * (lpTokensReceived)) /
           (amountToDeposit);
         IERC20(address(router)).safeTransfer(users[i], userShare);
-
-        // uint tokenLeftShare = userAmount * (tokenLeft) / (amountToDeposit);
-        // if (tokenLeftShare > DUST_LIMIT) {
-        //     token.safeTransfer(users[i], tokenLeftShare);
-
-        // }
         depositLedger[routerAddress][users[i]] = 0;
       }
     }
@@ -225,22 +219,17 @@ contract Batcher is Ownable, IBatcher, EIP712 {
     for (uint256 i = 0; i < users.length; i++) {
       uint256 userAmount = withdrawLedger[routerAddress][users[i]];
       if (userAmount > 0) {
-        uint256 userShare = (userAmount * (wantTokensReceived)) /
-          (amountToWithdraw);
+        uint256 userShare = (userAmount * wantTokensReceived) /
+          amountToWithdraw;
         token.safeTransfer(users[i], userShare);
 
-        // uint tokenLeftShare = userAmount * (tokenLeft) / (amountToWithdraw);
-        // if (tokenLeftShare > DUST_LIMIT) {
-        //     token.safeTransfer(users[i], tokenLeftShare);
-
-        // }
         withdrawLedger[routerAddress][users[i]] = 0;
       }
     }
   }
 
   /// @inheritdoc IBatcher
-  function setRouter(address routerAddress, address token, uint256 maxLimit)
+  function setRouterParams(address routerAddress, address token, uint256 maxLimit)
     external
     override
     onlyOwner
@@ -322,6 +311,7 @@ contract Batcher is Ownable, IBatcher, EIP712 {
       (expectedWantTokensOut * (MAX_BPS - slippageForCurveLp)) / (MAX_BPS)
     );
   }
+
 
   function setSlippage(uint256 _slippage) external override onlyOwner {
     require(
