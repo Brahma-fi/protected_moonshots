@@ -21,7 +21,7 @@ contract EIP712 {
                 ),
                 keccak256(bytes("Batcher")),
                 keccak256(bytes("1")),
-                1, //TODO block.chainID
+                1, 
                 address(this)
             )
         );
