@@ -15,6 +15,7 @@ let token_decimals: number = 6;
 let keeperAddress: string;
 let governanceAddress: string;
 let signer: SignerWithAddress;
+let invalidSigner: SignerWithAddress;
 
 describe("Metarouter",  function () {
 
@@ -27,7 +28,7 @@ describe("Metarouter",  function () {
         params: [keeperAddress],
       });    
       signer = await hre.ethers.getSigner(keeperAddress);
-
+      invalidSigner = (await hre.ethers.getSigners())[0];
     });
 
     it("Check address assignment meta router", async function () {
@@ -56,11 +57,25 @@ describe("Metarouter",  function () {
     });
 
     it("Adding and removing an executor", async function () {
+
+      async function getExecutor(){
+        const ConvexExecutor = await hre.ethers.getContractFactory("ConvexTradeExecutor");
+        let TradeExecutor = await ConvexExecutor.deploy(baseRewardPool, ust3Pool, curve3PoolZap, "0xAE75B29ADe678372D77A8B41225654138a7E6ff1", metaRouter.address) as ConvexTradeExecutor;
+        await TradeExecutor.deployed();
+        return TradeExecutor;
+      }
+
+      let tempExecutor = await getExecutor();
+
       await metaRouter.addExecutor(convexTradeExecutor.address);
+      expect(await metaRouter.totalExecutors()).to.equal(BigNumber.from(1));
+
+      await expect(metaRouter.connect(invalidSigner).removeExecutor(tempExecutor.address)).to.be.revertedWith("Only keeper call");
       expect(await metaRouter.totalExecutors()).to.equal(BigNumber.from(1));
 
       await metaRouter.removeExecutor(convexTradeExecutor.address);
       expect(await metaRouter.totalExecutors()).to.equal(BigNumber.from(0));
+      
     });
 
     it("Depositing funds into Metarouter", async function () {
@@ -77,6 +92,20 @@ describe("Metarouter",  function () {
     });
 
     it("Withdrawing funds from Metarouter", async function () {
+      let amount = BigNumber.from(100e6);
+      await metaRouter.withdraw(amount, signer.address);
+      expect(await metaRouter.totalRouterFunds()).to.equal(BigNumber.from(0));
+      expect(await metaRouter.totalSupply()).to.equal(BigNumber.from(0));
+      expect(await metaRouter.balanceOf(signer.address)).to.equal(BigNumber.from(0));
+
+    });
+
+    it("Depositing funds into convex trade executor",async () => {
+      
+    });
+
+    it("Withdrawing funds into convex trade executor",async () => {
+      
     });
 
   });
