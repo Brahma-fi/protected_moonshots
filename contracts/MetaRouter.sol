@@ -141,12 +141,12 @@ contract MetaRouter is IMetaRouter, ERC20 {
     }
 
     modifier onlyGovernance {
-        require(msg.sender == governance);
+        require(msg.sender == governance, "Only governance call");
         _;
     }
 
     modifier onlyKeeper {
-        require(msg.sender == governance);
+        require(msg.sender == keeper, "Only keeper call");
         _;
     }
 
