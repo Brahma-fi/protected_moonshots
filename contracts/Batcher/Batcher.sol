@@ -20,7 +20,13 @@ contract Batcher is Ownable, IBatcher, EIP712 {
 
   uint256 DUST_LIMIT = 10000;
 
-  mapping(address => address) public tokenAddress;
+  struct Vault {
+    address tokenAddress;
+    uint256 maxAmount;
+    uint256 currentAmount;
+  }
+
+  mapping(address => Vault) public vaults;
 
   mapping(address => mapping(address => uint256)) public depositLedger;
   mapping(address => mapping(address => uint256)) public withdrawLedger;
@@ -56,18 +62,21 @@ contract Batcher is Ownable, IBatcher, EIP712 {
     bytes memory signature
   ) external override validDeposit(routerAddress, signature) {
     require(
-      IERC20(tokenAddress[routerAddress]).allowance(
+      IERC20(vaults[routerAddress].tokenAddress).allowance(
         msg.sender,
         address(this)
       ) >= amountIn,
       "No allowance"
     );
 
-    IERC20(tokenAddress[routerAddress]).safeTransferFrom(
+    IERC20(vaults[routerAddress].tokenAddress).safeTransferFrom(
       msg.sender,
       address(this),
       amountIn
     );
+
+    vaults[routerAddress].currentAmount += amountIn;
+    require(vaults[routerAddress].currentAmount <= vaults[routerAddress].maxAmount, "Exceeded deposit limit");
 
     _completeDeposit(routerAddress, amountIn);
   }
@@ -107,7 +116,7 @@ contract Batcher is Ownable, IBatcher, EIP712 {
     override
   {
     require(
-      tokenAddress[routerAddress] != address(0),
+      vaults[routerAddress].tokenAddress != address(0),
       "Invalid router address"
     );
 
@@ -123,6 +132,8 @@ contract Batcher is Ownable, IBatcher, EIP712 {
     withdrawLedger[routerAddress][msg.sender] =
       withdrawLedger[routerAddress][msg.sender] +
       (amountIn);
+
+    vaults[routerAddress].currentAmount -= amountIn;
 
     emit WithdrawRequest(msg.sender, routerAddress, amountIn);
   }
@@ -185,7 +196,7 @@ contract Batcher is Ownable, IBatcher, EIP712 {
   {
     IMetaRouter router = IMetaRouter(routerAddress);
 
-    IERC20 token = IERC20(tokenAddress[routerAddress]);
+    IERC20 token = IERC20(vaults[routerAddress].tokenAddress);
 
     uint256 amountToWithdraw = 0;
     uint256 oldWantBalance = token.balanceOf(address(this));
@@ -229,14 +240,18 @@ contract Batcher is Ownable, IBatcher, EIP712 {
   }
 
   /// @inheritdoc IBatcher
-  function setRouterTokenAddress(address routerAddress, address token)
+  function setRouter(address routerAddress, address token, uint256 maxLimit)
     external
     override
     onlyOwner
   {
     // (, , IERC20Metadata token0, IERC20Metadata token1) = _getVault(routerAddress);
     // require(address(token0) == token || address(token1) == token, 'wrong token address');
-    tokenAddress[routerAddress] = token;
+    vaults[routerAddress] = Vault({
+      tokenAddress: token, 
+      maxAmount: maxLimit,
+      currentAmount: 0
+    });
 
     IERC20(token).approve(routerAddress, type(uint256).max);
   }
@@ -326,7 +341,7 @@ contract Batcher is Ownable, IBatcher, EIP712 {
     );
 
     require(
-      tokenAddress[routerAddress] != address(0),
+      vaults[routerAddress].tokenAddress != address(0),
       "Invalid router address"
     );
 
