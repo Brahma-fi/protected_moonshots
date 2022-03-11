@@ -71,10 +71,16 @@ describe("Metarouter",  function () {
       expect(await metaRouter.totalExecutors()).to.equal(BigNumber.from(1));
 
       await expect(metaRouter.connect(invalidSigner).removeExecutor(tempExecutor.address)).to.be.revertedWith("Only keeper call");
-      expect(await metaRouter.totalExecutors()).to.equal(BigNumber.from(1));
+      console.log("temp executor address: ", tempExecutor.address);
+      console.log("convex executor address: ", convexTradeExecutor.address);
+      
+      await metaRouter.removeExecutor(tempExecutor.address);
+      await metaRouter.addExecutor(tempExecutor.address);
+      await metaRouter.addExecutor(tempExecutor.address);
+      console.log("executors", await metaRouter.executorByIndex(BigNumber.from(0)), await metaRouter.executorByIndex(BigNumber.from(1)));
 
       await metaRouter.removeExecutor(convexTradeExecutor.address);
-      expect(await metaRouter.totalExecutors()).to.equal(BigNumber.from(0));
+      expect(await metaRouter.totalExecutors()).to.equal(BigNumber.from(1));
       
     });
 

@@ -25,7 +25,6 @@ contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
     address _baseRewardPool,
     address _ust3Pool,
     address _curve3PoolZap,
-    address _lpToken,
     address _harvester
   ) external onlyGovernance {
     _initHandler(
