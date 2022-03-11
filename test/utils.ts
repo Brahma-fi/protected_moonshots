@@ -1,6 +1,7 @@
 import hre from "hardhat";
+import { wantTokenL1 } from "../scripts/constants";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { Bytes } from "ethers";
+import { MetaRouter } from "../src/types";
 
 export async function setup() :Promise<[string, string, SignerWithAddress, SignerWithAddress]> {
     let keeperAddress = "0x55FE002aefF02F77364de339a1292923A15844B8";
@@ -36,4 +37,27 @@ export async function getSignature(addressToAuthorize: string, signer: SignerWit
   let signature = await signer._signTypedData(domain, types, value);
   // console.log("eip712 signature", signature);
   return  hre.ethers.utils.hexlify(signature);
+}
+
+
+export async function getMetaRouterContract() :Promise<MetaRouter> {
+  let token_name: string = "BUSDC";
+  let token_symbol: string = "BUSDC";
+  let token_decimals: number = 6;
+  let [keeperAddress, governanceAddress, signer, invalidSigner] = await setup();
+  const MetaRouter = await hre.ethers.getContractFactory(
+    "MetaRouter",
+    signer
+  );
+  let metaRouter = (await MetaRouter.deploy(
+    token_name,
+    token_symbol,
+    token_decimals,
+    wantTokenL1,
+    keeperAddress,
+    governanceAddress
+  )) as MetaRouter;
+  await metaRouter.deployed();
+  console.log("MetaRouter deployed at: ", metaRouter.address);
+  return metaRouter
 }

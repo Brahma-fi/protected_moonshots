@@ -1,11 +1,13 @@
 import { expect } from "chai";
 import hre from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import {Batcher, ERC20} from "../src/types";
-import {setup, getSignature} from "./utils";
+import {Batcher, ERC20, MetaRouter} from "../src/types";
+import {setup, getSignature, getMetaRouterContract} from "./utils";
 import { BigNumber } from "ethers";
-import { sign } from "crypto";
 
+// Language: typescript
+// Path: test/Batcher.ts
+// Main access modifiers owner, governor.
 
 describe("Batcher", function () {
     let batcher: Batcher;
@@ -13,10 +15,10 @@ describe("Batcher", function () {
     let governanceAddress: string;
     let signer: SignerWithAddress;
     let invalidSigner: SignerWithAddress;
-    let routerAddres: string;
+    let router: MetaRouter;
     before(async () => {
         [keeperAddress, governanceAddress, signer, invalidSigner] = await setup();
-        routerAddres = "0x95Ba4cF87D6723ad9C0Db21737D862bE80e93911";
+        router = await getMetaRouterContract();
      });
 
     it("Check address assingment Batcher", async function () {
@@ -28,6 +30,11 @@ describe("Batcher", function () {
         expect(await batcher.verificationAuthority()).to.equal(invalidSigner.address);
     
     });
+    
+    // Operation - Expected Behaviour
+    // depositFunds -  increament in depositLedger mapping, batcher balance increament,
+    //              -  decrease of USDC funds of user, message for user only verified
+    //              - shouldn't breach maxDepositLimit of rotuer.  
 
     it("Deposit verification", async function () {
        let signature =  await getSignature(signer.address, invalidSigner, batcher.address);
@@ -38,10 +45,32 @@ describe("Batcher", function () {
           "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
         )) as ERC20;
         await USDC.connect(signer).approve(batcher.address, amount);
-        await batcher.setRouter(routerAddres, USDC.address, BigNumber.from(1000e6));
+        await batcher.setRouterParams(router.address, USDC.address, BigNumber.from(1000e6));
 
-        await batcher.depositFunds(amount, routerAddres ,signature);
-        expect(await batcher.depositLedger(routerAddres, signer.address)).to.equal(amount);
+        await batcher.depositFunds(amount, router.address ,signature);
+        expect(await batcher.depositLedger(router.address, signer.address)).to.equal(amount);
+
+        await batcher.batchDeposit(router.address, [signer.address]);
+        expect(await batcher.depositLedger(router.address, signer.address)).to.equal(BigNumber.from(0));
+
     });
+
+    // Operation - Expected Behaviour
+    // withdrawFunds -  increament in withdrawLedger mapping, batcher balance increament in router tokens.
+    //              -  increase of USDC funds of user.
+    it("Withdraw verification", async function () {
+
+    });
+
+    // Operation - Expected Behaviour
+    // batchDeposit - onlyOwner should call this function, user usdc balance should decrease with increase in router tokens.
+    it("Batch deposit verification", async function () {
+    });
+
+    // Operation - Expected Behaviour
+    // batchWithdraw - onlyOwner should call this function, user usdc balance should increase with decrease in router tokens.
+    it("Batch withdraw verification", async function () {
+    });
+
 
 });
