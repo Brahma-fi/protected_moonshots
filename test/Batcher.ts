@@ -95,15 +95,15 @@ describe("Batcher", function () {
         console.log("before deposit", await USDC.balanceOf(signer.address));
         await curve3PoolZap.connect(signer).add_liquidity(ust3Pool, liquidityAmounts, BigNumber.from(0));
         console.log("after deposit");
-        let lpTokenBalance = (await curvePool.balanceOf(signer.address)).div(hre.ethers.utils.parseEther("1"));
+        let lpTokenBalance = (await curvePool.balanceOf(signer.address));
         console.log("Curve lp token balance:", lpTokenBalance);
-        // expect(lpTokenBalance).to.greaterThan(BigNumber.from(0));
+        expect(lpTokenBalance.gt(BigNumber.from(0))).to.equal(true);
         await curvePool.connect(signer).approve(batcher.address, lpTokenBalance);
         let signature =  await getSignature(signer.address, invalidSigner, batcher.address);
 
         await batcher.setRouterParams(router.address, USDC.address, usdc_amount);
         await batcher.setSlippage(BigNumber.from(10000));
-        await batcher.connect(signer).depositFundsInCurveLpToken(lpTokenBalance, router.address, signature);
+        await batcher.depositFundsInCurveLpToken(lpTokenBalance, router.address, signature);
         let ledgerBalance = await batcher.depositLedger(router.address, signer.address);
         console.log("ledger balance", ledgerBalance.toString());
         console.log("batcher balance", await USDC.balanceOf(batcher.address));
