@@ -50,7 +50,7 @@ const config: HardhatUserConfig = {
     hardhat: {
       forking: {
         url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}`,
-        blockNumber: 14127490, // Comment line for latest block automatically
+        blockNumber: 14360603, // Comment line for latest block automatically
       }
     },
     ropsten: {

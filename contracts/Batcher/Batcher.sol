@@ -177,12 +177,6 @@ contract Batcher is Ownable, IBatcher, EIP712 {
         uint256 userShare = (userAmount * (lpTokensReceived)) /
           (amountToDeposit);
         IERC20(address(router)).safeTransfer(users[i], userShare);
-
-        // uint tokenLeftShare = userAmount * (tokenLeft) / (amountToDeposit);
-        // if (tokenLeftShare > DUST_LIMIT) {
-        //     token.safeTransfer(users[i], tokenLeftShare);
-
-        // }
         depositLedger[routerAddress][users[i]] = 0;
       }
     }
@@ -225,26 +219,23 @@ contract Batcher is Ownable, IBatcher, EIP712 {
     for (uint256 i = 0; i < users.length; i++) {
       uint256 userAmount = withdrawLedger[routerAddress][users[i]];
       if (userAmount > 0) {
-        uint256 userShare = (userAmount * (wantTokensReceived)) /
-          (amountToWithdraw);
+        uint256 userShare = (userAmount * wantTokensReceived) /
+          amountToWithdraw;
         token.safeTransfer(users[i], userShare);
 
-        // uint tokenLeftShare = userAmount * (tokenLeft) / (amountToWithdraw);
-        // if (tokenLeftShare > DUST_LIMIT) {
-        //     token.safeTransfer(users[i], tokenLeftShare);
-
-        // }
         withdrawLedger[routerAddress][users[i]] = 0;
       }
     }
   }
 
   /// @inheritdoc IBatcher
-  function setRouter(address routerAddress, address token, uint256 maxLimit)
+  function setRouterParams(address routerAddress, address token, uint256 maxLimit)
     external
     override
     onlyOwner
   {
+    require(routerAddress != address(0), "Invalid router address");
+    require(token != address(0), "Invalid token address");
     // (, , IERC20Metadata token0, IERC20Metadata token1) = _getVault(routerAddress);
     // require(address(token0) == token || address(token1) == token, 'wrong token address');
     vaults[routerAddress] = Vault({
@@ -302,7 +293,7 @@ contract Batcher is Ownable, IBatcher, EIP712 {
 
     uint256 _amount = lpToken.balanceOf(address(this));
 
-    lpToken.safeApprove(address(ust3Pool), _amount);
+    lpToken.safeApprove(address(curve3PoolZap), _amount);
 
     int128 usdcIndexInPool = int128(int256(uint256(2)));
 
@@ -320,6 +311,7 @@ contract Batcher is Ownable, IBatcher, EIP712 {
       (expectedWantTokensOut * (MAX_BPS - slippageForCurveLp)) / (MAX_BPS)
     );
   }
+
 
   function setSlippage(uint256 _slippage) external override onlyOwner {
     require(
