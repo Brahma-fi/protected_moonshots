@@ -1,7 +1,15 @@
 import hre from "hardhat";
 import { wantTokenL1 } from "../scripts/constants";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { MetaRouter } from "../src/types";
+import { MetaRouter, ERC20 } from "../src/types";
+
+export async function getUSDCContract(): Promise<ERC20> {
+  const USDC = (await hre.ethers.getContractAt(
+    "ERC20",
+    "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+  )) as ERC20;
+  return USDC;
+}
 
 export async function setup() :Promise<[string, string, SignerWithAddress, SignerWithAddress]> {
     let keeperAddress = "0x55FE002aefF02F77364de339a1292923A15844B8";
