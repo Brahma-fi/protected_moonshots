@@ -27,15 +27,13 @@ library AddrArrayLib {
      * @param self Storage array containing address type variables
      * @param element the element to remove from the array
      */
-    function removeAddress(Addresses storage self, address element) internal returns (bool) {
+    function removeAddress(Addresses storage self, address element) internal {
         for (uint i = 0; i < self.size(); i++) {
             if (self._items[i] == element) {
                 self._items[i] = self._items[self.size() - 1];
                 self._items.pop();
-                return true;
             }
         }
-        return false;
     }
 
     /**
