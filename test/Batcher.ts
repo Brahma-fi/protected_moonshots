@@ -67,10 +67,11 @@ describe("Batcher", function () {
         await USDC.connect(signer).approve(router.address, amount);
         await router.deposit(amount, signer.address);
         await router.connect(signer).approve(batcher.address, amount);
+        await batcher.withdrawFunds(amount, router.address);
         await expect(
             batcher.connect(invalidSigner).batchWithdraw(router.address, [signer.address])
         ).to.be.revertedWith("Ownable: caller is not the owner");
-        await batcher.withdrawFunds(amount, router.address);
+        
         expect(await batcher.withdrawLedger(router.address, signer.address)).to.equal(amount);
         
         expect(await router.balanceOf(batcher.address)).to.equal(amount);
@@ -97,6 +98,18 @@ describe("Batcher", function () {
         let lpTokenBalance = (await curvePool.balanceOf(signer.address)).div(hre.ethers.utils.parseEther("1"));
         console.log("Curve lp token balance:", lpTokenBalance);
         // expect(lpTokenBalance).to.greaterThan(BigNumber.from(0));
+        await curvePool.connect(signer).approve(batcher.address, lpTokenBalance);
+        let signature =  await getSignature(signer.address, invalidSigner, batcher.address);
+
+        await batcher.setRouterParams(router.address, USDC.address, usdc_amount);
+        await batcher.setSlippage(BigNumber.from(10000));
+        await batcher.connect(signer).depositFundsInCurveLpToken(lpTokenBalance, router.address, signature);
+        let ledgerBalance = await batcher.depositLedger(router.address, signer.address);
+        console.log("ledger balance", ledgerBalance.toString());
+        console.log("batcher balance", await USDC.balanceOf(batcher.address));
+        expect(ledgerBalance.gt(BigNumber.from(0))).to.equal(true);
+        expect(ledgerBalance.lt(lpTokenBalance)).to.equal(true);
+        
 
     });
 });

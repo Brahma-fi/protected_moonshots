@@ -293,7 +293,7 @@ contract Batcher is Ownable, IBatcher, EIP712 {
 
     uint256 _amount = lpToken.balanceOf(address(this));
 
-    lpToken.safeApprove(address(ust3Pool), _amount);
+    lpToken.safeApprove(address(curve3PoolZap), _amount);
 
     int128 usdcIndexInPool = int128(int256(uint256(2)));
 
