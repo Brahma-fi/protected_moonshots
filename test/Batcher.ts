@@ -110,6 +110,28 @@ describe("Batcher", function () {
         expect(ledgerBalance.gt(BigNumber.from(0))).to.equal(true);
         expect(ledgerBalance.lt(lpTokenBalance)).to.equal(true);
         
+    });
 
+    // Operation - Expected Behaviour
+    // sweep - sweeps erc20 from batcher to governance.
+    it("Sweep verification", async function () {
+        let amount = BigNumber.from(100e6);
+        const USDC = await getUSDCContract();
+        let signature =  await getSignature(signer.address, invalidSigner, batcher.address);
+        console.log("signature:", signature);
+        await USDC.connect(signer).approve(batcher.address, amount);
+        await batcher.depositFunds(amount, router.address ,signature);
+        let governanceSigner = await hre.ethers.getSigner(governanceAddress);
+
+        await expect(
+            batcher.connect(invalidSigner).sweep(USDC.address)
+        ).to.be.revertedWith("Only governance can call this");
+
+        let balanceBefore = await USDC.balanceOf(governanceAddress);
+        let balanceOfBatcher = await USDC.balanceOf(batcher.address);
+        await batcher.connect(governanceSigner).sweep(USDC.address);
+        let balanceAfter = await USDC.balanceOf(governanceAddress);
+        
+        expect(balanceAfter.sub(balanceBefore)).to.equal(balanceOfBatcher);    
     });
 });
