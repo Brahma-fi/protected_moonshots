@@ -1,8 +1,8 @@
 import { expect } from "chai";
 import hre from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import {Batcher, MetaRouter, ICurveDepositZapper, ICurvePool} from "../src/types";
-import {setup, getSignature, getMetaRouterContract, getUSDCContract} from "./utils";
+import {Batcher, Hauler, ICurveDepositZapper, ICurvePool} from "../src/types";
+import {setup, getSignature, getHaulerContract, getUSDCContract} from "./utils";
 import { BigNumber, BigNumberish } from "ethers";
 import { ust3Pool } from "../scripts/constants";
 
@@ -16,10 +16,10 @@ describe("Batcher", function () {
     let governanceAddress: string;
     let signer: SignerWithAddress;
     let invalidSigner: SignerWithAddress;
-    let router: MetaRouter;
+    let hauler: Hauler;
     before(async () => {
         [keeperAddress, governanceAddress, signer, invalidSigner] = await setup();
-        router = await getMetaRouterContract();
+        hauler = await getHaulerContract();
      });
 
     it("Check address assingment Batcher", async function () {
@@ -44,41 +44,41 @@ describe("Batcher", function () {
         let amount = BigNumber.from(100e6);
         const USDC = await getUSDCContract();
         await USDC.connect(signer).approve(batcher.address, amount);
-        await batcher.setRouterParams(router.address, USDC.address, BigNumber.from(1000e6));
+        await batcher.setHaulerParams(hauler.address, USDC.address, BigNumber.from(1000e6));
 
-        await batcher.depositFunds(amount, router.address ,signature);
-        expect(await batcher.depositLedger(router.address, signer.address)).to.equal(amount);
+        await batcher.depositFunds(amount, hauler.address ,signature);
+        expect(await batcher.depositLedger(hauler.address, signer.address)).to.equal(amount);
         await expect(
-            batcher.connect(invalidSigner).batchDeposit(router.address, [signer.address])
+            batcher.connect(invalidSigner).batchDeposit(hauler.address, [signer.address])
         ).to.be.revertedWith("Ownable: caller is not the owner");
-        await batcher.batchDeposit(router.address, [signer.address]);
-        expect(await batcher.depositLedger(router.address, signer.address)).to.equal(BigNumber.from(0));
-        expect(await router.balanceOf(signer.address)).to.equal(amount);
+        await batcher.batchDeposit(hauler.address, [signer.address]);
+        expect(await batcher.depositLedger(hauler.address, signer.address)).to.equal(BigNumber.from(0));
+        expect(await hauler.balanceOf(signer.address)).to.equal(amount);
     });
 
     // Operation - Expected Behaviour
-    // withdrawFunds -  increament in withdrawLedger mapping, batcher balance increament in router tokens.
+    // withdrawFunds -  increament in withdrawLedger mapping, batcher balance increament in hauler tokens.
     //              -  increase of USDC funds of user.
-    // batchWithdraw - onlyOwner should call this function, with decrease in router tokens.
+    // batchWithdraw - onlyOwner should call this function, with decrease in hauler tokens.
 
     it("Withdraw verification", async function () {
         let amount = BigNumber.from(100e6);
         const USDC = await getUSDCContract();
-        await USDC.connect(signer).approve(router.address, amount);
-        await router.deposit(amount, signer.address);
-        await router.connect(signer).approve(batcher.address, amount);
-        await batcher.withdrawFunds(amount, router.address);
+        await USDC.connect(signer).approve(hauler.address, amount);
+        await hauler.deposit(amount, signer.address);
+        await hauler.connect(signer).approve(batcher.address, amount);
+        await batcher.withdrawFunds(amount, hauler.address);
         await expect(
-            batcher.connect(invalidSigner).batchWithdraw(router.address, [signer.address])
+            batcher.connect(invalidSigner).batchWithdraw(hauler.address, [signer.address])
         ).to.be.revertedWith("Ownable: caller is not the owner");
         
-        expect(await batcher.withdrawLedger(router.address, signer.address)).to.equal(amount);
+        expect(await batcher.withdrawLedger(hauler.address, signer.address)).to.equal(amount);
         
-        expect(await router.balanceOf(batcher.address)).to.equal(amount);
+        expect(await hauler.balanceOf(batcher.address)).to.equal(amount);
         let balanceBefore = await USDC.balanceOf(signer.address);
-        await batcher.batchWithdraw(router.address, [signer.address]);
+        await batcher.batchWithdraw(hauler.address, [signer.address]);
         let balanceAfter = await USDC.balanceOf(signer.address);
-        expect(await batcher.withdrawLedger(router.address, signer.address)).to.equal(BigNumber.from(0));
+        expect(await batcher.withdrawLedger(hauler.address, signer.address)).to.equal(BigNumber.from(0));
         expect(balanceAfter.sub(balanceBefore)).to.equal(amount);
     });
 
@@ -101,10 +101,10 @@ describe("Batcher", function () {
         await curvePool.connect(signer).approve(batcher.address, lpTokenBalance);
         let signature =  await getSignature(signer.address, invalidSigner, batcher.address);
 
-        await batcher.setRouterParams(router.address, USDC.address, usdc_amount);
+        await batcher.setHaulerParams(hauler.address, USDC.address, usdc_amount);
         await batcher.setSlippage(BigNumber.from(10000));
-        await batcher.depositFundsInCurveLpToken(lpTokenBalance, router.address, signature);
-        let ledgerBalance = await batcher.depositLedger(router.address, signer.address);
+        await batcher.depositFundsInCurveLpToken(lpTokenBalance, hauler.address, signature);
+        let ledgerBalance = await batcher.depositLedger(hauler.address, signer.address);
         console.log("ledger balance", ledgerBalance.toString());
         console.log("batcher balance", await USDC.balanceOf(batcher.address));
         expect(ledgerBalance.gt(BigNumber.from(0))).to.equal(true);
@@ -120,7 +120,7 @@ describe("Batcher", function () {
         let signature =  await getSignature(signer.address, invalidSigner, batcher.address);
         console.log("signature:", signature);
         await USDC.connect(signer).approve(batcher.address, amount);
-        await batcher.depositFunds(amount, router.address ,signature);
+        await batcher.depositFunds(amount, hauler.address ,signature);
         let governanceSigner = await hre.ethers.getSigner(governanceAddress);
 
         await expect(

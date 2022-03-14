@@ -10,13 +10,13 @@ contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
     address _ust3Pool,
     address _curve3PoolZap,
     address _harvester,
-    address _router
-  ) BaseTradeExecutor(_router) {
+    address _hauler
+  ) BaseTradeExecutor(_hauler) {
     _initHandler(
       _baseRewardPool,
       _ust3Pool,
       _curve3PoolZap,
-      routerWantToken(),
+      haulerWantToken(),
       _harvester
     );
   }
@@ -31,7 +31,7 @@ contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
       _baseRewardPool,
       _ust3Pool,
       _curve3PoolZap,
-      routerWantToken(),
+      haulerWantToken(),
       _harvester
     );
   }

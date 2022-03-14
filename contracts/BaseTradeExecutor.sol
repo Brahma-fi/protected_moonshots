@@ -5,7 +5,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "../interfaces/ITradeExecutor.sol";
-import "../interfaces/IMetaRouter.sol";
+import "../interfaces/IHauler.sol";
 
 
 abstract contract BaseTradeExecutor is ITradeExecutor {
@@ -15,23 +15,23 @@ abstract contract BaseTradeExecutor is ITradeExecutor {
     ActionStatus public override depositStatus;
     ActionStatus public override withdrawalStatus;
 
-    address public router;
+    address public hauler;
     
-    constructor(address _router) {
-        router = _router;
-        IERC20(routerWantToken()).approve(router, MAX_INT);
+    constructor(address _hauler) {
+        hauler = _hauler;
+        IERC20(haulerWantToken()).approve(hauler, MAX_INT);
     }
 
-    function routerWantToken() public view returns (address) {
-        return IMetaRouter(router).wantToken();
+    function haulerWantToken() public view returns (address) {
+        return IHauler(hauler).wantToken();
     }
 
     function governance() public view returns (address) {
-        return IMetaRouter(router).governance();
+        return IHauler(hauler).governance();
     }
 
     function keeper() public view returns (address) {
-        return IMetaRouter(router).keeper();
+        return IHauler(hauler).keeper();
     }
 
     modifier onlyGovernance {

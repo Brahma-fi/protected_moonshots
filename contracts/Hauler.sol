@@ -7,10 +7,10 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../library/AddArrayLib.sol";
 
 import "../interfaces/ITradeExecutor.sol";
-import "../interfaces/IMetaRouter.sol";
+import "../interfaces/IHauler.sol";
 
 
-contract MetaRouter is IMetaRouter, ERC20 {
+contract Hauler is IHauler, ERC20 {
 
     using AddrArrayLib for AddrArrayLib.Addresses;
 
@@ -45,7 +45,7 @@ contract MetaRouter is IMetaRouter, ERC20 {
         require(receiver != address(0));
 
         if (totalSupply() > 0) {
-            shares = totalSupply() * amountIn / totalRouterFunds();
+            shares = totalSupply() * amountIn / totalHaulerFunds();
         } else {
             shares = amountIn;
         }
@@ -58,14 +58,14 @@ contract MetaRouter is IMetaRouter, ERC20 {
         require(sharesIn > 0);
         require(receiver != address(0));
 
-        amountOut = sharesIn * totalRouterFunds() / totalSupply();
+        amountOut = sharesIn * totalHaulerFunds() / totalSupply();
         _burn(receiver, sharesIn);
         IERC20(wantToken).transfer(receiver, amountOut);
     }
 
 
 
-    function totalRouterFunds() public view returns (uint) {
+    function totalHaulerFunds() public view returns (uint) {
         return IERC20(wantToken).balanceOf(address(this)) + totalExecutorFunds();
     }
 
