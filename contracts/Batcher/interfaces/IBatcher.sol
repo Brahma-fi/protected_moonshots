@@ -3,62 +3,62 @@ pragma solidity ^0.8.0;
 
 /**
  * @title IPeripheryBatcher
- * @notice A batcher to resolve router deposits/withdrawals in batches
+ * @notice A batcher to resolve hauler deposits/withdrawals in batches
  * @dev Provides an interface for Batcher
  */
 interface IBatcher {
   /**
    * @notice Stores the deposits for future batching via periphery
    * @param amountIn Value of token to be deposited
-   * @param routerAddress address of router to deposit into
+   * @param haulerAddress address of hauler to deposit into
    * @param signature signature verifying that depositor has enough karma and is authorized to deposit by brahma
    */
   function depositFunds(
     uint256 amountIn,
-    address routerAddress,
+    address haulerAddress,
     bytes memory signature
   ) external;
 
   /**
    * @notice Stores the deposits for future batching via periphery
    * @param amountIn Value of Lp token to be deposited
-   * @param routerAddress address of router to deposit into
+   * @param haulerAddress address of hauler to deposit into
    * @param signature signature verifying that depositor has enough karma and is authorized to deposit by brahma
    */
   function depositFundsInCurveLpToken(
     uint256 amountIn,
-    address routerAddress,
+    address haulerAddress,
     bytes memory signature
   ) external;
 
   /**
    * @notice Stores the deposits for future batching via periphery
    * @param amountOut Value of token to be deposited
-   * @param routerAddress address of router to deposit into
+   * @param haulerAddress address of hauler to deposit into
    */
-  function withdrawFunds(uint256 amountOut, address routerAddress) external;
+  function withdrawFunds(uint256 amountOut, address haulerAddress) external;
 
   /**
    * @notice Performs deposits on the periphery for the supplied users in batch
-   * @param routerAddress address of router to deposit inton
+   * @param haulerAddress address of hauler to deposit inton
    * @param users array of users whose deposits must be resolved
    */
-  function batchDeposit(address routerAddress, address[] memory users) external;
+  function batchDeposit(address haulerAddress, address[] memory users) external;
 
   /**
    * @notice Performs withdraws on the periphery for the supplied users in batch
-   * @param routerAddress address of router to deposit inton
+   * @param haulerAddress address of hauler to deposit inton
    * @param users array of users whose deposits must be resolved
    */
-  function batchWithdraw(address routerAddress, address[] memory users)
+  function batchWithdraw(address haulerAddress, address[] memory users)
     external;
 
   /**
-   * @notice To set a token address as the deposit token for a router
-   * @param routerAddress address of router to deposit inton
-   * @param token address of token which is to be deposited into router
+   * @notice To set a token address as the deposit token for a hauler
+   * @param haulerAddress address of hauler to deposit inton
+   * @param token address of token which is to be deposited into hauler
    */
-  function setRouterParams(address routerAddress, address token, uint256 maxLimit) external;
+  function setHaulerParams(address haulerAddress, address token, uint256 maxLimit) external;
 
 
   /**

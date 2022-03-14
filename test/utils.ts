@@ -1,7 +1,7 @@
 import hre from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import {
-  MetaRouter,
+  Hauler,
   ERC20,
   ConvexTradeExecutor,
   PerpTradeExecutor,
@@ -68,27 +68,27 @@ export async function getSignature(
   return hre.ethers.utils.hexlify(signature);
 }
 
-export async function getMetaRouterContract(): Promise<MetaRouter> {
+export async function getHaulerContract(): Promise<Hauler> {
   let token_name: string = "BUSDC";
   let token_symbol: string = "BUSDC";
   let token_decimals: number = 6;
   let [keeperAddress, governanceAddress, signer, invalidSigner] = await setup();
-  const MetaRouter = await hre.ethers.getContractFactory("MetaRouter", signer);
-  let metaRouter = (await MetaRouter.deploy(
+  const Hauler = await hre.ethers.getContractFactory("Hauler", signer);
+  let hauler = (await Hauler.deploy(
     token_name,
     token_symbol,
     token_decimals,
     wantTokenL1,
     keeperAddress,
     governanceAddress
-  )) as MetaRouter;
-  await metaRouter.deployed();
-  console.log("MetaRouter deployed at: ", metaRouter.address);
-  return metaRouter;
+  )) as Hauler;
+  await hauler.deployed();
+  console.log("Hauler deployed at: ", hauler.address);
+  return hauler;
 }
 
 export async function getConvexExecutorContract(
-  metaRouterAddress: string
+  haulerAddress: string
 ): Promise<ConvexTradeExecutor> {
   let _harvester = "0xAE75B29ADe678372D77A8B41225654138a7E6ff1";
   const ConvexExecutor = await hre.ethers.getContractFactory(
@@ -99,14 +99,14 @@ export async function getConvexExecutorContract(
     ust3Pool,
     curve3PoolZap,
     _harvester,
-    metaRouterAddress
+    haulerAddress
   )) as ConvexTradeExecutor;
   await convexTradeExecutor.deployed();
   return convexTradeExecutor;
 }
 
 export async function getPerpExecutorContract(
-  metaRouterAddress: string,
+  haulerAddress: string,
   signer: SignerWithAddress
 ): Promise<PerpTradeExecutor> {
   const PerpTradeExecutor = await hre.ethers.getContractFactory(
@@ -114,7 +114,7 @@ export async function getPerpExecutorContract(
     signer
   );
   let perpTradeExecutor = (await PerpTradeExecutor.deploy(
-    metaRouterAddress
+    haulerAddress
   )) as PerpTradeExecutor;
   await perpTradeExecutor.deployed();
   return perpTradeExecutor;

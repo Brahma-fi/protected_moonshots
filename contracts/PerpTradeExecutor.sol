@@ -6,7 +6,7 @@ import "./PerpHandler/PerpPositionHandler.sol";
 
 contract PerpTradeExecutor is BaseTradeExecutor, PerpPositionHandler {
 
-    constructor(address router) BaseTradeExecutor(router){
+    constructor(address hauler) BaseTradeExecutor(hauler){
 
     }
 
