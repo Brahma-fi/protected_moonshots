@@ -18,6 +18,7 @@ import {
   mineBlocks,
   getUSDCContract,
 } from "./utils";
+import { sign } from "crypto";
 
 describe("Hauler", function () {
   let hauler: Hauler;
@@ -202,6 +203,8 @@ describe("Hauler", function () {
     let governanceSigner = await hre.ethers.getSigner(governanceAddress);
 
     await hauler.connect(governanceSigner).setBatcher(batcherAddress);
+    await hauler.connect(governanceSigner).setBatcherOnlyDeposit(true);
+    
     expect(await hauler.batcher()).to.equal(batcherAddress);
     await USDC.connect(signer).transfer(invalidSigner.address, BigNumber.from(100e6));
     let amount = await USDC.balanceOf(invalidSigner.address);
@@ -211,6 +214,9 @@ describe("Hauler", function () {
     );
     await hauler.connect(invalidSigner).deposit(amount, invalidSigner.address);
     expect(await hauler.balanceOf(invalidSigner.address)).to.equal(amount);
+    await expect(
+       hauler.connect(signer).deposit(amount, signer.address)
+    ).to.be.revertedWith("Only batcher call");
   });
 
   // Operation - Expected Behaviour
