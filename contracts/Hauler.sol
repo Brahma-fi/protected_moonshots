@@ -22,10 +22,13 @@ contract Hauler is IHauler, ERC20 {
 
     address public immutable override wantToken;
     uint8 private immutable tokenDecimals;
+    bool public batcherOnlyDeposit;
 
     address public override keeper;
     address public override governance;
+    address public batcher;
     address pendingGovernance;
+    
 
 
     constructor(string memory _name, string memory _symbol, uint8 _decimals, address _wantToken, address _keeper, address _governance) ERC20(_name, _symbol) {
@@ -40,7 +43,7 @@ contract Hauler is IHauler, ERC20 {
     }
 
 
-    function deposit(uint amountIn, address receiver) public override returns (uint256 shares) {
+    function deposit(uint amountIn, address receiver) public onlyBatcher override returns (uint256 shares) {
         require(amountIn > 0);
         require(receiver != address(0));
 
@@ -114,6 +117,13 @@ contract Hauler is IHauler, ERC20 {
         tradeExecutorsList.removeAddress(_tradeExecutor);
     }
 
+    function setBatcher(address _batcher) public onlyGovernance {
+        batcher = _batcher;
+    }
+
+    function setBatcherOnlyDeposit(bool _batcherOnlyDeposit) public onlyGovernance {
+        batcherOnlyDeposit = _batcherOnlyDeposit;
+    }
 
     function setGovernance(address _governance) public onlyGovernance{
         pendingGovernance = _governance;
@@ -135,6 +145,13 @@ contract Hauler is IHauler, ERC20 {
 
     modifier onlyKeeper {
         require(msg.sender == keeper, "Only keeper call");
+        _;
+    }
+
+    modifier onlyBatcher {
+        if (batcherOnlyDeposit) {
+            require(msg.sender == batcher, "Only batcher call");
+        }
         _;
     }
 
