@@ -1,32 +1,41 @@
 import { expect } from "chai";
 import hre from "hardhat";
 
-import { MetaRouter, ConvexTradeExecutor, ERC20 } from "../src/types";
 import {
-  wantTokenL1,
-  ust3Pool,
-  baseRewardPool,
-  curve3PoolZap,
-} from "../scripts/constants";
-import { BigNumber } from "ethers";
+  MetaRouter,
+  ConvexTradeExecutor,
+  ERC20,
+  PerpPositionHandler,
+  PerpTradeExecutor,
+} from "../src/types";
+import { wantTokenL1 } from "../scripts/constants";
+import { BigNumber, utils } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { setup } from "./utils";
-
-let metaRouter: MetaRouter;
-let convexTradeExecutor: ConvexTradeExecutor;
-let token_name: string = "BUSDC";
-let token_symbol: string = "BUSDC";
-let token_decimals: number = 6;
-let keeperAddress: string;
-let governanceAddress: string;
-let signer: SignerWithAddress;
-let invalidSigner: SignerWithAddress;
+import {
+  setup,
+  getConvexExecutorContract,
+  getPerpExecutorContract,
+  mineBlocks,
+} from "./utils";
 
 describe("Metarouter", function () {
+  let metaRouter: MetaRouter;
+  let convexTradeExecutor: ConvexTradeExecutor;
+  let perpTradeExecutor: PerpTradeExecutor;
+  let token_name: string = "BUSDC";
+  let token_symbol: string = "BUSDC";
+  let token_decimals: number = 6;
+  let keeperAddress: string;
+  let governanceAddress: string;
+  let signer: SignerWithAddress;
+  let invalidSigner: SignerWithAddress;
+
   before(async () => {
-     [keeperAddress, governanceAddress, signer, invalidSigner] = await setup();
+    [keeperAddress, governanceAddress, signer, invalidSigner] = await setup();
   });
 
+  // Operation - Expected Behaviour
+  // deployment - check access modifiers are set properly.
   it("Check address assignment meta router", async function () {
     const MetaRouter = await hre.ethers.getContractFactory(
       "MetaRouter",
@@ -48,65 +57,46 @@ describe("Metarouter", function () {
     expect(await metaRouter.governance()).to.equal(governanceAddress);
   });
 
-  it("Check address assignment in convex trade executor", async function () {
-    let _harvester = "0xAE75B29ADe678372D77A8B41225654138a7E6ff1";
-    const ConvexExecutor = await hre.ethers.getContractFactory(
-      "ConvexTradeExecutor"
-    );
-    convexTradeExecutor = (await ConvexExecutor.deploy(
-      baseRewardPool,
-      ust3Pool,
-      curve3PoolZap,
-      _harvester,
-      metaRouter.address
-    )) as ConvexTradeExecutor;
-    await convexTradeExecutor.deployed();
-
-    expect(await convexTradeExecutor.harvester()).to.equals(_harvester);
-    expect(await convexTradeExecutor.keeper()).to.equals(keeperAddress);
-    expect(await convexTradeExecutor.governance()).to.equals(governanceAddress);
-    expect(await convexTradeExecutor.router()).to.equals(metaRouter.address);
-  });
-
-  it("Adding and removing an executor", async function () {
-    async function getExecutor() {
-      const ConvexExecutor = await hre.ethers.getContractFactory(
-        "ConvexTradeExecutor"
-      );
-      let TradeExecutor = (await ConvexExecutor.deploy(
-        baseRewardPool,
-        ust3Pool,
-        curve3PoolZap,
-        "0xAE75B29ADe678372D77A8B41225654138a7E6ff1",
-        metaRouter.address
-      )) as ConvexTradeExecutor;
-      await TradeExecutor.deployed();
-      return TradeExecutor;
-    }
-
-    let tempExecutor = await getExecutor();
-
-    await metaRouter.addExecutor(convexTradeExecutor.address);
-    expect(await metaRouter.totalExecutors()).to.equal(BigNumber.from(1));
+  // Operation - Expected Behaviour
+  // addExecutor - should be done by keeper, increase in number of executors if address is unique. Address added should match with index value in list.
+  it("Adding an executor", async function () {
+    let tempExecutor = await getConvexExecutorContract(metaRouter.address);
+    convexTradeExecutor = await getConvexExecutorContract(metaRouter.address);
 
     await expect(
-      metaRouter.connect(invalidSigner).removeExecutor(tempExecutor.address)
+      metaRouter.connect(invalidSigner).addExecutor(tempExecutor.address)
     ).to.be.revertedWith("Only keeper call");
-    console.log("temp executor address: ", tempExecutor.address);
-    console.log("convex executor address: ", convexTradeExecutor.address);
 
-    await metaRouter.removeExecutor(tempExecutor.address);
     await metaRouter.addExecutor(tempExecutor.address);
+    await metaRouter.addExecutor(convexTradeExecutor.address);
     await metaRouter.addExecutor(tempExecutor.address);
-    console.log(
-      "executors",
-      await metaRouter.executorByIndex(BigNumber.from(0)),
-      await metaRouter.executorByIndex(BigNumber.from(1))
+
+    expect(await metaRouter.totalExecutors()).to.equal(BigNumber.from(2));
+    expect(await metaRouter.executorByIndex(0)).to.equal(tempExecutor.address);
+    expect(await metaRouter.executorByIndex(1)).to.equal(
+      convexTradeExecutor.address
     );
+  });
+
+  // Operation - Expected Behaviour
+  // removeExecutor - should be done by keeper, decrease in number of executors if address is unique.
+  it("Removing an executor", async function () {
+    await expect(
+      metaRouter
+        .connect(invalidSigner)
+        .removeExecutor(convexTradeExecutor.address)
+    ).to.be.revertedWith("Only keeper call");
+
+    await metaRouter.removeExecutor(convexTradeExecutor.address);
+    expect(await metaRouter.totalExecutors()).to.equal(BigNumber.from(1));
 
     await metaRouter.removeExecutor(convexTradeExecutor.address);
     expect(await metaRouter.totalExecutors()).to.equal(BigNumber.from(1));
   });
+
+  // Operation - Expected Behaviour
+  // deposit - increase in balance of pool, increase in totalSupply, tokens should be supplied to depositer address.
+  //         - deposit should fail when the trade executor funds aren't updated.
 
   it("Depositing funds into Metarouter", async function () {
     let amount = BigNumber.from(100e6);
@@ -114,15 +104,43 @@ describe("Metarouter", function () {
       "ERC20",
       "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
     )) as ERC20;
-    await USDC.connect(signer).approve(metaRouter.address, amount);
+    await USDC.connect(signer).approve(
+      metaRouter.address,
+      utils.parseEther("1")
+    );
     await metaRouter.deposit(amount, keeperAddress);
+
+    perpTradeExecutor = await getPerpExecutorContract(
+      metaRouter.address,
+      signer
+    );
+
+    await metaRouter.addExecutor(perpTradeExecutor.address);
+    await perpTradeExecutor.setPosValue(BigNumber.from(0));
     expect(await metaRouter.totalRouterFunds()).to.equal(amount);
     expect(await metaRouter.totalSupply()).to.equal(amount);
     expect(await metaRouter.balanceOf(signer.address)).to.equal(amount);
+
+    const start = new Date();
+
+    // move time forward
+    // await ethers.provider.send("evm_setNextBlockTimestamp", [start.getTime()+(7*24*60*60)]);
+    await mineBlocks(60);
+
+    await expect(metaRouter.deposit(amount, keeperAddress)).to.be.revertedWith(
+      "Executor funds are not up to date"
+    );
   });
 
+  // Operation - Expected Behaviour
+  // withdraw - decrease in balance of pool, decrease in totalSupply, tokens should be more from depositer address.
+  //         - withdraw should fail when the trade executor funds aren't updated.
   it("Withdrawing funds from Metarouter", async function () {
     let amount = BigNumber.from(100e6);
+    await expect(
+      metaRouter.withdraw(amount, signer.address)
+    ).to.be.revertedWith("Executor funds are not up to date");
+    await perpTradeExecutor.setPosValue(BigNumber.from(0));
     await metaRouter.withdraw(amount, signer.address);
     expect(await metaRouter.totalRouterFunds()).to.equal(BigNumber.from(0));
     expect(await metaRouter.totalSupply()).to.equal(BigNumber.from(0));
@@ -130,5 +148,4 @@ describe("Metarouter", function () {
       BigNumber.from(0)
     );
   });
-
 });
