@@ -114,18 +114,6 @@ contract MetaRouter is IMetaRouter, ERC20 {
         tradeExecutorsList.removeAddress(_tradeExecutor);
     }
 
-    //✅ access modifiers - governance (only emergency)
-    //✅ keeper - add, remove, 
-
-    //✅ Iterable mapping of trade executors
-    //✅ TE with their active flags (active or inactve) - controls all functions relevant to the TE 
-
-    //✅ add TE 
-    //✅ remove TE 
-    //✅ deposit  - return LP tokens to user (needs updated totalfunds)
-    //✅ withdraw  - burn LP tokens of a user (needs updated totalfunds)
-    // Add performance fee management
-
 
     function setGovernance(address _governance) public onlyGovernance{
         pendingGovernance = _governance;

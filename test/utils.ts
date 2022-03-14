@@ -32,6 +32,10 @@ export async function setup(): Promise<
     method: "hardhat_impersonateAccount",
     params: [keeperAddress],
   });
+  await hre.network.provider.request({
+    method: "hardhat_impersonateAccount",
+    params: [governanceAddress],
+  });
   let signer = await hre.ethers.getSigner(keeperAddress);
   let invalidSigner = (await hre.ethers.getSigners())[0];
   return [keeperAddress, governanceAddress, signer, invalidSigner];
