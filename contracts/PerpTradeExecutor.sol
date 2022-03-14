@@ -27,7 +27,10 @@ contract PerpTradeExecutor is BaseTradeExecutor, PerpPositionHandler {
     }
 
     function openPosition(bytes calldata _data) public onlyKeeper{
-        _openPosition(_data);
+        PerpPositionHandler._openPosition(_data);
     }
 
+    function setPosValue(uint256 _posValue) public onlyKeeper{
+        PerpPositionHandler._setPosValue(_posValue);
+    }
 }
