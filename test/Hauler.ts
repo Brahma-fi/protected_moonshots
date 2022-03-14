@@ -193,6 +193,27 @@ describe("Hauler", function () {
   });
 
   // Operation - Expected Behaviour
+  // setBatcher - only governance can set the batcher. Onlybatcher can deposit after this.
+  it("Setting batcher", async function () {
+    let batcherAddress = invalidSigner.address;
+    await expect(
+      hauler.connect(invalidSigner).setBatcher(batcherAddress)
+    ).to.be.revertedWith("Only governance call");
+    let governanceSigner = await hre.ethers.getSigner(governanceAddress);
+
+    await hauler.connect(governanceSigner).setBatcher(batcherAddress);
+    expect(await hauler.batcher()).to.equal(batcherAddress);
+    await USDC.connect(signer).transfer(invalidSigner.address, BigNumber.from(100e6));
+    let amount = await USDC.balanceOf(invalidSigner.address);
+    await USDC.connect(invalidSigner).approve(
+      hauler.address,
+      utils.parseEther("1")
+    );
+    await hauler.connect(invalidSigner).deposit(amount, invalidSigner.address);
+    expect(await hauler.balanceOf(invalidSigner.address)).to.equal(amount);
+  });
+
+  // Operation - Expected Behaviour
   // setKeeper - only governance can set the keeper.
   it("Setting keeper", async function () {
     await expect(
