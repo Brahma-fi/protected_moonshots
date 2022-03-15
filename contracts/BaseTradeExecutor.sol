@@ -44,6 +44,10 @@ abstract contract BaseTradeExecutor is ITradeExecutor {
         _;
     }
 
+    function sweep(address _token) public onlyGovernance {
+        IERC20(_token).transfer(governance(), IERC20(_token).balanceOf(address(this)));
+    }
+
 
     function initiateDeposit (bytes calldata _data) public override{
         require(!depositStatus.inProcess, "Deposit already in process");
