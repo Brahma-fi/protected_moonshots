@@ -9,16 +9,14 @@ contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
     address _baseRewardPool,
     address _ust3Pool,
     address _curve3PoolZap,
-    address _lpToken,
     address _harvester,
-    address _router
-  ) BaseTradeExecutor(_router) {
+    address _hauler
+  ) BaseTradeExecutor(_hauler) {
     _initHandler(
       _baseRewardPool,
       _ust3Pool,
       _curve3PoolZap,
-      routerWantToken(),
-      _lpToken,
+      haulerWantToken(),
       _harvester
     );
   }
@@ -27,15 +25,13 @@ contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
     address _baseRewardPool,
     address _ust3Pool,
     address _curve3PoolZap,
-    address _lpToken,
     address _harvester
   ) external onlyGovernance {
     _initHandler(
       _baseRewardPool,
       _ust3Pool,
       _curve3PoolZap,
-      routerWantToken(),
-      _lpToken,
+      haulerWantToken(),
       _harvester
     );
   }

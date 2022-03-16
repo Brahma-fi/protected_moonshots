@@ -8,18 +8,16 @@ interface IPositionHandler {
     /// @param _amount the amountIn with respect to free collateral on perp for new position
     /// @param _slippage slippage while opening position, calculated out of 10000
     function openPosition(
-        // bool _isShort,
+        bool _isShort,
         uint256 _amount,
         uint24 _slippage
     ) external;
 
 
     /// @notice Closes existing position on Perp V2
-    /// @dev Closes the position, withdraws all the funds, keeps the amountOut, deposits the rest and opens a new position with the remaining amount. To completely close position, request amountOut greater than the position value
-    /// @param _amountOut the amountOut that will be freed from the position
-    /// @param _slippage slippage while opening position, calculated out of 10000
-    /// @return actualAmount amount freed from the position
-    function closePosition(uint256 _amountOut, uint24 _slippage) external returns (uint256);
+    /// @dev Closes the position, withdraws all the funds from perp as well.
+    /// @param _slippage slippage while closing position, calculated out of 10000
+    function closePosition(uint24 _slippage) external;
 
     /// @notice Bridges wantToken back to strategy on L1
     /// @dev Check MovrV1Controller for more details on implementation of token bridging

@@ -127,7 +127,7 @@ contract PerpPositionHandler is
     // TODO: Decide wether to do nothing or revert
   }
 
-  function setPosValue(uint256 _posValue) internal {
+  function _setPosValue(uint256 _posValue) internal {
     positionInWantToken.posValue = _posValue;
     positionInWantToken.lastUpdatedBlock = block.number;
   }
