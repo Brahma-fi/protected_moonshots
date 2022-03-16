@@ -185,7 +185,7 @@ contract ConvexPositionHandler is BasePositionHandler {
         );
 
         require(
-          baseRewardPool.withdraw(lpTokensToUnstake, true),
+          baseRewardPool.withdrawAndUnwrap(lpTokensToUnstake, true),
           "could not unstake"
         );
       }

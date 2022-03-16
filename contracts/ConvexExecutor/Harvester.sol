@@ -146,13 +146,10 @@ contract Harvester is IHarvester {
   function harvest() external override {
     for (uint256 idx = 0; idx < swapTokens.length; idx++) {
       IERC20 _token = IERC20(swapTokens[idx]);
-      _token.safeTransferFrom(
-        msg.sender,
-        address(this),
-        _token.balanceOf(msg.sender)
-      );
+      uint256 _tokenBalance = _token.balanceOf(msg.sender);
+      _token.safeTransferFrom(msg.sender, address(this), _tokenBalance);
 
-      swap(swapTokens[idx]);
+      if (_tokenBalance > 0) swap(swapTokens[idx]);
     }
 
     wantToken.safeTransfer(msg.sender, wantToken.balanceOf(address(this)));

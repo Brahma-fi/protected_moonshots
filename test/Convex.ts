@@ -135,7 +135,6 @@ describe.only("Convex Trade Executor", function () {
       ["tuple(uint256)"],
       [[usdcBal]]
     );
-    console.log(paramsInBytes);
 
     expect(await USDC.balanceOf(convexTradeExecutor.address)).equals(0);
     expect(await LP.balanceOf(convexTradeExecutor.address)).equals(0);
@@ -207,15 +206,62 @@ describe.only("Convex Trade Executor", function () {
   });
 
   it("Should get rewards correctly and harvest to USDC", async () => {
-    await hre.network.provider.send("evm_increaseTime", [2 * 24 * 60 * 60]);
+    // await hre.network.provider.send("evm_increaseTime", [2 * 24 * 60 * 60]);
+    // await hre.network.provider.send("evm_mine");
+
+    // console.log(await baseRewardPool.earned(convexTradeExecutor.address));
+
+    // console.log(await USDC.balanceOf(convexTradeExecutor.address));
+    // await convexTradeExecutor.connect(signer).claimRewards("0x00");
+    // console.log(await USDC.balanceOf(convexTradeExecutor.address));
+
+    // expect((await USDC.balanceOf(convexTradeExecutor.address)).gt(0));
+    expect(true);
+  });
+
+  it("Should close position correctly", async () => {
+    await hre.network.provider.send("evm_increaseTime", [5 * 24 * 60 * 60]);
     await hre.network.provider.send("evm_mine");
 
-    console.log(await baseRewardPool.earned(convexTradeExecutor.address));
+    const initialLpBal = await LP.balanceOf(convexTradeExecutor.address);
+    console.log("init lp:", initialLpBal.toString());
 
-    console.log(await USDC.balanceOf(convexTradeExecutor.address));
-    await convexTradeExecutor.connect(signer).claimRewards("0x00");
-    console.log(await USDC.balanceOf(convexTradeExecutor.address));
+    const paramsInBytes = ethers.utils.AbiCoder.prototype.encode(
+      ["tuple(uint256)"],
+      [[(await baseRewardPool.balanceOf(convexTradeExecutor.address)).div(2)]]
+    );
 
-    expect((await USDC.balanceOf(convexTradeExecutor.address)).gt(0));
+    await convexTradeExecutor.connect(signer).closePosition(paramsInBytes);
+
+    const finalLpBal = await LP.balanceOf(convexTradeExecutor.address);
+    console.log("final lp:", finalLpBal.toString());
+
+    expect(finalLpBal.gt(initialLpBal));
+  });
+
+  it("Should withdraw correctly", async () => {
+    const totalFund = (await convexTradeExecutor.positionInWantToken())[0];
+    console.log("position in want:", totalFund.toString());
+
+    const initialUsdcBal = await USDC.balanceOf(convexTradeExecutor.address);
+    const paramsInBytes = ethers.utils.AbiCoder.prototype.encode(
+      ["tuple(uint256)"],
+      [[totalFund]]
+    );
+
+    await convexTradeExecutor.initateWithdraw(paramsInBytes);
+
+    const finalUsdcBal = await USDC.balanceOf(convexTradeExecutor.address);
+    console.log(
+      "usdc balances:",
+      initialUsdcBal.toString(),
+      finalUsdcBal.toString()
+    );
+    console.log(
+      "final total fund:",
+      (await convexTradeExecutor.positionInWantToken())[0].toString()
+    );
+
+    expect(finalUsdcBal.gt(initialUsdcBal));
   });
 });
