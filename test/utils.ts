@@ -10,7 +10,10 @@ import {
   wantTokenL1,
   ust3Pool,
   baseRewardPool,
-  curve3PoolZap
+  curve3PoolZap,
+  governance,
+  keeper
+
 } from "../scripts/constants";
 import { Signer } from "ethers";
 import { sign } from "crypto";
@@ -18,7 +21,7 @@ import { sign } from "crypto";
 export async function getUSDCContract(): Promise<ERC20> {
   const USDC = (await hre.ethers.getContractAt(
     "ERC20",
-    "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
+    wantTokenL1
   )) as ERC20;
   return USDC;
 }
@@ -26,8 +29,10 @@ export async function getUSDCContract(): Promise<ERC20> {
 export async function setup(): Promise<
   [string, string, SignerWithAddress, SignerWithAddress]
 > {
-  let keeperAddress = "0xAE75B29ADe678372D77A8B41225654138a7E6ff1";
-  let governanceAddress = "0x6b29610D6c6a9E47812bE40F1335918bd63321bf";
+
+  let keeperAddress = keeper;
+  let governanceAddress = governance;
+
   await hre.network.provider.request({
     method: "hardhat_impersonateAccount",
     params: [keeperAddress]
