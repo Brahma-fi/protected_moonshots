@@ -4,6 +4,7 @@ pragma abicoder v2;
 
 import "../../interfaces/BasePositionHandler.sol";
 import "./interfaces/IConvexRewards.sol";
+import "./interfaces/IConvexBooster.sol";
 import "./interfaces/ICurvePool.sol";
 import "./interfaces/ICurveDepositZapper.sol";
 import "./interfaces/IHarvester.sol";
@@ -47,15 +48,20 @@ contract ConvexPositionHandler is BasePositionHandler {
   ICurvePool public ust3Pool;
   // 0xA79828DF1850E8a3A3064576f380D90aECDD3359
   ICurveDepositZapper public curve3PoolZap;
+  // 0xF403C135812408BFbE8713b5A23a04b3D48AAE31
+  IConvexBooster public convexBooster;
 
   function _initHandler(
     address _baseRewardPool,
+    address _convexBooster,
     address _ust3Pool,
     address _curve3PoolZap,
     address _token,
     address _harvester
   ) internal {
     baseRewardPool = IConvexRewards(_baseRewardPool);
+    convexBooster = IConvexBooster(_convexBooster);
+
     ust3Pool = ICurvePool(_ust3Pool);
     curve3PoolZap = ICurveDepositZapper(_curve3PoolZap);
 
@@ -119,9 +125,13 @@ contract ConvexPositionHandler is BasePositionHandler {
       "insufficient balance"
     );
 
-    lpToken.safeApprove(address(baseRewardPool), openPositionParams._amount);
+    lpToken.safeApprove(address(convexBooster), openPositionParams._amount);
     require(
-      baseRewardPool.stake(openPositionParams._amount),
+      convexBooster.deposit(
+        baseRewardPool.pid(),
+        openPositionParams._amount,
+        true
+      ),
       "convex staking failed"
     );
   }
@@ -140,9 +150,9 @@ contract ConvexPositionHandler is BasePositionHandler {
     /// Unstake _amount and claim rewards from convex
     /// Unstake entire balance if closePositionParams._amount is 0
     if (closePositionParams._amount == 0) {
-      baseRewardPool.withdrawAll(true);
+      baseRewardPool.withdrawAllAndUnwrap(true);
     } else {
-      baseRewardPool.withdraw(closePositionParams._amount, true);
+      baseRewardPool.withdrawAndUnwrap(closePositionParams._amount, true);
     }
   }
 

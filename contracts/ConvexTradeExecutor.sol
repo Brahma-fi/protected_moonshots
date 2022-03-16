@@ -7,6 +7,7 @@ import { ConvexPositionHandler } from "./ConvexExecutor/ConvexPositionHandler.so
 contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
   constructor(
     address _baseRewardPool,
+    address _convexBooster,
     address _ust3Pool,
     address _curve3PoolZap,
     address _harvester,
@@ -14,6 +15,7 @@ contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
   ) BaseTradeExecutor(_hauler) {
     _initHandler(
       _baseRewardPool,
+      _convexBooster,
       _ust3Pool,
       _curve3PoolZap,
       haulerWantToken(),
@@ -23,12 +25,14 @@ contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
 
   function setHandler(
     address _baseRewardPool,
+    address _convexBooster,
     address _ust3Pool,
     address _curve3PoolZap,
     address _harvester
   ) external onlyGovernance {
     _initHandler(
       _baseRewardPool,
+      _convexBooster,
       _ust3Pool,
       _curve3PoolZap,
       haulerWantToken(),

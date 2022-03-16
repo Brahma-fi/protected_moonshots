@@ -77,6 +77,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.Harvester__factory>;
     getContractFactory(
+      name: "IConvexBooster",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IConvexBooster__factory>;
+    getContractFactory(
       name: "IConvexRewards",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IConvexRewards__factory>;
@@ -245,6 +249,11 @@ declare module "hardhat/types/runtime" {
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.Harvester>;
+    getContractAt(
+      name: "IConvexBooster",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IConvexBooster>;
     getContractAt(
       name: "IConvexRewards",
       address: string,

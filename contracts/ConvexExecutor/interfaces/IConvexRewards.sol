@@ -3,6 +3,9 @@ pragma solidity ^0.8.0;
 
 //sample convex reward contracts interface
 interface IConvexRewards {
+  // pid of pool
+  function pid() external view returns (uint256);
+
   //get balance of an address
   function balanceOf(address _account) external view returns (uint256);
 

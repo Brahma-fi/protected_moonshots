@@ -14,6 +14,7 @@ import { getUSDCContract, setup } from "./utils";
 
 const ConvexTradeExecutorConfig = {
   baseRewardPool: "0x7e2b9B5244bcFa5108A76D5E7b507CFD5581AD4A",
+  convexBooster: "0xF403C135812408BFbE8713b5A23a04b3D48AAE31",
   ust3Pool: "0xCEAF7747579696A2F0bb206a14210e3c9e6fB269",
   curve3PoolZap: "0xA79828DF1850E8a3A3064576f380D90aECDD3359"
 };
@@ -129,10 +130,10 @@ describe.only("Convex Trade Executor", function () {
   });
 
   it("Should open position correctly", async () => {
-    const convexUsdcBal = await LP.balanceOf(convexTradeExecutor.address);
+    const convexLpBal = await LP.balanceOf(convexTradeExecutor.address);
     const paramsInBytes = ethers.utils.AbiCoder.prototype.encode(
       ["tuple(uint256)"],
-      [[convexUsdcBal]]
+      [[convexLpBal]]
     );
     const baseRewardPool = (await ethers.getContractAt(
       "IConvexRewards",
@@ -147,7 +148,8 @@ describe.only("Convex Trade Executor", function () {
     const convexStakedBal = await baseRewardPool.balanceOf(
       convexTradeExecutor.address
     );
+    console.log("Convex staked bal", convexStakedBal.toString());
 
-    expect(convexStakedBal.gt(0));
+    expect(convexStakedBal).equals(convexLpBal);
   });
 });
