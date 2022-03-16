@@ -27,4 +27,9 @@ interface ICurvePool {
   ) external view returns (uint256);
 
   function get_virtual_price() external view returns (uint256);
+
+  function balanceOf(address) external view returns (uint256);
+
+  function approve(address spender, uint256 amount) external returns (bool);
+
 }
