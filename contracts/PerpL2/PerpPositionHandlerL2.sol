@@ -51,7 +51,7 @@ contract PerpPositionHandlerL2 is IPositionHandler, PerpV2Controller, MovrV1Cont
         address _baseTokenvCRV,
         address _quoteTokenvUSDC,
         address _keeper
-    ) public {
+    ) public onlyAuthorized {
         wantTokenL1 = _wantTokenL1;
         wantTokenL2 = _wantTokenL2;
         SPHL1Address = _SPHL1Address;
