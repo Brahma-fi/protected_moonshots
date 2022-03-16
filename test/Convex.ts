@@ -142,7 +142,9 @@ describe.only("Convex Trade Executor", function () {
     await USDC.connect(signer).transfer(convexTradeExecutor.address, usdcBal);
     expect(await USDC.balanceOf(convexTradeExecutor.address)).equals(usdcBal);
 
-    await convexTradeExecutor.connect(signer).initiateDeposit(paramsInBytes);
+    await convexTradeExecutor.connect(signer).initiateDeposit(paramsInBytes, {
+      gasLimit: 5e6
+    });
 
     console.log(
       "LP after deposit:",
@@ -163,7 +165,9 @@ describe.only("Convex Trade Executor", function () {
       0
     );
 
-    await convexTradeExecutor.connect(signer).openPosition(paramsInBytes);
+    await convexTradeExecutor.connect(signer).openPosition(paramsInBytes, {
+      gasLimit: 5e6
+    });
     const convexStakedBal = await baseRewardPool.balanceOf(
       convexTradeExecutor.address
     );
@@ -174,57 +178,57 @@ describe.only("Convex Trade Executor", function () {
 
   it("Should setup harvester correctly and initialize on handler", async () => {
     await expect(harvester.swapTokens(0)).to.be.reverted;
-    await expect(harvester.swapTokens(1)).to.be.reverted;
+    // await expect(harvester.swapTokens(1)).to.be.reverted;
 
     await harvester.connect(signer).addSwapToken(CRV_ADDR);
-    await harvester.connect(signer).addSwapToken(CVX_ADDR);
+    // await harvester.connect(signer).addSwapToken(CVX_ADDR);
 
     expect(await harvester.swapTokens(0)).equals(CRV_ADDR);
-    expect(await harvester.swapTokens(1)).equals(CVX_ADDR);
+    // expect(await harvester.swapTokens(1)).equals(CVX_ADDR);
 
     expect(
       await CRV.allowance(convexTradeExecutor.address, harvester.address)
     ).equals(0);
-    expect(
-      await CVX.allowance(convexTradeExecutor.address, harvester.address)
-    ).equals(0);
+    // expect(
+    //   await CVX.allowance(convexTradeExecutor.address, harvester.address)
+    // ).equals(0);
 
     await convexTradeExecutor
       .connect(governance)
-      .approveRewardTokensToHarvester([CRV_ADDR, CVX_ADDR]);
+      .approveRewardTokensToHarvester([CRV_ADDR]);
 
     expect(
       (
         await CRV.allowance(convexTradeExecutor.address, harvester.address)
       ).toString()
     ).equals(MAX_INT);
-    expect(
-      (
-        await CVX.allowance(convexTradeExecutor.address, harvester.address)
-      ).toString()
-    ).equals(MAX_INT);
+    // expect(
+    //   (
+    //     await CVX.allowance(convexTradeExecutor.address, harvester.address)
+    //   ).toString()
+    // ).equals(MAX_INT);
   });
 
   it("Should get rewards correctly and harvest to USDC", async () => {
-    // await hre.network.provider.send("evm_increaseTime", [2 * 24 * 60 * 60]);
-    // await hre.network.provider.send("evm_mine");
+    await hre.network.provider.send("evm_increaseTime", [2 * 24 * 60 * 60]);
+    await hre.network.provider.send("evm_mine");
 
-    // console.log(await baseRewardPool.earned(convexTradeExecutor.address));
+    const initialUSDC = await USDC.balanceOf(convexTradeExecutor.address);
+    await convexTradeExecutor.connect(signer).claimRewards("0x00", {
+      gasLimit: 5e6
+    });
 
-    // console.log(await USDC.balanceOf(convexTradeExecutor.address));
-    // await convexTradeExecutor.connect(signer).claimRewards("0x00");
-    // console.log(await USDC.balanceOf(convexTradeExecutor.address));
+    const finalUSDC = await USDC.balanceOf(convexTradeExecutor.address);
+    console.log("USDC rewards obtained:", finalUSDC.toString());
 
-    // expect((await USDC.balanceOf(convexTradeExecutor.address)).gt(0));
-    expect(true);
+    expect(finalUSDC.gt(initialUSDC));
   });
 
   it("Should close position correctly", async () => {
-    await hre.network.provider.send("evm_increaseTime", [5 * 24 * 60 * 60]);
+    await hre.network.provider.send("evm_increaseTime", [10 * 24 * 60 * 60]);
     await hre.network.provider.send("evm_mine");
 
     const initialLpBal = await LP.balanceOf(convexTradeExecutor.address);
-    console.log("init lp:", initialLpBal.toString());
 
     const paramsInBytes = ethers.utils.AbiCoder.prototype.encode(
       ["tuple(uint256)"],
@@ -234,14 +238,14 @@ describe.only("Convex Trade Executor", function () {
     await convexTradeExecutor.connect(signer).closePosition(paramsInBytes);
 
     const finalLpBal = await LP.balanceOf(convexTradeExecutor.address);
-    console.log("final lp:", finalLpBal.toString());
+    console.log("Lp after close:", finalLpBal.toString());
 
     expect(finalLpBal.gt(initialLpBal));
   });
 
   it("Should withdraw correctly", async () => {
     const totalFund = (await convexTradeExecutor.positionInWantToken())[0];
-    console.log("position in want:", totalFund.toString());
+    console.log("Position in want:", totalFund.toString());
 
     const initialUsdcBal = await USDC.balanceOf(convexTradeExecutor.address);
     const paramsInBytes = ethers.utils.AbiCoder.prototype.encode(
@@ -252,13 +256,9 @@ describe.only("Convex Trade Executor", function () {
     await convexTradeExecutor.initateWithdraw(paramsInBytes);
 
     const finalUsdcBal = await USDC.balanceOf(convexTradeExecutor.address);
+
     console.log(
-      "usdc balances:",
-      initialUsdcBal.toString(),
-      finalUsdcBal.toString()
-    );
-    console.log(
-      "final total fund:",
+      "Final fund:",
       (await convexTradeExecutor.positionInWantToken())[0].toString()
     );
 

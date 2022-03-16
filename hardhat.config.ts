@@ -64,6 +64,11 @@ const config: HardhatUserConfig = {
         `https://eth-rinkeby.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}` || "",
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : []
+    },
+    tenderly: {
+      url: `https://rpc.tenderly.co/fork/2bf1d9a3-d508-4e81-aa70-9668a53be8a3`,
+      accounts:
+        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : []
     }
   },
   gasReporter: {
