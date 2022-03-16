@@ -118,6 +118,8 @@ contract ConvexPositionHandler is BasePositionHandler {
       lpToken.balanceOf(address(this)) >= openPositionParams._amount,
       "insufficient balance"
     );
+
+    lpToken.safeApprove(address(baseRewardPool), openPositionParams._amount);
     require(
       baseRewardPool.stake(openPositionParams._amount),
       "convex staking failed"
@@ -258,7 +260,7 @@ contract ConvexPositionHandler is BasePositionHandler {
   {
     uint256[4] memory liquidityAmounts = [0, 0, _amount, 0];
 
-    wantToken.safeApprove(address(ust3Pool), _amount);
+    wantToken.safeApprove(address(curve3PoolZap), _amount);
 
     // estimate amount of Lp Tokens received on depositing USDC
     uint256 expectedLpOut = curve3PoolZap.calc_token_amount(
