@@ -167,34 +167,47 @@ contract ConvexPositionHandler is BasePositionHandler {
       uint256 lpTokenBalance,
       uint256 usdcBalance
     ) = _getTotalBalancesInWantToken();
+    require(
+      withdrawParams._maxWithdraw <=
+        (stakedLpBalance + lpTokenBalance + usdcBalance),
+      "_maxWithdraw exceeds limit"
+    );
 
     // calculate maximum amount that can be withdrawn
-    uint256 amountToWithdraw = Math.min(
-      _normaliseDecimals(withdrawParams._maxWithdraw, true),
-      (stakedLpBalance + lpTokenBalance + usdcBalance)
+    uint256 amountToWithdraw = _normaliseDecimals(
+      withdrawParams._maxWithdraw,
+      true
     );
+
+    uint256 amountPending = 0;
+    uint256 usdcValueOfLpTokensToConvert = 0;
 
     // if usdc token balance is insufficient
     if (amountToWithdraw > usdcBalance) {
-      // unstake convex position partially
-      if (stakedLpBalance > 0) {
-        uint256 lpTokensToUnstake = _USDCValueInLpToken(
-          (amountToWithdraw - lpTokenBalance - usdcBalance),
-          18,
-          true
-        );
+      amountPending = amountToWithdraw - usdcBalance;
 
-        require(
-          baseRewardPool.withdrawAndUnwrap(lpTokensToUnstake, true),
-          "could not unstake"
-        );
+      if (lpTokenBalance > 0) {
+        if (amountPending <= lpTokenBalance) {
+          amountPending = 0;
+          usdcValueOfLpTokensToConvert = amountPending;
+        } else {
+          amountPending -= lpTokenBalance;
+          usdcValueOfLpTokensToConvert = lpTokenBalance + amountPending;
+
+          // unstake convex position partially
+          uint256 lpTokensToUnstake = _USDCValueInLpToken(amountPending);
+
+          require(
+            baseRewardPool.withdrawAndUnwrap(lpTokensToUnstake, true),
+            "could not unstake"
+          );
+        }
       }
     }
 
+    // usdcValueOfLpTokensToConvert's value converted to Lp Tokens
     uint256 lpTokensToConvert = _USDCValueInLpToken(
-      (amountToWithdraw - usdcBalance),
-      18,
-      true
+      usdcValueOfLpTokensToConvert
     );
 
     // if lp tokens are required to convert, then convert to usdc and update amountToWithdraw
@@ -305,16 +318,8 @@ contract ConvexPositionHandler is BasePositionHandler {
 
   /// @notice to get value of an amount in Lp Tokens
   /// @param _value value to be converted
-  /// @param _decimals the output decimals
-  /// @param _is18Decimals True if input is 1e18, else false
-  function _USDCValueInLpToken(
-    uint256 _value,
-    uint256 _decimals,
-    bool _is18Decimals
-  ) internal view returns (uint256) {
-    return
-      ((_is18Decimals ? _value : _normaliseDecimals(_value, false)) *
-        10**_decimals) / _UST3WCRVPrice();
+  function _USDCValueInLpToken(uint256 _value) internal view returns (uint256) {
+    return (_value * 1e18) / _UST3WCRVPrice();
   }
 
   /// @notice helper to normalise decimals
