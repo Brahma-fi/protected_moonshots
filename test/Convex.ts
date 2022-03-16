@@ -1,7 +1,6 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
-import { assert } from "console";
-import { ethers } from "hardhat";
+import hre, { ethers } from "hardhat";
 import { wantTokenL1 } from "../scripts/constants";
 import {
   ConvexTradeExecutor,
@@ -24,14 +23,24 @@ const HarvesterConfig = {
   slippage: 50000
 };
 
+const MAX_INT =
+  "115792089237316195423570985008687907853269984665640564039457584007913129639935";
+const CRV_ADDR = "0xD533a949740bb3306d119CC777fa900bA034cd52";
+const CVX_ADDR = "0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B";
+
 let convexTradeExecutor: ConvexTradeExecutor;
 let harvester: Harvester;
 let hauler: Hauler;
+let baseRewardPool: IConvexRewards;
+
 let USDC: IERC20;
 let LP: IERC20;
+let CRV: IERC20;
+let CVX: IERC20;
 
 let keeperAddress: string,
   governanceAddress: string,
+  governance: SignerWithAddress,
   signer: SignerWithAddress,
   invalidSigner: SignerWithAddress;
 
@@ -45,6 +54,19 @@ const deploy = async () => {
     "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20",
     ConvexTradeExecutorConfig.ust3Pool
   )) as IERC20;
+  CRV = (await ethers.getContractAt(
+    "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20",
+    CRV_ADDR
+  )) as IERC20;
+  CVX = (await ethers.getContractAt(
+    "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20",
+    CVX_ADDR
+  )) as IERC20;
+
+  baseRewardPool = (await ethers.getContractAt(
+    "IConvexRewards",
+    ConvexTradeExecutorConfig.baseRewardPool
+  )) as IConvexRewards;
 
   USDC = await getUSDCContract();
 
@@ -73,6 +95,7 @@ const deploy = async () => {
 describe.only("Convex Trade Executor", function () {
   before(async () => {
     [keeperAddress, governanceAddress, signer, invalidSigner] = await setup();
+    governance = await ethers.getSigner(governanceAddress);
     await deploy();
   });
 
@@ -112,6 +135,7 @@ describe.only("Convex Trade Executor", function () {
       ["tuple(uint256)"],
       [[usdcBal]]
     );
+    console.log(paramsInBytes);
 
     expect(await USDC.balanceOf(convexTradeExecutor.address)).equals(0);
     expect(await LP.balanceOf(convexTradeExecutor.address)).equals(0);
@@ -135,10 +159,6 @@ describe.only("Convex Trade Executor", function () {
       ["tuple(uint256)"],
       [[convexLpBal]]
     );
-    const baseRewardPool = (await ethers.getContractAt(
-      "IConvexRewards",
-      ConvexTradeExecutorConfig.baseRewardPool
-    )) as IConvexRewards;
 
     expect(await baseRewardPool.balanceOf(convexTradeExecutor.address)).equals(
       0
@@ -148,8 +168,54 @@ describe.only("Convex Trade Executor", function () {
     const convexStakedBal = await baseRewardPool.balanceOf(
       convexTradeExecutor.address
     );
-    console.log("Convex staked bal", convexStakedBal.toString());
+    console.log("Convex staked bal:", convexStakedBal.toString());
 
     expect(convexStakedBal).equals(convexLpBal);
+  });
+
+  it("Should setup harvester correctly and initialize on handler", async () => {
+    await expect(harvester.swapTokens(0)).to.be.reverted;
+    await expect(harvester.swapTokens(1)).to.be.reverted;
+
+    await harvester.connect(signer).addSwapToken(CRV_ADDR);
+    await harvester.connect(signer).addSwapToken(CVX_ADDR);
+
+    expect(await harvester.swapTokens(0)).equals(CRV_ADDR);
+    expect(await harvester.swapTokens(1)).equals(CVX_ADDR);
+
+    expect(
+      await CRV.allowance(convexTradeExecutor.address, harvester.address)
+    ).equals(0);
+    expect(
+      await CVX.allowance(convexTradeExecutor.address, harvester.address)
+    ).equals(0);
+
+    await convexTradeExecutor
+      .connect(governance)
+      .approveRewardTokensToHarvester([CRV_ADDR, CVX_ADDR]);
+
+    expect(
+      (
+        await CRV.allowance(convexTradeExecutor.address, harvester.address)
+      ).toString()
+    ).equals(MAX_INT);
+    expect(
+      (
+        await CVX.allowance(convexTradeExecutor.address, harvester.address)
+      ).toString()
+    ).equals(MAX_INT);
+  });
+
+  it("Should get rewards correctly and harvest to USDC", async () => {
+    await hre.network.provider.send("evm_increaseTime", [2 * 24 * 60 * 60]);
+    await hre.network.provider.send("evm_mine");
+
+    console.log(await baseRewardPool.earned(convexTradeExecutor.address));
+
+    console.log(await USDC.balanceOf(convexTradeExecutor.address));
+    await convexTradeExecutor.connect(signer).claimRewards("0x00");
+    console.log(await USDC.balanceOf(convexTradeExecutor.address));
+
+    expect((await USDC.balanceOf(convexTradeExecutor.address)).gt(0));
   });
 });

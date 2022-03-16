@@ -6,6 +6,9 @@ interface IConvexRewards {
   // pid of pool
   function pid() external view returns (uint256);
 
+  // earned rewards
+  function earned(address account) external view returns (uint256);
+
   //get balance of an address
   function balanceOf(address _account) external view returns (uint256);
 
