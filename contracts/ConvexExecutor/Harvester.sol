@@ -3,12 +3,9 @@ pragma solidity ^0.8.0;
 
 import "./interfaces/IHarvester.sol";
 import "./interfaces/IUniswapSwapRouter.sol";
-import "./interfaces/IUniswapV3Factory.sol";
 
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
-import "hardhat/console.sol";
 
 contract Harvester is IHarvester {
   using SafeERC20 for IERC20;
@@ -16,10 +13,8 @@ contract Harvester is IHarvester {
 
   uint256 private immutable MAX_BPS = 10000;
 
-  IUniswapV3Factory private immutable uniswapFactory =
-    IUniswapV3Factory(0x1F98431c8aD98523631AE4a59f267346ea31F984);
   IUniswapSwapRouter private immutable uniswapRouter =
-    IUniswapSwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
+    IUniswapSwapRouter(0xf164fC0Ec4E93095b804a4795bBe1e041497b92a);
 
   address public override keeper;
   address public override governance;
@@ -115,30 +110,15 @@ contract Harvester is IHarvester {
     }
   }
 
-  /// @notice Swap a single token thats present in the Harvester using UniV3
+  /// @notice Swap a single token thats present in the Harvester using UniV2
   /// @param sourceToken address of the token to swap into wantToken
   function swap(address sourceToken) public override {
     require(sourceToken != address(0), "sourceToken invalid");
-
-    uint16[3] memory fees = [500, 3000, 10000];
     uint256 sourceTokenBalance = IERC20Metadata(sourceToken).balanceOf(
       address(this)
     );
 
-    if (sourceTokenBalance > 0) {
-      uint24 fee;
-      for (uint256 idx = 0; idx < fees.length; idx++) {
-        if (
-          uniswapFactory.getPool(sourceToken, address(wantToken), fees[idx]) !=
-          address(0)
-        ) {
-          fee = fees[idx];
-          break;
-        }
-      }
-
-      _swapTokens(sourceToken, fee, sourceTokenBalance, 0);
-    }
+    _swapTokens(sourceToken, sourceTokenBalance, 0);
   }
 
   /// @notice Harvest the entire swap tokens list, i.e convert them into wantToken
@@ -155,31 +135,26 @@ contract Harvester is IHarvester {
     wantToken.safeTransfer(msg.sender, wantToken.balanceOf(address(this)));
   }
 
-  /// @notice swaps a token on UniV3
-  /// @dev Internal helper function to perform token swap on UniV3
+  /// @notice swaps a token on UniV2
+  /// @dev Internal helper function to perform token swap on UniV2
   function _swapTokens(
     address token,
-    uint24 fee,
     uint256 amountIn,
     uint256 amountOutMinimum
   ) internal {
     IERC20Metadata(token).safeApprove(address(uniswapRouter), amountIn);
 
-    IUniswapSwapRouter.ExactInputSingleParams memory params = IUniswapSwapRouter
-      .ExactInputSingleParams({
-        tokenIn: token,
-        tokenOut: address(wantToken),
-        fee: fee,
-        recipient: address(this),
-        deadline: block.timestamp,
-        amountIn: amountIn,
-        amountOutMinimum: amountOutMinimum,
-        sqrtPriceLimitX96: 0
-      });
-    console.log("inputs", fee, amountIn, amountOutMinimum);
-    console.log("token", token);
-    console.log("wantToken", address(wantToken));
-    uniswapRouter.exactInputSingle(params);
+    address[] memory path = new address[](2);
+    path[0] = token;
+    path[1] = address(wantToken);
+
+    uniswapRouter.swapExactTokensForTokens(
+      amountIn,
+      amountOutMinimum,
+      path,
+      address(this),
+      block.timestamp
+    );
   }
 
   /// @notice Governance function to sweep a token's balance lying in Harvester
