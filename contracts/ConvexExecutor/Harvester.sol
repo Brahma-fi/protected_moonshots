@@ -8,6 +8,8 @@ import "./interfaces/IUniswapV3Factory.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import "hardhat/console.sol";
+
 contract Harvester is IHarvester {
   using SafeERC20 for IERC20;
   using SafeERC20 for IERC20Metadata;
@@ -177,6 +179,9 @@ contract Harvester is IHarvester {
         amountOutMinimum: amountOutMinimum,
         sqrtPriceLimitX96: 0
       });
+    console.log("inputs", fee, amountIn, amountOutMinimum);
+    console.log("token", token);
+    console.log("wantToken", address(wantToken));
     uniswapRouter.exactInputSingle(params);
   }
 
