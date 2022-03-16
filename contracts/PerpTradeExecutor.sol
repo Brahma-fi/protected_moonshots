@@ -6,8 +6,8 @@ import "./PerpHandler/PerpPositionHandler.sol";
 
 contract PerpTradeExecutor is BaseTradeExecutor, PerpPositionHandler {
 
-    constructor(address hauler) BaseTradeExecutor(hauler){
-
+    constructor(address hauler, address _wantTokenL2, address _SPHL2Address, address _L1CrossDomainMessenger) BaseTradeExecutor(hauler){
+        _initHandler(_wantTokenL2, _SPHL2Address, _L1CrossDomainMessenger);
     }
 
     function _initateDeposit (bytes calldata _data) internal override{
