@@ -51,27 +51,27 @@ abstract contract BaseTradeExecutor is ITradeExecutor {
 
     function initiateDeposit (bytes calldata _data) public override{
         require(!depositStatus.inProcess, "Deposit already in process");
-        _initateDeposit(_data);
         depositStatus.inProcess = true;
+        _initateDeposit(_data);
     }
 
      function confirmDeposit() public override{
         require(depositStatus.inProcess, "No Deposit Pending");
         _confirmDeposit();
         depositStatus.inProcess = false;
+
     }
 
     function initateWithdraw (bytes calldata _data) public override{
         require(!withdrawalStatus.inProcess, "Withdraw already in process");
-        _initiateWithdraw(_data);
         withdrawalStatus.inProcess = true;
+        _initiateWithdraw(_data);
     }
 
     function confirmWithdraw() public override{
         require(withdrawalStatus.inProcess, "No Withdraw Pending");
         _confirmWithdraw();
         withdrawalStatus.inProcess = false;
-
     }
 
 
