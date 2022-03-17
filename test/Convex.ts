@@ -200,7 +200,11 @@ describe.only("Convex Trade Executor", function () {
   });
 
   it("Should get rewards correctly and harvest to USDC", async () => {
-    await mineBlocks(43200);
+    let beforeReward = await baseRewardPool.earned(convexTradeExecutor.address);
+    await mineBlocks(1);
+    let afterReard = await baseRewardPool.earned(convexTradeExecutor.address);
+    console.log("Before reward:", beforeReward.toString());
+    console.log("After reward:", afterReard.toString());
     const initialUSDC = await USDC.balanceOf(convexTradeExecutor.address);
     await convexTradeExecutor.connect(signer).claimRewards("0x00", {
       gasLimit: 5e6

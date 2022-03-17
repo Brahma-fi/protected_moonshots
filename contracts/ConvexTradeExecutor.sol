@@ -65,7 +65,7 @@ contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
   }
 
   function _initiateWithdraw(bytes calldata _data) internal override {
-   ConvexPositionHandler. _withdraw(_data);
+   ConvexPositionHandler._withdraw(_data);
   }
 
   function _confirmDeposit() internal override {}
