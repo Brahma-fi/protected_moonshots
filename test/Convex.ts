@@ -213,7 +213,7 @@ describe.only("Convex Trade Executor", function () {
 
   it("Should close position correctly", async () => {
     const initialLpBal = await LP.balanceOf(convexTradeExecutor.address);
-    
+
     const paramsInBytes = ethers.utils.AbiCoder.prototype.encode(
       ["tuple(uint256)"],
       [[(await baseRewardPool.balanceOf(convexTradeExecutor.address)).div(2)]]
