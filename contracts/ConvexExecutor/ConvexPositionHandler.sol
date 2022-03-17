@@ -225,6 +225,23 @@ contract ConvexPositionHandler is BasePositionHandler {
   /// @param _data is not needed here (empty param)
   function _claimRewards(bytes calldata _data) internal override {
     require(baseRewardPool.getReward(), "reward claim failed");
+
+    // get list of tokens to transfer to harvester
+    IERC20[3] memory rewardTokens = [
+      harvester.crv(),
+      harvester.cvx(),
+      harvester._3crv()
+    ];
+    //transfer them
+    uint256 balance;
+    for (uint256 i = 0; i < rewardTokens.length; i++) {
+      balance = rewardTokens[i].balanceOf(address(this));
+
+      if (balance > 0) {
+        rewardTokens[i].safeTransfer(address(harvester), balance);
+      }
+    }
+
     // convert all rewards to usdc
     harvester.harvest();
   }
