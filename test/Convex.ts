@@ -9,7 +9,7 @@ import {
   IConvexRewards,
   IERC20
 } from "../src/types";
-import { getUSDCContract, setup } from "./utils";
+import { getUSDCContract, mineBlocks, setup } from "./utils";
 
 const ConvexTradeExecutorConfig = {
   baseRewardPool: "0x7e2b9B5244bcFa5108A76D5E7b507CFD5581AD4A",
@@ -199,9 +199,7 @@ describe.only("Convex Trade Executor", function () {
   });
 
   it("Should get rewards correctly and harvest to USDC", async () => {
-    await hre.network.provider.send("evm_increaseTime", [2 * 24 * 60 * 60]);
-    await hre.network.provider.send("evm_mine");
-
+    await mineBlocks(1000);
     const initialUSDC = await USDC.balanceOf(convexTradeExecutor.address);
     await convexTradeExecutor.connect(signer).claimRewards("0x00", {
       gasLimit: 5e6
@@ -214,11 +212,8 @@ describe.only("Convex Trade Executor", function () {
   });
 
   it("Should close position correctly", async () => {
-    await hre.network.provider.send("evm_increaseTime", [10 * 24 * 60 * 60]);
-    await hre.network.provider.send("evm_mine");
-
     const initialLpBal = await LP.balanceOf(convexTradeExecutor.address);
-
+    
     const paramsInBytes = ethers.utils.AbiCoder.prototype.encode(
       ["tuple(uint256)"],
       [[(await baseRewardPool.balanceOf(convexTradeExecutor.address)).div(2)]]
