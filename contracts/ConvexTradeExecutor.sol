@@ -40,16 +40,20 @@ contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
     );
   }
 
+  function setSlippage(uint256 _slippage) external onlyKeeper {
+    ConvexPositionHandler._setSlippage(_slippage);
+  }
+
   function openPosition(bytes calldata _data) public onlyKeeper {
-    _openPosition(_data);
+    ConvexPositionHandler._openPosition(_data);
   }
 
   function closePosition(bytes calldata _data) public onlyKeeper {
-    _closePosition(_data);
+   ConvexPositionHandler._closePosition(_data);
   }
 
   function claimRewards(bytes calldata _data) public onlyKeeper {
-    _claimRewards(_data);
+    ConvexPositionHandler._claimRewards(_data);
   }
 
   function totalFunds() public view override returns (uint256, uint256) {
@@ -57,11 +61,11 @@ contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
   }
 
   function _initateDeposit(bytes calldata _data) internal override {
-    _deposit(_data);
+    ConvexPositionHandler._deposit(_data);
   }
 
   function _initiateWithdraw(bytes calldata _data) internal override {
-    _withdraw(_data);
+   ConvexPositionHandler. _withdraw(_data);
   }
 
   function _confirmDeposit() internal override {}

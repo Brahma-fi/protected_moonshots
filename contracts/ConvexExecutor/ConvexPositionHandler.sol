@@ -9,11 +9,10 @@ import "./interfaces/ICurvePool.sol";
 import "./interfaces/ICurveDepositZapper.sol";
 import "./interfaces/IHarvester.sol";
 
-import "../../library/Math.sol";
-
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import "hardhat/console.sol";
 /// @title Convexhandler
 /// @notice Used to control the long position handler interacting with Convex
 contract ConvexPositionHandler is BasePositionHandler {
@@ -65,6 +64,8 @@ contract ConvexPositionHandler is BasePositionHandler {
     lpToken = IERC20(_ust3Pool);
 
     harvester = IHarvester(_harvester);
+    lpToken.safeApprove(address(convexBooster), type(uint256).max);
+
   }
 
   /// @notice To get the total balances of the contract in want token price
@@ -103,11 +104,10 @@ contract ConvexPositionHandler is BasePositionHandler {
     AmountParams memory openPositionParams = abi.decode(_data, (AmountParams));
 
     require(
-      lpToken.balanceOf(address(this)) >= openPositionParams._amount,
+      openPositionParams._amount <= lpToken.balanceOf(address(this)),
       "insufficient balance"
     );
 
-    lpToken.safeApprove(address(convexBooster), openPositionParams._amount);
     require(
       convexBooster.deposit(
         baseRewardPool.pid(),
@@ -131,11 +131,7 @@ contract ConvexPositionHandler is BasePositionHandler {
 
     /// Unstake _amount and claim rewards from convex
     /// Unstake entire balance if closePositionParams._amount is 0
-    if (closePositionParams._amount == 0) {
-      baseRewardPool.withdrawAllAndUnwrap(true);
-    } else {
       baseRewardPool.withdrawAndUnwrap(closePositionParams._amount, true);
-    }
   }
 
   /// @notice To withdraw from ConvexHandler
@@ -149,6 +145,11 @@ contract ConvexPositionHandler is BasePositionHandler {
       uint256 lpTokenBalance,
       uint256 usdcBalance
     ) = _getTotalBalancesInWantToken();
+
+    console.log("stakedLpBalance", stakedLpBalance);
+    console.log("lpTokenBalance", lpTokenBalance);
+    console.log("usdcBalance", usdcBalance);
+
     require(
       withdrawParams._amount <=
         (stakedLpBalance + lpTokenBalance + usdcBalance),
@@ -158,38 +159,25 @@ contract ConvexPositionHandler is BasePositionHandler {
     // calculate maximum amount that can be withdrawn
     uint256 amountToWithdraw = withdrawParams._amount;
     console.log("amountToWithdraw", amountToWithdraw);
-    uint256 amountPending = 0;
     uint256 usdcValueOfLpTokensToConvert = 0;
 
     // if usdc token balance is insufficient
     if (amountToWithdraw > usdcBalance) {
-      amountPending = amountToWithdraw - usdcBalance;
-      console.log("amountPending", amountPending);
+      usdcValueOfLpTokensToConvert = amountToWithdraw - usdcBalance;
 
-      if (lpTokenBalance > 0) {
-        if (amountPending <= lpTokenBalance) {
-          amountPending = 0;
-          usdcValueOfLpTokensToConvert = amountPending;
-          console.log(
-            "usdcValueOfLpTokensToConvert",
-            usdcValueOfLpTokensToConvert
-          );
-        } else {
-          amountPending -= lpTokenBalance;
-          console.log("amountPending", amountPending);
-          usdcValueOfLpTokensToConvert = lpTokenBalance + amountPending; // here amountPending is the balance to unstake.
+        if (usdcValueOfLpTokensToConvert > lpTokenBalance) {
+          uint256 amountToUnstake = usdcValueOfLpTokensToConvert - lpTokenBalance;
           console.log(
             "usdcValueOfLpTokensToConvert",
             usdcValueOfLpTokensToConvert
           );
           // unstake convex position partially
-          uint256 lpTokensToUnstake = _USDCValueInLpToken(amountPending);
+          uint256 lpTokensToUnstake = _USDCValueInLpToken(amountToUnstake);
           console.log("lpTokensToUnstake", lpTokensToUnstake);
           require(
             baseRewardPool.withdrawAndUnwrap(lpTokensToUnstake, true),
             "could not unstake"
           );
-        }
       }
     }
 
@@ -204,6 +192,9 @@ contract ConvexPositionHandler is BasePositionHandler {
         lpTokensToConvert
       );
       console.log("usdcReceivedAfterConversion", usdcReceivedAfterConversion);
+      uint256 slippage  = (usdcValueOfLpTokensToConvert - usdcReceivedAfterConversion )*100000/usdcValueOfLpTokensToConvert; 
+      console.log("slippage",slippage);
+
     }
   }
 
@@ -276,6 +267,10 @@ contract ConvexPositionHandler is BasePositionHandler {
       usdcIndexInPool,
       (expectedWantTokensOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)
     );
+
+    uint256 minTokens =   (expectedWantTokensOut * (MAX_BPS - maxSlippage)) / (MAX_BPS);
+    console.log("receivedWantTokens", receivedWantTokens);
+    console.log("minTokensOfUSDC", minTokens);
   }
 
   /// @notice Helper to convert USDC into Lp tokens
@@ -301,6 +296,9 @@ contract ConvexPositionHandler is BasePositionHandler {
       liquidityAmounts,
       (expectedLpOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)
     );
+    uint256 minTokens =   (expectedLpOut * (MAX_BPS - maxSlippage)) / (MAX_BPS);
+    console.log("receivedLpTokens", receivedLpTokens);
+    console.log("minTokens", minTokens);
   }
 
   /// @notice to get value of an amount in USDC
@@ -325,14 +323,12 @@ contract ConvexPositionHandler is BasePositionHandler {
       );
   }
 
-  /// @notice helper to normalise decimals
-  /// @param _value value to normalise
-  /// @param _direction True -> 6 decimals to 18 decimals ; False -> 18 decimals -> 6 decimals
-  function _normaliseDecimals(uint256 _value, bool _direction)
-    internal
-    pure
-    returns (uint256)
-  {
-    return (_value * (_direction ? 1e18 : 1e6)) / (_direction ? 1e6 : 1e18);
+  /// @notice Keeper function to set max accepted slippage of swaps
+  /// @param _slippage Max accepted slippage during harvesting
+  function _setSlippage(uint256 _slippage) internal {
+    maxSlippage = _slippage;
   }
+
+
+
 }
