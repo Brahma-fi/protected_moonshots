@@ -1,3 +1,5 @@
+pragma solidity ^0.8.0;
+
 interface ICurveV2Pool {
     function get_virtual_price() external view returns (uint256);
 
