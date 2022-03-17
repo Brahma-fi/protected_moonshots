@@ -93,6 +93,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.ICurvePool__factory>;
     getContractFactory(
+      name: "ICurveV2Pool",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.ICurveV2Pool__factory>;
+    getContractFactory(
       name: "IHarvester",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IHarvester__factory>;
@@ -104,6 +108,10 @@ declare module "hardhat/types/runtime" {
       name: "IUniswapV3Factory",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IUniswapV3Factory__factory>;
+    getContractFactory(
+      name: "IUniswapV3Router",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.IUniswapV3Router__factory>;
     getContractFactory(
       name: "IUniswapV3SwapCallback",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -270,6 +278,11 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.ICurvePool>;
     getContractAt(
+      name: "ICurveV2Pool",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.ICurveV2Pool>;
+    getContractAt(
       name: "IHarvester",
       address: string,
       signer?: ethers.Signer
@@ -284,6 +297,11 @@ declare module "hardhat/types/runtime" {
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.IUniswapV3Factory>;
+    getContractAt(
+      name: "IUniswapV3Router",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.IUniswapV3Router>;
     getContractAt(
       name: "IUniswapV3SwapCallback",
       address: string,
