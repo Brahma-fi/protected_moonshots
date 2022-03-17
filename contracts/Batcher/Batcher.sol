@@ -46,6 +46,7 @@ contract Batcher is Ownable, IBatcher, EIP712 {
   address public governance;
   address public pendingGovernance;
   uint256 public slippageForCurveLp = 30;
+
   constructor(address _verificationAuthority, address _governance) {
     verificationAuthority = _verificationAuthority;
     governance = _governance;
@@ -76,7 +77,10 @@ contract Batcher is Ownable, IBatcher, EIP712 {
     );
 
     vaults[haulerAddress].currentAmount += amountIn;
-    require(vaults[haulerAddress].currentAmount <= vaults[haulerAddress].maxAmount, "Exceeded deposit limit");
+    require(
+      vaults[haulerAddress].currentAmount <= vaults[haulerAddress].maxAmount,
+      "Exceeded deposit limit"
+    );
 
     _completeDeposit(haulerAddress, amountIn);
   }
@@ -229,17 +233,17 @@ contract Batcher is Ownable, IBatcher, EIP712 {
   }
 
   /// @inheritdoc IBatcher
-  function setHaulerParams(address haulerAddress, address token, uint256 maxLimit)
-    external
-    override
-    onlyOwner
-  {
+  function setHaulerParams(
+    address haulerAddress,
+    address token,
+    uint256 maxLimit
+  ) external override onlyOwner {
     require(haulerAddress != address(0), "Invalid hauler address");
     require(token != address(0), "Invalid token address");
     // (, , IERC20Metadata token0, IERC20Metadata token1) = _getVault(haulerAddress);
     // require(address(token0) == token || address(token1) == token, 'wrong token address');
     vaults[haulerAddress] = Vault({
-      tokenAddress: token, 
+      tokenAddress: token,
       maxAmount: maxLimit,
       currentAmount: 0
     });
@@ -312,12 +316,8 @@ contract Batcher is Ownable, IBatcher, EIP712 {
     );
   }
 
-
   function setSlippage(uint256 _slippage) external override onlyOwner {
-    require(
-      _slippage >= 0 && _slippage <= 10000,
-      "Slippage must be between 0 and 10000"
-    );
+    require(_slippage <= 10000, "Slippage must be between 0 and 10000");
     slippageForCurveLp = _slippage;
   }
 

@@ -7,6 +7,7 @@ import { ConvexPositionHandler } from "./ConvexExecutor/ConvexPositionHandler.so
 contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
   constructor(
     address _baseRewardPool,
+    address _convexBooster,
     address _ust3Pool,
     address _curve3PoolZap,
     address _harvester,
@@ -14,6 +15,7 @@ contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
   ) BaseTradeExecutor(_hauler) {
     _initHandler(
       _baseRewardPool,
+      _convexBooster,
       _ust3Pool,
       _curve3PoolZap,
       haulerWantToken(),
@@ -23,12 +25,14 @@ contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
 
   function setHandler(
     address _baseRewardPool,
+    address _convexBooster,
     address _ust3Pool,
     address _curve3PoolZap,
     address _harvester
   ) external onlyGovernance {
     _initHandler(
       _baseRewardPool,
+      _convexBooster,
       _ust3Pool,
       _curve3PoolZap,
       haulerWantToken(),
@@ -36,35 +40,32 @@ contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
     );
   }
 
+  function setSlippage(uint256 _slippage) external onlyKeeper {
+    ConvexPositionHandler._setSlippage(_slippage);
+  }
+
   function openPosition(bytes calldata _data) public onlyKeeper {
-    _openPosition(_data);
+    ConvexPositionHandler._openPosition(_data);
   }
 
   function closePosition(bytes calldata _data) public onlyKeeper {
-    _closePosition(_data);
+   ConvexPositionHandler._closePosition(_data);
   }
 
   function claimRewards(bytes calldata _data) public onlyKeeper {
-    _claimRewards(_data);
+    ConvexPositionHandler._claimRewards(_data);
   }
 
   function totalFunds() public view override returns (uint256, uint256) {
     return positionInWantToken();
   }
 
-  function approveRewardTokensToHarvester(address[] memory tokens)
-    public
-    onlyGovernance
-  {
-    _approveRewardTokensToHarvester(tokens);
-  }
-
   function _initateDeposit(bytes calldata _data) internal override {
-    _deposit(_data);
+    ConvexPositionHandler._deposit(_data);
   }
 
   function _initiateWithdraw(bytes calldata _data) internal override {
-    _withdraw(_data);
+   ConvexPositionHandler._withdraw(_data);
   }
 
   function _confirmDeposit() internal override {}
