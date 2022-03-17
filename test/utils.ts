@@ -4,13 +4,13 @@ import {
   Hauler,
   ERC20,
   ConvexTradeExecutor,
-  PerpTradeExecutor,
+  PerpTradeExecutor
 } from "../src/types";
 import {
   wantTokenL1,
   ust3Pool,
   baseRewardPool,
-  curve3PoolZap,
+  curve3PoolZap
 } from "../scripts/constants";
 import { Signer } from "ethers";
 import { sign } from "crypto";
@@ -27,14 +27,14 @@ export async function setup(): Promise<
   [string, string, SignerWithAddress, SignerWithAddress]
 > {
   let keeperAddress = "0x55FE002aefF02F77364de339a1292923A15844B8";
-  let governanceAddress = "0xAE75B29ADe678372D77A8B41225654138a7E6ff1";
+  let governanceAddress = "0x55FE002aefF02F77364de339a1292923A15844B8";
   await hre.network.provider.request({
     method: "hardhat_impersonateAccount",
-    params: [keeperAddress],
+    params: [keeperAddress]
   });
   await hre.network.provider.request({
     method: "hardhat_impersonateAccount",
-    params: [governanceAddress],
+    params: [governanceAddress]
   });
   let signer = await hre.ethers.getSigner(keeperAddress);
   let invalidSigner = (await hre.ethers.getSigners())[0];
@@ -50,17 +50,17 @@ export async function getSignature(
     name: "Batcher",
     version: "1",
     chainId: 1,
-    verifyingContract: verifyingContract,
+    verifyingContract: verifyingContract
   };
 
   // The named list of all type definitions
   const types = {
-    deposit: [{ name: "owner", type: "address" }],
+    deposit: [{ name: "owner", type: "address" }]
   };
 
   // The data to sign
   const value = {
-    owner: addressToAuthorize,
+    owner: addressToAuthorize
   };
   // console.log('signer:', signer.address);
   let signature = await signer._signTypedData(domain, types, value);

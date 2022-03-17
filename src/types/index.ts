@@ -23,7 +23,6 @@ export type { ICurveDepositZapper } from "./ICurveDepositZapper";
 export type { ICurvePool } from "./ICurvePool";
 export type { ICurveV2Pool } from "./ICurveV2Pool";
 export type { IHarvester } from "./IHarvester";
-export type { IUniswapSwapRouter } from "./IUniswapSwapRouter";
 export type { IUniswapV3Factory } from "./IUniswapV3Factory";
 export type { IUniswapV3Router } from "./IUniswapV3Router";
 export type { IUniswapV3SwapCallback } from "./IUniswapV3SwapCallback";
@@ -63,7 +62,6 @@ export { ICurveDepositZapper__factory } from "./factories/ICurveDepositZapper__f
 export { ICurvePool__factory } from "./factories/ICurvePool__factory";
 export { ICurveV2Pool__factory } from "./factories/ICurveV2Pool__factory";
 export { IHarvester__factory } from "./factories/IHarvester__factory";
-export { IUniswapSwapRouter__factory } from "./factories/IUniswapSwapRouter__factory";
 export { IUniswapV3Factory__factory } from "./factories/IUniswapV3Factory__factory";
 export { IUniswapV3Router__factory } from "./factories/IUniswapV3Router__factory";
 export { IUniswapV3SwapCallback__factory } from "./factories/IUniswapV3SwapCallback__factory";
