@@ -56,13 +56,6 @@ contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
     return positionInWantToken();
   }
 
-  function approveRewardTokensToHarvester(address[] memory tokens)
-    public
-    onlyGovernance
-  {
-    _approveRewardTokensToHarvester(tokens);
-  }
-
   function _initateDeposit(bytes calldata _data) internal override {
     _deposit(_data);
   }

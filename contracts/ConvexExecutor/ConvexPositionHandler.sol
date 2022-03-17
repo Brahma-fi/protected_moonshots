@@ -71,14 +71,6 @@ contract ConvexPositionHandler is BasePositionHandler {
     harvester = IHarvester(_harvester);
   }
 
-  /// @notice Governance function to approve tokens to harvester for swaps
-  /// @param tokens An array of token addresses to approve
-  function _approveRewardTokensToHarvester(address[] memory tokens) internal {
-    for (uint256 idx = 0; idx < tokens.length; idx++) {
-      IERC20(tokens[idx]).safeApprove(address(harvester), type(uint256).max);
-    }
-  }
-
   /// @notice To get the total balances of the contract in want token price
   function positionInWantToken()
     public
