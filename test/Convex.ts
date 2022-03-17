@@ -27,6 +27,10 @@ const MAX_INT =
   "115792089237316195423570985008687907853269984665640564039457584007913129639935";
 const CRV_ADDR = "0xD533a949740bb3306d119CC777fa900bA034cd52";
 const CVX_ADDR = "0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B";
+const _3CRV_ADDR = "0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490";
+const CRVETH = "0x8301AE4fc9c624d1D396cbDAa1ed877821D7C511";
+const CVXETH = "0xB576491F1E6e5E62f1d8F26062Ee822B40B0E0d4";
+const _3CRVPOOL = "0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7";
 
 let convexTradeExecutor: ConvexTradeExecutor;
 let harvester: Harvester;
@@ -37,6 +41,7 @@ let USDC: IERC20;
 let LP: IERC20;
 let CRV: IERC20;
 let CVX: IERC20;
+let _3CRV: IERC20;
 
 let keeperAddress: string,
   governanceAddress: string,
@@ -61,6 +66,10 @@ const deploy = async () => {
   CVX = (await ethers.getContractAt(
     "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20",
     CVX_ADDR
+  )) as IERC20;
+  _3CRV = (await ethers.getContractAt(
+    "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20",
+    _3CRV_ADDR
   )) as IERC20;
 
   baseRewardPool = (await ethers.getContractAt(
@@ -177,36 +186,16 @@ describe.only("Convex Trade Executor", function () {
   });
 
   it("Should setup harvester correctly and initialize on handler", async () => {
-    await expect(harvester.swapTokens(0)).to.be.reverted;
-    // await expect(harvester.swapTokens(1)).to.be.reverted;
-
-    await harvester.connect(signer).addSwapToken(CRV_ADDR);
-    // await harvester.connect(signer).addSwapToken(CVX_ADDR);
-
-    expect(await harvester.swapTokens(0)).equals(CRV_ADDR);
-    // expect(await harvester.swapTokens(1)).equals(CVX_ADDR);
-
+    await harvester.connect(signer).approve();
+    expect((await CRV.allowance(harvester.address, CRVETH)).toString()).equals(
+      MAX_INT
+    );
+    expect((await CVX.allowance(harvester.address, CVXETH)).toString()).equals(
+      MAX_INT
+    );
     expect(
-      await CRV.allowance(convexTradeExecutor.address, harvester.address)
-    ).equals(0);
-    // expect(
-    //   await CVX.allowance(convexTradeExecutor.address, harvester.address)
-    // ).equals(0);
-
-    await convexTradeExecutor
-      .connect(governance)
-      .approveRewardTokensToHarvester([CRV_ADDR]);
-
-    expect(
-      (
-        await CRV.allowance(convexTradeExecutor.address, harvester.address)
-      ).toString()
+      (await _3CRV.allowance(harvester.address, _3CRVPOOL)).toString()
     ).equals(MAX_INT);
-    // expect(
-    //   (
-    //     await CVX.allowance(convexTradeExecutor.address, harvester.address)
-    //   ).toString()
-    // ).equals(MAX_INT);
   });
 
   it("Should get rewards correctly and harvest to USDC", async () => {
