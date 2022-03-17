@@ -8,7 +8,7 @@ import {
   Harvester,
   Hauler,
   IConvexRewards,
-  IERC20
+  IERC20,
 } from "../src/types";
 import { getUSDCContract, mineBlocks, setup } from "./utils";
 
@@ -16,12 +16,11 @@ const ConvexTradeExecutorConfig = {
   baseRewardPool: "0x7e2b9B5244bcFa5108A76D5E7b507CFD5581AD4A",
   convexBooster: "0xF403C135812408BFbE8713b5A23a04b3D48AAE31",
   ust3Pool: "0xCEAF7747579696A2F0bb206a14210e3c9e6fB269",
-  curve3PoolZap: "0xA79828DF1850E8a3A3064576f380D90aECDD3359"
+  curve3PoolZap: "0xA79828DF1850E8a3A3064576f380D90aECDD3359",
 };
 
 const HarvesterConfig = {
   wantToken: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-  slippage: 50000
 };
 
 const MAX_INT =
@@ -112,7 +111,6 @@ describe.only("Convex Trade Executor", function () {
   it("Should deploy Harvester correctly", async () => {
     expect(await harvester.governance()).equals(governanceAddress);
     expect(await harvester.wantToken()).equals(HarvesterConfig.wantToken);
-    expect(await harvester.slippage()).equals(HarvesterConfig.slippage);
   });
 
   it("Should deploy ConvexTradeExecutor correctly", async () => {
@@ -153,7 +151,7 @@ describe.only("Convex Trade Executor", function () {
     expect(await USDC.balanceOf(convexTradeExecutor.address)).equals(usdcBal);
 
     await convexTradeExecutor.connect(signer).initiateDeposit(paramsInBytes, {
-      gasLimit: 5e6
+      gasLimit: 5e6,
     });
 
     console.log(
@@ -176,7 +174,7 @@ describe.only("Convex Trade Executor", function () {
     );
 
     await convexTradeExecutor.connect(signer).openPosition(paramsInBytes, {
-      gasLimit: 5e6
+      gasLimit: 5e6,
     });
     const convexStakedBal = await baseRewardPool.balanceOf(
       convexTradeExecutor.address
@@ -207,10 +205,18 @@ describe.only("Convex Trade Executor", function () {
     console.log("After reward:", afterReard.toString());
     const initialUSDC = await USDC.balanceOf(convexTradeExecutor.address);
     await convexTradeExecutor.connect(signer).claimRewards("0x00", {
-      gasLimit: 5e6
+      gasLimit: 5e6,
     });
 
     const finalUSDC = await USDC.balanceOf(convexTradeExecutor.address);
+    const paramsInBytes = ethers.utils.AbiCoder.prototype.encode(
+      ["tuple(uint256)"],
+      [[finalUSDC]]
+    );
+
+    await convexTradeExecutor.connect(signer).initiateDeposit(paramsInBytes, {
+      gasLimit: 5e6,
+    });
     console.log("USDC rewards obtained:", finalUSDC.toString());
 
     expect(finalUSDC.gt(initialUSDC));
