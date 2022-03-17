@@ -1,5 +1,6 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
+import { BigNumber } from "ethers";
 import hre, { ethers } from "hardhat";
 import { wantTokenL1 } from "../scripts/constants";
 import {
@@ -139,7 +140,7 @@ describe.only("Convex Trade Executor", function () {
       convexTradeExecutor.address,
       ethers.utils.parseEther("1")
     );
-    const usdcBal = await USDC.balanceOf(signer.address);
+    const usdcBal = BigNumber.from(1e12);
     const paramsInBytes = ethers.utils.AbiCoder.prototype.encode(
       ["tuple(uint256)"],
       [[usdcBal]]
@@ -199,7 +200,7 @@ describe.only("Convex Trade Executor", function () {
   });
 
   it("Should get rewards correctly and harvest to USDC", async () => {
-    await mineBlocks(1000);
+    await mineBlocks(43200);
     const initialUSDC = await USDC.balanceOf(convexTradeExecutor.address);
     await convexTradeExecutor.connect(signer).claimRewards("0x00", {
       gasLimit: 5e6
