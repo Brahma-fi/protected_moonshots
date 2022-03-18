@@ -66,7 +66,7 @@ const config: HardhatUserConfig = {
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : []
     },
     tenderly: {
-      url: `https://rpc.tenderly.co/fork/2bf1d9a3-d508-4e81-aa70-9668a53be8a3`,
+      url: `https://rpc.tenderly.co/fork/aed83930-a6b8-4d7e-989f-5960c20aeb1e`,
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : []
     }
