@@ -14,7 +14,7 @@ const getDepositBytes = async () => {
   console.log("Hauler USDC bal:", usdcBal.toString());
   const paramsInBytes = ethers.utils.AbiCoder.prototype.encode(
     ["tuple(uint256)"],
-    [[usdcBal]]
+    [[usdcBal.div(2)]]
   );
 
   return paramsInBytes;
