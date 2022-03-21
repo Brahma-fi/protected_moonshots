@@ -101,7 +101,7 @@ const deploy = async () => {
   )) as ConvexTradeExecutor;
 };
 
-describe("Convex Trade Executor", function () {
+describe.only("Convex Trade Executor", function () {
   before(async () => {
     [keeperAddress, governanceAddress, signer, invalidSigner] = await setup();
     governance = await ethers.getSigner(governanceAddress);
@@ -248,7 +248,7 @@ describe("Convex Trade Executor", function () {
       [[totalFund]]
     );
 
-    await convexTradeExecutor.initateWithdraw(paramsInBytes);
+    await convexTradeExecutor.connect(signer).initateWithdraw(paramsInBytes);
 
     const finalUsdcBal = await USDC.balanceOf(convexTradeExecutor.address);
 

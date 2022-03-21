@@ -26,8 +26,8 @@ export async function getUSDCContract(): Promise<ERC20> {
 export async function setup(): Promise<
   [string, string, SignerWithAddress, SignerWithAddress]
 > {
-  let keeperAddress = "0xAE75B29ADe678372D77A8B41225654138a7E6ff1";
-  let governanceAddress = "0x6b29610D6c6a9E47812bE40F1335918bd63321bf";
+  let keeperAddress = "0x55FE002aefF02F77364de339a1292923A15844B8";
+  let governanceAddress = "0x55FE002aefF02F77364de339a1292923A15844B8";
   await hre.network.provider.request({
     method: "hardhat_impersonateAccount",
     params: [keeperAddress]
