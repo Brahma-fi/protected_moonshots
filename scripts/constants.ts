@@ -21,3 +21,4 @@ export const exchange = "0xBd7a3B7DbEb096F0B832Cf467B94b091f30C34ec";
 export const baseTokenvCRV = "0x7161C3416E08AbAa5cd38E68D9A28E43a694e037";
 export const quoteTokenvUSDC = "0xC84Da6c8ec7A57cD10B939E79eaF9d2D17834E04";
 export const movrRegistry = "0xc30141B657f4216252dc59Af2e7CdB9D8792e1B0";
+
