@@ -119,7 +119,8 @@ contract PerpPositionHandlerL2 is
         _depositToPerp(wantTokenBalance);
         perpPosition = PerpPosition({
             entryMarkPrice: formatSqrtPriceX96(getMarkTwapPrice()),
-            entryIndexPrice: getIndexTwapPrice(),
+            entryIndexPrice: formatSqrtPriceX96(getMarkTwapPrice()),
+            // entryIndexPrice: getIndexTwapPrice(),
             entryAmount: amountIn,
             isShort: isShort,
             isActive: true

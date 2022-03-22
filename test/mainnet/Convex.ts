@@ -95,7 +95,7 @@ const deploy = async () => {
   )) as ConvexTradeExecutor;
 };
 
-describe.only("[MAINNET] Convex Trade Executor", function () {
+describe("[MAINNET] Convex Trade Executor", function () {
   before(async () => {
     keeperAddress = "0xAE75B29ADe678372D77A8B41225654138a7E6ff1";
     governanceAddress = "0x6b29610D6c6a9E47812bE40F1335918bd63321bf";
