@@ -92,6 +92,7 @@ contract PerpPositionHandlerL2 is
         address _keeper,
         address _movrRegistry
     ) internal {
+
         wantTokenL1 = _wantTokenL1;
         wantTokenL2 = _wantTokenL2;
         positionHandlerL1 = _positionHandlerL1;
