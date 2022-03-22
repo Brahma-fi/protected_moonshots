@@ -11,3 +11,13 @@ export const optimismL1CrossDomainMessenger = "0x25ace71c97B33Cc4729CF772ae26893
 
 export const optimismRPCPort = 8550;
 export const optimismRPCBlock = 4462648;
+
+export const perpVault = "0xAD7b4C162707E0B2b5f6fdDbD3f8538A5fbA0d60";
+export const clearingHouse = "0x82ac2CE43e33683c58BE4cDc40975E73aA50f459";
+export const clearingHouseConfig = "0xA4c817a425D3443BAf610CA614c8B11688a288Fb";
+export const accountBalance = "0xA7f3FC32043757039d5e13d790EE43edBcBa8b7c";
+export const orderBook = "0xDfcaEBe8f6ea5E022BeFAFaE8c6Cdae8D4E1094b";
+export const exchange = "0xBd7a3B7DbEb096F0B832Cf467B94b091f30C34ec";
+export const baseTokenvCRV = "0x7161C3416E08AbAa5cd38E68D9A28E43a694e037";
+export const quoteTokenvUSDC = "0xC84Da6c8ec7A57cD10B939E79eaF9d2D17834E04";
+export const movrRegistry = "0xc30141B657f4216252dc59Af2e7CdB9D8792e1B0";
