@@ -3,7 +3,7 @@ pragma solidity ^0.7.6;
 
 import "./PerpV2Controller.sol";
 import "./OptimismL2Wrapper.sol";
-import "./MovrV1Controller.sol";
+import "./SocketV1Controller.sol";
 import "./interfaces/IPositionHandler.sol";
 
 import {SafeMathUpgradeable} from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
@@ -16,7 +16,7 @@ import "./interfaces/IERC20.sol";
 contract PerpPositionHandlerL2 is
     IPositionHandler,
     PerpV2Controller,
-    MovrV1Controller,
+    SocketV1Controller,
     OptimismL2Wrapper
 {
     using SafeMathUpgradeable for uint256;
@@ -40,7 +40,7 @@ contract PerpPositionHandlerL2 is
     /// @notice SPHL1 getter
     /// @return address of SPHL1 contract
     address public positionHandlerL1;
-    address public movrRegistry;
+    address public socketRegistry;
 
     address public keeper;
 
@@ -59,7 +59,7 @@ contract PerpPositionHandlerL2 is
         address _baseToken,
         address _quoteTokenvUSDC,
         address _keeper,
-        address _movrRegistry
+        address _socketRegistry
     ) {
         init(
             _wantTokenL1,
@@ -74,7 +74,7 @@ contract PerpPositionHandlerL2 is
             _baseToken,
             _quoteTokenvUSDC,
             _keeper,
-            _movrRegistry
+            _socketRegistry
         );
     }
 
@@ -91,7 +91,7 @@ contract PerpPositionHandlerL2 is
         address _baseToken,
         address _quoteTokenvUSDC,
         address _keeper,
-        address _movrRegistry
+        address _socketRegistry
     ) internal {
 
         wantTokenL1 = _wantTokenL1;
@@ -106,7 +106,7 @@ contract PerpPositionHandlerL2 is
         baseToken = IERC20(_baseToken);
         quoteTokenvUSDC = IERC20(_quoteTokenvUSDC);
         keeper = _keeper;
-        movrRegistry = _movrRegistry;
+        socketRegistry = _socketRegistry;
     }
 
     /// @inheritdoc IPositionHandler
@@ -142,22 +142,22 @@ contract PerpPositionHandlerL2 is
     function withdraw(
         uint256 amountOut,
         address allowanceTarget,
-        address _movrRegistry,
-        bytes calldata movrData
+        address _socketRegistry,
+        bytes calldata socketData
     ) public override onlyAuthorized {
         require(
             IERC20(wantTokenL2).balanceOf(address(this)) >= amountOut,
             "Insufficient balance"
         );
-        require(movrRegistry == _movrRegistry, "Invalid movr registry");
+        require(socketRegistry == _socketRegistry, "Invalid socket registry");
         sendTokens(
             wantTokenL2,
             allowanceTarget,
-            movrRegistry,
+            socketRegistry,
             positionHandlerL1, 
             amountOut,
             1, /// TODO: should hardcode destination chain 1 or accept argument??
-            movrData
+            socketData
         );
     }
 
@@ -173,8 +173,8 @@ contract PerpPositionHandlerL2 is
         referralCode = _referralCode;
     }
 
-    function setMovrRegistry(address _movrRegistry) public onlyAuthorized {
-        movrRegistry = _movrRegistry;
+    function setSocketRegistry(address _socketRegistry) public onlyAuthorized {
+        socketRegistry = _socketRegistry;
     }
 
     modifier onlyAuthorized() {
