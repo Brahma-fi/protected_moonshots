@@ -65,7 +65,7 @@ export async function moverCall(
     routePath;
 
   // console.log(buildTxnQuery)
-  console.log("amount", amount.toString());
+//   console.log("amount", amount.toString());
 
   const resTxnObj = await fetch(buildTxnQuery);
   const resTxn: MovrBuildTxnSchema = <MovrBuildTxnSchema>await resTxnObj.json();
