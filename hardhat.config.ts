@@ -53,17 +53,16 @@ const config: HardhatUserConfig = {
     //     blockNumber: 14360603 // Comment line for latest block automatically
     //   }
     // },
-    // hardhat: {
-    //   forking: {
-    //     url: `https://opt-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`,
-    //     // timeout: 99999,
-    //     blockNumber: 4719400 // Comment line for latest block automatically
-    //   },
-      
-    // },
+    hardhat: {
+      forking: {
+        url: `https://wild-spring-glitter.optimism.quiknode.pro/deba52784421dedba613ef5afd5599d273ef72e6/`,
+        // timeout: 99999,
+        blockNumber: 4732872 // Comment line for latest block automatically
+      },
+    },
     tenderly: {
 
-        url: `https://rpc.tenderly.co/fork//0a1571c0-179c-4d90-9e0a-1ed4451b634e`,
+        url: `https://rpc.tenderly.co/fork/aed83930-a6b8-4d7e-989f-5960c20aeb1e`,
         accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
@@ -80,11 +79,11 @@ const config: HardhatUserConfig = {
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : []
     },
-    // tenderly: {
-    //   url: `https://rpc.tenderly.co/fork/aed83930-a6b8-4d7e-989f-5960c20aeb1e`,
-    //   accounts:
-    //     process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : []
-    // }
+    optimism: {
+      url: `https://opt-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`,
+      accounts:
+        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : []
+    }
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,
