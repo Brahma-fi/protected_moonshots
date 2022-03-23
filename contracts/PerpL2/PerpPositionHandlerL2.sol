@@ -56,7 +56,7 @@ contract PerpPositionHandlerL2 is
         address _accountBalance,
         address _orderBook,
         address _exchange,
-        address _baseTokenvCRV,
+        address _baseToken,
         address _quoteTokenvUSDC,
         address _keeper,
         address _movrRegistry
@@ -71,7 +71,7 @@ contract PerpPositionHandlerL2 is
             _accountBalance,
             _orderBook,
             _exchange,
-            _baseTokenvCRV,
+            _baseToken,
             _quoteTokenvUSDC,
             _keeper,
             _movrRegistry
@@ -88,7 +88,7 @@ contract PerpPositionHandlerL2 is
         address _accountBalance,
         address _orderBook,
         address _exchange,
-        address _baseTokenvCRV,
+        address _baseToken,
         address _quoteTokenvUSDC,
         address _keeper,
         address _movrRegistry
@@ -103,7 +103,7 @@ contract PerpPositionHandlerL2 is
         accountBalance = IAccountBalance(_accountBalance);
         orderBook = IOrderBook(_orderBook);
         exchange = IExchange(_exchange);
-        baseTokenvCRV = IERC20(_baseTokenvCRV);
+        baseToken = IERC20(_baseToken);
         quoteTokenvUSDC = IERC20(_quoteTokenvUSDC);
         keeper = _keeper;
         movrRegistry = _movrRegistry;

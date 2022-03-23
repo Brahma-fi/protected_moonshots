@@ -93,7 +93,7 @@ describe.only("PerpHandlerL2 [OPTIMISM]", function () {
     await perpL2Handler.deployed();
 
     USDC = (await hre.ethers.getContractAt(
-      "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20",
+      "ERC20",
       wantTokenL2
     )) as IERC20;
     await USDC.connect(invalidSigner).transfer(
