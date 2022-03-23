@@ -18,7 +18,6 @@ export const clearingHouseConfig = "0xA4c817a425D3443BAf610CA614c8B11688a288Fb";
 export const accountBalance = "0xA7f3FC32043757039d5e13d790EE43edBcBa8b7c";
 export const orderBook = "0xDfcaEBe8f6ea5E022BeFAFaE8c6Cdae8D4E1094b";
 export const exchange = "0xBd7a3B7DbEb096F0B832Cf467B94b091f30C34ec";
-export const baseTokenvCRV = "0x7161C3416E08AbAa5cd38E68D9A28E43a694e037";
+export const baseToken = "0x8c835dfaa34e2ae61775e80ee29e2c724c6ae2bb ";
 export const quoteTokenvUSDC = "0xC84Da6c8ec7A57cD10B939E79eaF9d2D17834E04";
 export const movrRegistry = "0xc30141B657f4216252dc59Af2e7CdB9D8792e1B0";
-

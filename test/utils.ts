@@ -15,8 +15,7 @@ import {
   keeper
 
 } from "../scripts/constants";
-import { Signer } from "ethers";
-import { sign } from "crypto";
+
 
 export async function getUSDCContract(): Promise<ERC20> {
   const USDC = (await hre.ethers.getContractAt(
