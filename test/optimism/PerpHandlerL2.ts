@@ -75,12 +75,8 @@ describe.only("PerpHandlerL2 [OPTIMISM]", function () {
         await USDC.connect(invalidSigner).transfer(perpL2Handler.address, (await USDC.balanceOf(invalidSigner.address)));
 
         const baseToken = await hre.ethers.getContractAt("IIndexPrice", baseTokenvCRV) as IIndexPrice;
-        console.log(baseToken.address);
         clearingHouseConfigContract = await hre.ethers.getContractAt("IClearingHouseConfig", clearingHouseConfig) as IClearingHouseConfig;
         const twapInterval = await clearingHouseConfigContract.getTwapInterval();
-        console.log('twap interval', twapInterval);
-        console.log('index price', await baseToken.getIndexPrice(BigNumber.from(twapInterval)));
-
         accountBalanceContract = await hre.ethers.getContractAt("IAccountBalance", accountBalance) as IAccountBalance;
 
         
@@ -94,8 +90,6 @@ describe.only("PerpHandlerL2 [OPTIMISM]", function () {
         const usdcBal = await USDC.balanceOf(perpL2Handler.address);
 
         expect(usdcBal.gt(0));
-
-        console.log('Perp handler has USDC', usdcBal)
     });
 
     it("Can open short", async function () {
@@ -106,8 +100,6 @@ describe.only("PerpHandlerL2 [OPTIMISM]", function () {
         equal((await perpL2Handler.perpPosition()).isActive, false);
 
         equal(await accountBalanceContract.getTotalPositionSize(perpL2Handler.address, baseTokenvCRV), 0)
-
-        console.log(usdcBal.div(1e9).div(1e9));
         await perpL2Handler.connect(signer).openPosition(true, usdcBal, 500);
 
         equal((await perpL2Handler.perpPosition()).isActive, true);
@@ -149,6 +141,39 @@ describe.only("PerpHandlerL2 [OPTIMISM]", function () {
         await expect(
             perpL2Handler.connect(invalidSigner).closePosition(500)
           ).to.be.revertedWith("Only owner can call this function");
+    });
+
+
+
+    it("Can open long", async function () {
+
+        let usdcBal = await USDC.balanceOf(perpL2Handler.address);
+        usdcBal = usdcBal.mul(1e12);
+
+        equal((await perpL2Handler.perpPosition()).isActive, false);
+
+        equal(await accountBalanceContract.getTotalPositionSize(perpL2Handler.address, baseTokenvCRV), 0)
+        await perpL2Handler.connect(signer).openPosition(false, usdcBal, 500);
+
+        equal((await perpL2Handler.perpPosition()).isActive, true);
+        equal((await perpL2Handler.perpPosition()).isShort, false);
+
+        expect(!((await accountBalanceContract.getTotalPositionSize(perpL2Handler.address, baseTokenvCRV)).isZero()));
+
+    });
+
+    it("Can close long", async function () {
+
+        let usdcBalBefore = await USDC.balanceOf(perpL2Handler.address);
+
+        equal((await perpL2Handler.perpPosition()).isActive, true);
+        await perpL2Handler.connect(signer).closePosition(1500);
+        equal((await perpL2Handler.perpPosition()).isActive, false);
+        expect(((await accountBalanceContract.getTotalPositionSize(perpL2Handler.address, baseTokenvCRV)).isZero()));
+
+        let usdcBalAfter = await USDC.balanceOf(perpL2Handler.address);
+
+        expect(usdcBalAfter.gt(usdcBalBefore))
     });
 
     it("Can withdraw successfully", async function () {
