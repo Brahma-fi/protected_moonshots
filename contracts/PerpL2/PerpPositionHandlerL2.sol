@@ -9,6 +9,8 @@ import "./interfaces/IPositionHandler.sol";
 import {SafeMathUpgradeable} from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import "./interfaces/IERC20.sol";
 
+import "hardhat/console.sol";
+
 /// @title PerpPositionHandlerL2
 /// @author 0xAd1
 /// @notice Acts as positon handler and token bridger on L2 Optimism
@@ -117,10 +119,11 @@ contract PerpPositionHandlerL2 is
     ) public override onlyAuthorized {
         require(perpPosition.isActive == false, "Position already open");
         uint256 wantTokenBalance = IERC20(wantTokenL2).balanceOf(address(this));
+        console.log(wantTokenBalance);
         _depositToPerp(wantTokenBalance);
         perpPosition = PerpPosition({
             entryMarkPrice: formatSqrtPriceX96(getMarkTwapPrice()),
-            entryIndexPrice: formatSqrtPriceX96(getMarkTwapPrice()),
+            entryIndexPrice: getIndexTwapPrice(),
             // entryIndexPrice: getIndexTwapPrice(),
             entryAmount: amountIn,
             isShort: isShort,
