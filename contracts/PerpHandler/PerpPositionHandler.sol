@@ -50,16 +50,20 @@ contract PerpPositionHandler is
 
   address public positionHandlerL2Address;
 
+  address public socketRegistry;
+
   Position public override positionInWantToken;
 
   function _initHandler(
     address _wantTokenL2,
     address _positionHandlerL2Address,
-    address _L1CrossDomainMessenger
+    address _L1CrossDomainMessenger,
+    address _socketRegistry
   ) internal {
     wantTokenL2 = _wantTokenL2;
     positionHandlerL2Address = _positionHandlerL2Address;
     L1CrossDomainMessenger = _L1CrossDomainMessenger;
+    socketRegistry = _socketRegistry;
   }
 
   /// @notice Sends message to SPHL2 to open a position on PerpV2
@@ -100,8 +104,7 @@ contract PerpPositionHandler is
   /// @param data Encoded DepositParams as data
   function _deposit(bytes calldata data) internal override {
     DepositParams memory depositParams = abi.decode(data, (DepositParams));
-
-    // DepositParams memory depositParams = decoderDeposit(data);
+    require (depositParams._socketRegistry == socketRegistry, "socketRegistry is not set correctly");
     sendTokens(
       wantTokenL1,
       depositParams._allowanceTarget,
