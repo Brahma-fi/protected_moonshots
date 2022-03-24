@@ -7,6 +7,14 @@ pragma experimental ABIEncoderV2;
  */
 interface ICrossDomainMessenger {
 
+    /**********
+     * Events *
+     **********/
+
+    event SentMessage(bytes message);
+    event RelayedMessage(bytes32 msgHash);
+    event FailedRelayedMessage(bytes32 msgHash);
+
     /********************
      * View Functions *
      ********************/

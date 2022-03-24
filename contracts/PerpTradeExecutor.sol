@@ -3,11 +3,13 @@ pragma solidity ^0.8.0;
 
 import "./BaseTradeExecutor.sol";
 import "./PerpHandler/PerpPositionHandler.sol";
+import "../interfaces/IHauler.sol";
 
 contract PerpTradeExecutor is BaseTradeExecutor, PerpPositionHandler {
 
     constructor(address hauler, address _wantTokenL2, address _SPHL2Address, address _L1CrossDomainMessenger, address _socketRegistry) BaseTradeExecutor(hauler){
         _initHandler(_wantTokenL2, _SPHL2Address, _L1CrossDomainMessenger, _socketRegistry);
+        wantTokenL1 = IHauler(hauler).wantToken();
     }
 
     function _initateDeposit (bytes calldata _data) internal override{
@@ -28,6 +30,10 @@ contract PerpTradeExecutor is BaseTradeExecutor, PerpPositionHandler {
 
     function openPosition(bytes calldata _data) public onlyKeeper{
         PerpPositionHandler._openPosition(_data);
+    }
+
+    function closePosition(bytes calldata _data) public onlyKeeper{
+        PerpPositionHandler._closePosition(_data);
     }
 
     function setPosValue(uint256 _posValue) public onlyKeeper{

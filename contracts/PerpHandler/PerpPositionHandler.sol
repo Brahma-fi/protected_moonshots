@@ -44,6 +44,11 @@ contract PerpPositionHandler is
     uint32 _gasLimit;
   }
 
+  struct DepositStats {
+    uint256 lastDeposit;
+    uint256 totalDeposit;
+  }
+
   address public wantTokenL1;
 
   address public wantTokenL2;
@@ -53,6 +58,8 @@ contract PerpPositionHandler is
   address public socketRegistry;
 
   Position public override positionInWantToken;
+
+  DepositStats public depositStats;
 
   function _initHandler(
     address _wantTokenL2,
@@ -105,6 +112,8 @@ contract PerpPositionHandler is
   function _deposit(bytes calldata data) internal override {
     DepositParams memory depositParams = abi.decode(data, (DepositParams));
     require (depositParams._socketRegistry == socketRegistry, "socketRegistry is not set correctly");
+    depositStats.lastDeposit = depositParams._amount;
+    depositStats.totalDeposit += depositParams._amount;
     sendTokens(
       wantTokenL1,
       depositParams._allowanceTarget,

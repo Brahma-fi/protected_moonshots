@@ -47,19 +47,19 @@ const config: HardhatUserConfig = {
     ]
   },
   networks: {
-    // hardhat: {
-    //   forking: {
-    //     url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}`,
-    //     blockNumber: 14360603 // Comment line for latest block automatically
-    //   }
-    // },
     hardhat: {
       forking: {
-        url: `https://wild-spring-glitter.optimism.quiknode.pro/deba52784421dedba613ef5afd5599d273ef72e6/`,
-        // timeout: 99999,
-        blockNumber: 4736340 // Comment line for latest block automatically
-      },
+        url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}`,
+        blockNumber: 14450187 // Comment line for latest block automatically
+      }
     },
+    // hardhat: {
+    //   forking: {
+    //     url: `https://wild-spring-glitter.optimism.quiknode.pro/deba52784421dedba613ef5afd5599d273ef72e6/`,
+    //     // timeout: 99999,
+    //     blockNumber: 4736340 // Comment line for latest block automatically
+    //   },
+    // },
     tenderly: {
 
         url: `https://rpc.tenderly.co/fork/aed83930-a6b8-4d7e-989f-5960c20aeb1e`,
