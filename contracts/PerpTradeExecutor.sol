@@ -6,8 +6,8 @@ import "./PerpHandler/PerpPositionHandler.sol";
 
 contract PerpTradeExecutor is BaseTradeExecutor, PerpPositionHandler {
 
-    constructor(address hauler, address _wantTokenL2, address _SPHL2Address, address _L1CrossDomainMessenger) BaseTradeExecutor(hauler){
-        _initHandler(_wantTokenL2, _SPHL2Address, _L1CrossDomainMessenger);
+    constructor(address hauler, address _wantTokenL2, address _SPHL2Address, address _L1CrossDomainMessenger, address _socketRegistry) BaseTradeExecutor(hauler){
+        _initHandler(_wantTokenL2, _SPHL2Address, _L1CrossDomainMessenger, _socketRegistry);
     }
 
     function _initateDeposit (bytes calldata _data) internal override{
@@ -32,5 +32,8 @@ contract PerpTradeExecutor is BaseTradeExecutor, PerpPositionHandler {
 
     function setPosValue(uint256 _posValue) public onlyKeeper{
         PerpPositionHandler._setPosValue(_posValue);
+    }
+    function setSocketRegistry(address _socketRegistry) public onlyKeeper{
+        socketRegistry = _socketRegistry;
     }
 }
