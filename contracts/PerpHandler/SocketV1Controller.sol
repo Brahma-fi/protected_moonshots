@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 // import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
+import "hardhat/console.sol";
 
 /// @title SocketV1Controller
 /// @author 0xAd1
@@ -41,7 +41,7 @@ contract SocketV1Controller {
         (userRequest) = abi.decode(callDataWithoutSelector, (UserRequest));
     }
 
-    function verifySocketCalldata(bytes memory _data, uint256 _chainId, address _inputToken, address _receiverAddress) internal pure {
+    function verifySocketCalldata(bytes memory _data, uint256 _chainId, address _inputToken, address _receiverAddress) internal view {
         UserRequest memory userRequest;
         (userRequest) = decodeSocketRegistryCalldata(_data);
         if (userRequest.toChainId != _chainId) {
@@ -51,6 +51,8 @@ contract SocketV1Controller {
             revert("Invalid receiver address");
         }
         if (userRequest.bridgeRequest.inputToken != _inputToken) {
+            console.log(userRequest.bridgeRequest.inputToken);
+            console.log(_inputToken);
             revert("Invalid input token");
         }
     }
