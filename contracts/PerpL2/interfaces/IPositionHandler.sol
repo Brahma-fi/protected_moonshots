@@ -1,5 +1,5 @@
 /// SPDX-License-Identifier: GPL-3.0-or-later
-pragma solidity ^0.7.6;
+pragma solidity >=0.7.6 <0.8.10;
 
 interface IPositionHandler {
 
@@ -23,9 +23,9 @@ interface IPositionHandler {
     /// @dev Check MovrV1Controller for more details on implementation of token bridging
     /// @param amountOut amount needed to be sent to strategy
     /// @param allowanceTarget address of contract to provide ERC20 allowance to
-    /// @param movrRegistry address of movr contract to send txn to
-    /// @param movrData movr txn calldata
-    function withdraw(uint256 amountOut, address allowanceTarget, address movrRegistry, bytes calldata movrData) external;
+    /// @param socketRegistry address of movr contract to send txn to
+    /// @param socketData movr txn calldata
+    function withdraw(uint256 amountOut, address allowanceTarget, address socketRegistry, bytes calldata socketData) external;
 
     /// @notice Sweep tokens 
     /// @param _token Address of the token to sweep
