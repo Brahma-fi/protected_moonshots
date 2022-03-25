@@ -4,7 +4,7 @@ import { Hauler, PerpTradeExecutor } from "../../src/types";
 const PerpTradeExecutorConfig = {
   hauler: "0x1C4ceb52ab54a35F9d03FcC156a7c57F965e081e",
   wantTokenL2: "0x7F5c764cBc14f9669B88837ca1490cCa17c31607",
-  positionHandlerL2: "",
+  positionHandlerL2: "0x1C4ceb52ab54a35F9d03FcC156a7c57F965e081e",
   L1CrossDomainMessenger: "0x25ace71c97B33Cc4729CF772ae268934F7ab5fA1",
   socketRegistry: "0xc30141B657f4216252dc59Af2e7CdB9D8792e1B0"
 };

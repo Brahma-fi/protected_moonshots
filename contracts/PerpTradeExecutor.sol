@@ -7,9 +7,14 @@ import "../interfaces/IHauler.sol";
 
 contract PerpTradeExecutor is BaseTradeExecutor, PerpPositionHandler {
 
-    constructor(address hauler, address _wantTokenL2, address _SPHL2Address, address _L1CrossDomainMessenger, address _socketRegistry) BaseTradeExecutor(hauler){
-        _initHandler(_wantTokenL2, _SPHL2Address, _L1CrossDomainMessenger, _socketRegistry);
+    constructor(address hauler, address _wantTokenL2, address _l2HandlerAddress, address _L1CrossDomainMessenger, address _socketRegistry) BaseTradeExecutor(hauler){
+        _initHandler(_wantTokenL2, _l2HandlerAddress, _L1CrossDomainMessenger, _socketRegistry);
         wantTokenL1 = IHauler(hauler).wantToken();
+    }
+
+
+    function setHandler (address _wantTokenL2, address _l2HandlerAddress, address _L1CrossDomainMessenger, address _socketRegistry) public onlyKeeper {
+        _initHandler(_wantTokenL2, _l2HandlerAddress, _L1CrossDomainMessenger, _socketRegistry);
     }
 
     function _initateDeposit (bytes calldata _data) internal override{
