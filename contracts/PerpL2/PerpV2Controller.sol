@@ -26,8 +26,6 @@ contract PerpV2Controller {
 
     bytes32 public referralCode;
 
-    // Perp contracts - Kovan Optimism
-    // TODO: init
     IVault public perpVault;
     IClearingHouse public clearingHouse;
     IClearingHouseConfig public clearingHouseConfig;
