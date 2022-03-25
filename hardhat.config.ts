@@ -55,8 +55,7 @@ const config: HardhatUserConfig = {
     },
     // hardhat: {
     //   forking: {
-    //     url: `https://wild-spring-glitter.optimism.quiknode.pro/deba52784421dedba613ef5afd5599d273ef72e6/`,
-    //     // timeout: 99999,
+    //     url: `${process.env.QUICKNODE_OPTIMISM_URL}`,
     //     blockNumber: 4736340 // Comment line for latest block automatically
     //   },
     // },
