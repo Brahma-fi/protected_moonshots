@@ -14,6 +14,8 @@ import {
   movrRegistry,
 } from "../constants";
 
+import {moverCall} from "../../test/api";
+
 async function main() {
   
   const keeper = "0xAE75B29ADe678372D77A8B41225654138a7E6ff1";
@@ -24,10 +26,19 @@ async function main() {
   const httpsProvider = hre.ethers.provider;
   let feeData = await httpsProvider.getFeeData();
 
+  const output = await moverCall(
+    keeper,
+   "0x675A5c853fc2bc81E0eB79FC45e395d01Bd5D72D",
+    hre.ethers.BigNumber.from(1e9),
+    false
+  );
+
+  // console.log(output);
+
   const perpPositionHandlerL2 = (await PerpPositionHandlerL2.deploy(
       wantTokenL1,
       wantTokenL2,
-      "???", // PerpTradeExecutorL1 address
+      "0x675A5c853fc2bc81E0eB79FC45e395d01Bd5D72D", // PerpTradeExecutorL1 address
       perpVault,
       clearingHouse,
       clearingHouseConfig,
@@ -37,7 +48,7 @@ async function main() {
       baseToken,
       quoteTokenvUSDC,
       keeper,
-      movrRegistry,
+      output.registry,
     {
       maxPriorityFeePerGas: feeData["maxPriorityFeePerGas"], // Recommended maxPriorityFeePerGas
       maxFeePerGas: feeData["maxFeePerGas"] // Recommended maxFeePerGas
