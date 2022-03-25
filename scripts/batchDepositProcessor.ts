@@ -12,6 +12,16 @@ const main = async () => {
     "PerpTradeExecutor",
     "0x675A5c853fc2bc81E0eB79FC45e395d01Bd5D72D"
   )) as PerpTradeExecutor;
+
+  // set PerpTradeExecutor posValue
+
+  // do the batch Deposit on batcher
+
+  // based on pmusdc balance withdraw funds from convex te.
+
+  // do the batch withdraw on batcher.
+
+
 };
 
 main()
