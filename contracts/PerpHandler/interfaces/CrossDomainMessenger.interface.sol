@@ -7,6 +7,44 @@ pragma experimental ABIEncoderV2;
  */
 interface ICrossDomainMessenger {
 
+    /**********
+     * Events *
+     **********/
+
+    event SentMessage(bytes message);
+    event RelayedMessage(bytes32 msgHash);
+    event FailedRelayedMessage(bytes32 msgHash);
+
+
+    event TransactionEnqueued(
+        address indexed _l1TxOrigin,
+        address indexed _target,
+        uint256 _gasLimit,
+        bytes _data,
+        uint256 indexed _queueIndex,
+        uint256 _timestamp
+    );
+
+    event QueueBatchAppended(
+        uint256 _startingQueueIndex,
+        uint256 _numQueueElements,
+        uint256 _totalElements
+    );
+
+    event SequencerBatchAppended(
+        uint256 _startingQueueIndex,
+        uint256 _numQueueElements,
+        uint256 _totalElements
+    );
+
+    event TransactionBatchAppended(
+        uint256 indexed _batchIndex,
+        bytes32 _batchRoot,
+        uint256 _batchSize,
+        uint256 _prevTotalElements,
+        bytes _extraData
+    );
+
     /********************
      * View Functions *
      ********************/

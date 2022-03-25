@@ -2,9 +2,11 @@
 pragma solidity ^0.8.0;
 
 import "./OptimismWrapper.sol";
-import "./MovrV1Controller.sol";
+import "./SocketV1Controller.sol";
 import "../../interfaces/BasePositionHandler.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+import "../PerpL2/interfaces/IPositionHandler.sol";
 
 /// @title PerpPositionHandlerL1
 /// @author 0xAd1
@@ -12,7 +14,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract PerpPositionHandler is
   BasePositionHandler,
   OptimismWrapper,
-  MovrV1Controller
+  SocketV1Controller
 {
   struct OpenPositionParams {
     uint256 _amount;
@@ -22,7 +24,6 @@ contract PerpPositionHandler is
   }
 
   struct ClosePositionParams {
-    uint256 _amountOut;
     uint24 _slippage;
     uint32 _gasLimit;
   }
@@ -30,34 +31,45 @@ contract PerpPositionHandler is
   struct DepositParams {
     uint256 _amount;
     address _allowanceTarget;
-    address _movrRegistry;
-    bytes _movrData;
+    address _socketRegistry;
+    bytes _socketData;
   }
 
   struct WithdrawParams {
     uint256 _amount;
     address _allowanceTarget;
-    address _movrRegistry;
-    bytes _movrData;
+    address _socketRegistry;
+    bytes _socketData;
     uint32 _gasLimit;
+  }
+
+  struct DepositStats {
+    uint256 lastDeposit;
+    uint256 totalDeposit;
   }
 
   address public wantTokenL1;
 
   address public wantTokenL2;
 
-  address public SPHL2Address;
+  address public positionHandlerL2Address;
+
+  address public socketRegistry;
 
   Position public override positionInWantToken;
 
+  DepositStats public depositStats;
+
   function _initHandler(
     address _wantTokenL2,
-    address _SPHL2Address,
-    address _L1CrossDomainMessenger
+    address _positionHandlerL2Address,
+    address _L1CrossDomainMessenger,
+    address _socketRegistry
   ) internal {
     wantTokenL2 = _wantTokenL2;
-    SPHL2Address = _SPHL2Address;
+    positionHandlerL2Address = _positionHandlerL2Address;
     L1CrossDomainMessenger = _L1CrossDomainMessenger;
+    socketRegistry = _socketRegistry;
   }
 
   /// @notice Sends message to SPHL2 to open a position on PerpV2
@@ -68,13 +80,14 @@ contract PerpPositionHandler is
       data,
       (OpenPositionParams)
     );
-    bytes memory L2calldata = abi.encodeWithSignature(
-      "openPosition(uint256,uint24)",
+    bytes memory L2calldata = abi.encodeWithSelector(
+      IPositionHandler.openPosition.selector,
+      openPositionParams._isShort,
       openPositionParams._amount,
       openPositionParams._slippage
     );
 
-    sendMessageToL2(SPHL2Address, L2calldata, openPositionParams._gasLimit);
+    sendMessageToL2(positionHandlerL2Address, L2calldata, openPositionParams._gasLimit);
   }
 
   /// @notice Sends message to SPHL2 to close existing position on PerpV2
@@ -85,46 +98,54 @@ contract PerpPositionHandler is
       data,
       (ClosePositionParams)
     );
-    bytes memory L2calldata = abi.encodeWithSignature(
-      "closePosition(uint256,uint24)",
-      closePositionParams._amountOut,
+    bytes memory L2calldata = abi.encodeWithSelector(
+      IPositionHandler.closePosition.selector,
       closePositionParams._slippage
     );
-    sendMessageToL2(SPHL2Address, L2calldata, closePositionParams._gasLimit);
+    sendMessageToL2(positionHandlerL2Address, L2calldata, closePositionParams._gasLimit);
   }
 
-  /// @notice Sends tokens to SPHL2 using fundMovr
-  /// @dev Check `sendTokens` implementation in MovrV1Controller for more info
+  /// @notice Sends tokens to positionHandlerL2 using Socket
+  /// @dev Check `sendTokens` implementation in SocketV1Controller for more info
   /// @param data Encoded DepositParams as data
   function _deposit(bytes calldata data) internal override {
     DepositParams memory depositParams = abi.decode(data, (DepositParams));
+    require (depositParams._socketRegistry == socketRegistry, "socketRegistry is not set correctly");
+    depositStats.lastDeposit = depositParams._amount;
+    depositStats.totalDeposit += depositParams._amount;
     sendTokens(
       wantTokenL1,
       depositParams._allowanceTarget,
-      depositParams._movrRegistry,
+      depositParams._socketRegistry,
+      positionHandlerL2Address,
       depositParams._amount,
-      depositParams._movrData
+      10,
+      depositParams._socketData
     );
   }
 
-  /// @notice Sends message to SPHL2 to send tokens back to strategy using Movr
+  // function decoderDeposit(bytes calldata data) internal returns(DepositParams calldata) {
+  //   DepositParams calldata depositParams = abi.decode(data, (DepositParams));
+  //   return depositParams;
+  // }
+
+  /// @notice Sends message to SPHL2 to send tokens back to strategy using Socket
   /// @dev Check `withdraw` implementation in SPHL2 for more info
   /// @param data Encoded WithdrawParams as data
   function _withdraw(bytes calldata data) internal override {
     WithdrawParams memory withdrawParams = abi.decode(data, (WithdrawParams));
-    bytes memory L2calldata = abi.encodeWithSignature(
-      "withdraw(uint256,address,address,bytes)",
+    bytes memory L2calldata = abi.encodeWithSelector(
+      IPositionHandler.withdraw.selector,
       withdrawParams._amount,
       withdrawParams._allowanceTarget,
-      withdrawParams._movrRegistry,
-      withdrawParams._movrData
+      withdrawParams._socketRegistry,
+      withdrawParams._socketData
     );
-    sendMessageToL2(SPHL2Address, L2calldata, withdrawParams._gasLimit);
+    sendMessageToL2(positionHandlerL2Address, L2calldata, withdrawParams._gasLimit);
   }
 
   function _claimRewards(bytes calldata _data) internal override {
-    // DO Nothing - Perp autocompounds, nothing to claim
-    // TODO: Decide wether to do nothing or revert
+    /// Nothing to claim
   }
 
   function _setPosValue(uint256 _posValue) internal {
