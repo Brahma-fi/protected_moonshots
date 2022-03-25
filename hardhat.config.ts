@@ -47,13 +47,26 @@ const config: HardhatUserConfig = {
     ]
   },
   networks: {
+    // hardhat: {
+    //   forking: {
+    //     url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}`,
+    //     blockNumber: 14450187 // Comment line for latest block automatically
+    //   }
+    // },
     hardhat: {
       forking: {
-        url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}`,
-        blockNumber: 14360603 // Comment line for latest block automatically
-      }
+        url: `${process.env.QUICKNODE_OPTIMISM_URL}`,
+        blockNumber: 4736340 // Comment line for latest block automatically
+      },
+    },
+    tenderly: {
+
+        url: `https://rpc.tenderly.co/fork/aed83930-a6b8-4d7e-989f-5960c20aeb1e`,
+        accounts:
+        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     mainnet: {
+      timeout: 99999,
       url:
         `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}` || "",
       accounts:
@@ -65,8 +78,8 @@ const config: HardhatUserConfig = {
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : []
     },
-    tenderly: {
-      url: `https://rpc.tenderly.co/fork/aed83930-a6b8-4d7e-989f-5960c20aeb1e`,
+    optimism: {
+      url: `https://opt-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`,
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : []
     }
