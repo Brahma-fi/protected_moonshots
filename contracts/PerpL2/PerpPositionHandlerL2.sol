@@ -3,20 +3,27 @@ pragma solidity ^0.7.6;
 
 import "./PerpV2Controller.sol";
 import "./OptimismL2Wrapper.sol";
-import "./MovrV1Controller.sol";
+import "./SocketV1Controller.sol";
 import "./interfaces/IPositionHandler.sol";
 
-import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
+import {SafeMathUpgradeable} from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import "./interfaces/IERC20.sol";
+
 
 /// @title PerpPositionHandlerL2
 /// @author 0xAd1
 /// @notice Acts as positon handler and token bridger on L2 Optimism
-contract PerpPositionHandlerL2 is IPositionHandler, PerpV2Controller, MovrV1Controller, OptimismL2Wrapper{
+contract PerpPositionHandlerL2 is
+    IPositionHandler,
+    PerpV2Controller,
+    SocketV1Controller,
+    OptimismL2Wrapper
+{
     using SafeMathUpgradeable for uint256;
 
     struct PerpPosition {
-        uint256 entryMarkTwap;
+        uint256 entryMarkPrice;
+        uint256 entryIndexPrice;
         uint256 entryAmount;
         bool isShort;
         bool isActive;
@@ -32,89 +39,150 @@ contract PerpPositionHandlerL2 is IPositionHandler, PerpV2Controller, MovrV1Cont
 
     /// @notice SPHL1 getter
     /// @return address of SPHL1 contract
-    address public SPHL1Address;
+    address public positionHandlerL1;
+    address public socketRegistry;
 
     address public keeper;
 
     PerpPosition public perpPosition;
 
-    function init(
+    constructor(
         address _wantTokenL1,
         address _wantTokenL2,
-        address _SPHL1Address,
+        address _positionHandlerL1,
         address _perpVault,
         address _clearingHouse,
         address _clearingHouseConfig,
         address _accountBalance,
         address _orderBook,
         address _exchange,
-        address _baseTokenvCRV,
+        address _baseToken,
         address _quoteTokenvUSDC,
-        address _keeper
-    ) public {
+        address _keeper,
+        address _socketRegistry
+    ) {
+        init(
+            _wantTokenL1,
+            _wantTokenL2,
+            _positionHandlerL1,
+            _perpVault,
+            _clearingHouse,
+            _clearingHouseConfig,
+            _accountBalance,
+            _orderBook,
+            _exchange,
+            _baseToken,
+            _quoteTokenvUSDC,
+            _keeper,
+            _socketRegistry
+        );
+    }
+
+    function init(
+        address _wantTokenL1,
+        address _wantTokenL2,
+        address _positionHandlerL1,
+        address _perpVault,
+        address _clearingHouse,
+        address _clearingHouseConfig,
+        address _accountBalance,
+        address _orderBook,
+        address _exchange,
+        address _baseToken,
+        address _quoteTokenvUSDC,
+        address _keeper,
+        address _socketRegistry
+    ) internal {
+
         wantTokenL1 = _wantTokenL1;
         wantTokenL2 = _wantTokenL2;
-        SPHL1Address = _SPHL1Address;
+        positionHandlerL1 = _positionHandlerL1;
         perpVault = IVault(_perpVault);
         clearingHouse = IClearingHouse(_clearingHouse);
         clearingHouseConfig = IClearingHouseConfig(_clearingHouseConfig);
         accountBalance = IAccountBalance(_accountBalance);
         orderBook = IOrderBook(_orderBook);
         exchange = IExchange(_exchange);
-        baseTokenvCRV = IERC20(_baseTokenvCRV);
+        baseToken = IERC20(_baseToken);
         quoteTokenvUSDC = IERC20(_quoteTokenvUSDC);
         keeper = _keeper;
+        socketRegistry = _socketRegistry;
     }
 
-
-
-
     /// @inheritdoc IPositionHandler
-    // opens short position by default and accepts 
-    function openPosition(bool isShort, uint256 amountIn, uint24 slippage) public override onlyAuthorized{
-        require (perpPosition.isActive == false, "Position already open");
+    // opens short position by default and accepts
+    function openPosition(
+        bool isShort,
+        uint256 amountIn,
+        uint24 slippage
+    ) public override onlyAuthorized {
+        require(perpPosition.isActive == false, "Position already open");
         uint256 wantTokenBalance = IERC20(wantTokenL2).balanceOf(address(this));
         _depositToPerp(wantTokenBalance);
-        perpPosition = PerpPosition({entryMarkTwap: formatSqrtPriceX96(getTwapPrice()), entryAmount: amountIn, isShort: isShort, isActive: true});
+        perpPosition = PerpPosition({
+            entryMarkPrice: formatSqrtPriceX96(getMarkTwapPrice()),
+            entryIndexPrice: getIndexTwapPrice(),
+            // entryIndexPrice: getIndexTwapPrice(),
+            entryAmount: amountIn,
+            isShort: isShort,
+            isActive: true
+        });
         _openPositionByAmount(isShort, amountIn, slippage);
     }
 
     /// @inheritdoc IPositionHandler
-    function closePosition(uint24 slippage)
-        public
-        override
-        onlyAuthorized
-    {
+    function closePosition(uint24 slippage) public override onlyAuthorized {
         require(perpPosition.isActive, "No active position");
         _closePosition(slippage);
         perpPosition.isActive = false;
         _withdrawFromPerp(getFreeCollateral());
-
-
     }
 
     /// @inheritdoc IPositionHandler
-    function withdraw(uint256 amountOut, address allowanceTarget, address movrRegistry, bytes calldata movrData) public override onlyAuthorized{
-        require(IERC20(wantTokenL2).balanceOf(address(this)) >= amountOut, "Insufficient balance");
-        sendWantTokens(wantTokenL2, allowanceTarget, movrRegistry, amountOut, movrData);
-
+    function withdraw(
+        uint256 amountOut,
+        address allowanceTarget,
+        address _socketRegistry,
+        bytes calldata socketData
+    ) public override onlyAuthorized {
+        require(
+            IERC20(wantTokenL2).balanceOf(address(this)) >= amountOut,
+            "Insufficient balance"
+        );
+        require(socketRegistry == _socketRegistry, "Invalid socket registry");
+        sendTokens(
+            wantTokenL2,
+            allowanceTarget,
+            socketRegistry,
+            positionHandlerL1, 
+            amountOut,
+            1, 
+            socketData
+        );
     }
 
     /// @inheritdoc IPositionHandler
-    function sweep(address _token) public override onlyAuthorized{
+    function sweep(address _token) public override onlyAuthorized {
         IERC20(_token).transfer(
             msg.sender,
             IERC20(_token).balanceOf(address(this))
         );
     }
 
-    function setReferralCode(bytes32 _referralCode) onlyAuthorized public {
+    function setReferralCode(bytes32 _referralCode) public onlyAuthorized {
         referralCode = _referralCode;
     }
 
-    modifier onlyAuthorized {
-        require(((msg.sender == L2CrossDomainMessenger && messageSender() == SPHL1Address) || msg.sender == keeper), "Only owner can call this function");
+    function setSocketRegistry(address _socketRegistry) public onlyAuthorized {
+        socketRegistry = _socketRegistry;
+    }
+
+    modifier onlyAuthorized() {
+        require(
+            ((msg.sender == L2CrossDomainMessenger &&
+                messageSender() == positionHandlerL1) || msg.sender == keeper),
+            "Only owner can call this function"
+        );
         _;
     }
- 
 }
