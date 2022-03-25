@@ -156,7 +156,7 @@ contract PerpPositionHandlerL2 is
             socketRegistry,
             positionHandlerL1, 
             amountOut,
-            1, /// TODO: should hardcode destination chain 1 or accept argument??
+            1, 
             socketData
         );
     }
