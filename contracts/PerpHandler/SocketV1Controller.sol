@@ -1,8 +1,6 @@
 //SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.8.0;
-// import "hardhat/console.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "hardhat/console.sol";
 
 /// @title SocketV1Controller
 /// @author 0xAd1
@@ -51,8 +49,6 @@ contract SocketV1Controller {
             revert("Invalid receiver address");
         }
         if (userRequest.bridgeRequest.inputToken != _inputToken) {
-            console.log(userRequest.bridgeRequest.inputToken);
-            console.log(_inputToken);
             revert("Invalid input token");
         }
     }
