@@ -119,7 +119,7 @@ contract PerpPositionHandler is
       depositParams._socketRegistry,
       positionHandlerL2Address,
       depositParams._amount,
-      10, /// TODO: hardcode or not??
+      10,
       depositParams._socketData
     );
   }
