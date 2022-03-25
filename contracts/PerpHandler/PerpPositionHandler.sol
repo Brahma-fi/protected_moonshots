@@ -8,6 +8,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "../PerpL2/interfaces/IPositionHandler.sol";
 
+import "hardhat/console.sol";
+
 /// @title PerpPositionHandlerL1
 /// @author 0xAd1
 /// @notice Used to control the short position handler deployed on Optimism which interacts with PerpV2
@@ -24,7 +26,6 @@ contract PerpPositionHandler is
   }
 
   struct ClosePositionParams {
-    uint256 _amountOut;
     uint24 _slippage;
     uint32 _gasLimit;
   }
@@ -81,11 +82,15 @@ contract PerpPositionHandler is
       data,
       (OpenPositionParams)
     );
+    console.logBytes4(IPositionHandler.openPosition.selector);
     bytes memory L2calldata = abi.encodeWithSelector(
       IPositionHandler.openPosition.selector,
+      openPositionParams._isShort,
       openPositionParams._amount,
       openPositionParams._slippage
     );
+
+    console.logBytes(L2calldata);
 
     sendMessageToL2(positionHandlerL2Address, L2calldata, openPositionParams._gasLimit);
   }
@@ -100,7 +105,6 @@ contract PerpPositionHandler is
     );
     bytes memory L2calldata = abi.encodeWithSelector(
       IPositionHandler.closePosition.selector,
-      closePositionParams._amountOut,
       closePositionParams._slippage
     );
     sendMessageToL2(positionHandlerL2Address, L2calldata, closePositionParams._gasLimit);

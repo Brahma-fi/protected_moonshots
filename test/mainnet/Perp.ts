@@ -10,7 +10,7 @@ import {
   IAccountBalance,
   PerpTradeExecutor,
 } from "../../src/types";
-import { BigNumber, Signer } from "ethers";
+import { BigNumber, ContractTransaction, Signer } from "ethers";
 import {
   optimismRPCBlock,
   optimismRPCPort,
@@ -31,17 +31,16 @@ import {
 import abiDecoder from "abi-decoder";
 
 import { moverCall } from "../api";
+import { Log } from "@ethersproject/abstract-provider";
+import { Interface, LogDescription } from "ethers/lib/utils";
 
 const hauler = "0x1C4ceb52ab54a35F9d03FcC156a7c57F965e081e";
 const USDCWhale = "0x500A746c9a44f68Fe6AA86a92e7B3AF4F322Ae66";
 
-const optimismMessengerInterface = new hre.ethers.utils.Interface([
-	"event SentMessage(bytes message)",
-	"event RelayedMessage(bytes32 msgHash)",
-	"event FailedRelayedMessage(bytes32 msgHash)",
-	"event TransactionEnqueued(address _l1TxOrigin, address _target, uint256 _gasLimit, bytes _data, uint256 _queueIndex, uint256 _timestamp)"
 
-])
+let optimismMessengerInterface: Interface;
+
+
 
 describe.only("PerpTE [MAINNET]", function () {
   let keeperAddress: string;
@@ -55,8 +54,13 @@ describe.only("PerpTE [MAINNET]", function () {
 	let keeperSigner: SignerWithAddress;
   let clearingHouseConfigContract: IClearingHouseConfig;
   let accountBalanceContract: IAccountBalance;
+	let PerpHandlerL2Contract: PerpPositionHandlerL2;
 
   before(async () => {
+
+		
+
+
     await hre.network.provider.request({
       method: "hardhat_impersonateAccount",
       params: ["0x45af3Bd5A2c60B7410f33C313c247c439b633446"],
@@ -130,20 +134,8 @@ describe.only("PerpTE [MAINNET]", function () {
       haulerContract.address,
       await USDC.balanceOf(usdcWhaleSigner.address)
     );
+		PerpHandlerL2Contract = await hre.ethers.getContractAt("PerpPositionHandlerL2", invalidSigner.address) as PerpPositionHandlerL2;
 
-    // const baseTokenContract = (await hre.ethers.getContractAt(
-    //   "IIndexPrice",
-    //   baseToken
-    // )) as IIndexPrice;
-    // clearingHouseConfigContract = (await hre.ethers.getContractAt(
-    //   "IClearingHouseConfig",
-    //   clearingHouseConfig
-    // )) as IClearingHouseConfig;
-    // const twapInterval = await clearingHouseConfigContract.getTwapInterval();
-    // accountBalanceContract = (await hre.ethers.getContractAt(
-    //   "IAccountBalance",
-    //   accountBalance
-    // )) as IAccountBalance;
   });
 
   it("Contract initialized correctly", async function () {
@@ -199,26 +191,17 @@ describe.only("PerpTE [MAINNET]", function () {
     );
 
 		const openPositionTxn = await perpTE.connect(keeperSigner).openPosition(paramsInBytes);
-		const receipt = await openPositionTxn.wait();
-		let calldata: string;
-
-
-
-		// for(let log of receipt.logs) {
-		// 	// if (log.address === optimismL1CrossDomainMessenger) {
-		// 		const thisLog = optimismMessengerInterface.parseLog({topics: log.topics, data: log.data});
-
-		// 		console.log(thisLog);
-		// 	// }
-		// }
-
-
-
-		const PerpHandlerL2Contract = await hre.ethers.getContractAt("PerpPositionHandlerL2", invalidSigner.address);
-		// const txnDescription = PerpHandlerL2Contract.interface.parseTransaction({data: calldata});
 		
+		const paramsGenerated = await decodeOptimismChainRelayerLogs(openPositionTxn);
 
-
+		
+		const txnDescription = PerpHandlerL2Contract.interface.parseTransaction({data: paramsGenerated.calldata});
+		
+		expect(txnDescription.args.isShort).equal(isShort);
+		expect(txnDescription.args.slippage).equal(slippage);
+		expect(amount).equal(txnDescription.args.amountIn);
+		expect(txnDescription.name).equal('openPosition');
+		
   });
 
 	it("TE can initate call to close position", async function () {
@@ -228,29 +211,19 @@ describe.only("PerpTE [MAINNET]", function () {
 		const gasLimit = BigNumber.from(1e6).mul(5);
 
 		const paramsInBytes = hre.ethers.utils.AbiCoder.prototype.encode(
-      ["tuple(uint256,uint24,uint32)"],
-      [[amount, slippage, gasLimit]]
+      ["tuple(uint24,uint32)"],
+      [[slippage, gasLimit]]
     );
 
 		const closePositionTxn = await perpTE.connect(keeperSigner).closePosition(paramsInBytes);
-		const receipt = await closePositionTxn.wait();
-		let calldata: string;
 
+		const paramsGenerated = await decodeOptimismChainRelayerLogs(closePositionTxn);
 
 		
-		// for(let log of receipt.logs) {
-		// 	// if (log.address === optimismL1CrossDomainMessenger) {
-		// 		const thisLog = optimismMessengerInterface.parseLog({topics: log.topics, data: log.data});
-
-		// 		console.log(thisLog);
-		// 	// }
-		// }
-
-
-
-		const PerpHandlerL2Contract = await hre.ethers.getContractAt("PerpPositionHandlerL2", invalidSigner.address);
-		// const txnDescription = PerpHandlerL2Contract.interface.parseTransaction({data: calldata});
-		
+		const txnDescription = PerpHandlerL2Contract.interface.parseTransaction({data: paramsGenerated.calldata});
+	
+		expect(txnDescription.args.slippage).equal(slippage);
+		expect(txnDescription.name).equal('closePosition');
 
 
   });
@@ -273,30 +246,49 @@ describe.only("PerpTE [MAINNET]", function () {
     );
 
 		const withdrawTxn = await perpTE.connect(keeperSigner).initateWithdraw(paramsInBytes);
-		const receipt = await withdrawTxn.wait();
-		let calldata: string;
-
+		const paramsGenerated = await decodeOptimismChainRelayerLogs(withdrawTxn);
 
 		
-		// for(let log of receipt.logs) {
-		// 	// if (log.address === optimismL1CrossDomainMessenger) {
-		// 		const thisLog = optimismMessengerInterface.parseLog({topics: log.topics, data: log.data});
+		const txnDescription = PerpHandlerL2Contract.interface.parseTransaction({data: paramsGenerated.calldata});
 
-		// 		console.log(thisLog);
-		// 	// }
-		// }
-
-
-
-		const PerpHandlerL2Contract = await hre.ethers.getContractAt("PerpPositionHandlerL2", invalidSigner.address);
-		// const txnDescription = PerpHandlerL2Contract.interface.parseTransaction({data: calldata});
-		
-
+		expect(txnDescription.args.amountOut.eq(amount));
+		expect(txnDescription.args.allowanceTarget).equal(movrData.target);
+		expect(txnDescription.args._socketRegistry).equal(movrData.registry);
+		expect(txnDescription.args.socketData).equal(movrData.data);
+		expect(txnDescription.name).equal('withdraw');
 
   });
 
 
 });
+
+const decodeOptimismChainRelayerLogs = async function (txn: ContractTransaction) {
+
+	const optiChainRelayerAddress = "0x5E4e65926BA27467555EB562121fac00D24E9dD2";
+	const receipt = await txn.wait();
+
+	let calldata: string;
+
+	const optimismMessengerInterface = (await hre.ethers.getContractAt("contracts/PerpHandler/interfaces/CrossDomainMessenger.interface.sol:ICrossDomainMessenger", optimismL1CrossDomainMessenger)).interface;
+
+	for(let log of receipt.logs) {
+		if (log.address === optiChainRelayerAddress) {
+
+			const thisLog = optimismMessengerInterface.parseLog({topics: log.topics, data: log.data}) as LogDescription;
+			calldata = thisLog.args[3];
+		}
+	}
+
+	const calldataWithoutSelector = hre.ethers.utils.hexDataSlice(calldata, 4);
+	const params = hre.ethers.utils.AbiCoder.prototype.decode(["address", "address", "bytes", "uint256"], calldataWithoutSelector);
+	
+	return {
+		target: params[0],
+		sender: params[1],
+		calldata: params[2],
+		nonce: params[3]
+	}
+}
 
 const equal = async function (a, b, reason?) {
   expect(a).equals(b, reason);
