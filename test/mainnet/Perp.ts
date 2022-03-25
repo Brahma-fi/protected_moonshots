@@ -42,7 +42,7 @@ let optimismMessengerInterface: Interface;
 
 
 
-describe.only("PerpTE [MAINNET]", function () {
+describe("PerpTE [MAINNET]", function () {
     let keeperAddress: string;
     let governanceAddress: string;
     let signer: SignerWithAddress;
