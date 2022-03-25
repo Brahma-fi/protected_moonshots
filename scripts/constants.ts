@@ -21,3 +21,10 @@ export const exchange = "0xBd7a3B7DbEb096F0B832Cf467B94b091f30C34ec";
 export const baseToken = "0x8c835dfaa34e2ae61775e80ee29e2c724c6ae2bb";
 export const quoteTokenvUSDC = "0xC84Da6c8ec7A57cD10B939E79eaF9d2D17834E04";
 export const movrRegistry = "0xc30141B657f4216252dc59Af2e7CdB9D8792e1B0";
+
+export const haulerAddress = "0x1C4ceb52ab54a35F9d03FcC156a7c57F965e081e";
+export const batcherAddress =  "0x9eBBccCcBfe01047dab8Ef07fAc3e4dBaD444dAC";
+export const harvestAddress =  "0xF1D339D9456BC1e09b548E7946A78D9C4b5f1B68";
+export const convexTradeExecutorAddress =  "0x3167b932336b029bBFE1964E435889FA8e595738";
+export const perpTradeExecutorAddress = "0x675A5c853fc2bc81E0eB79FC45e395d01Bd5D72D";
+export const perpPositionHandlerL2Address = "0x00fFC95A1A63dbd48A1E7397a3B051eA9E3F5Be9";
