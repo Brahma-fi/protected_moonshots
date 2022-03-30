@@ -10,25 +10,42 @@ import "../interfaces/ITradeExecutor.sol";
 import "../interfaces/IHauler.sol";
 
 
+/// @title Hauler (Brahma Vault )
+/// @author 0xAd1 and Bapireddy
+/// @notice Minimal vault contract to support trades across different protocols.
 contract Hauler is IHauler, ERC20 {
 
     using AddrArrayLib for AddrArrayLib.Addresses;
 
-    // TODO Define this arbitrary limit
+    /// @notice number of blocks for latest update to be valid.
     uint constant BLOCK_LIMIT = 50;
+    /// @notice minimum balance used to check when executor is removed.
     uint constant DUST_LIMIT = 10**6;
-
-    AddrArrayLib.Addresses tradeExecutorsList;
-
+    /// @notice The underlying token the Hauler accepts.
     address public immutable override wantToken;
     uint8 private immutable tokenDecimals;
+    /// @notice list of active trade executors connected to Hauler.
+    AddrArrayLib.Addresses tradeExecutorsList;
+    /// @notice boolean for enabling deposit/withdraw solely via batcher.
     bool public batcherOnlyDeposit;
-
+    /// @notice keeper address which .
     address public override keeper;
     address public override governance;
     address public batcher;
     address pendingGovernance;
-    
+
+    /// @dev Packed struct of Hauler total funds.
+    uint public prevHaulerFunds;
+    /// @dev The max basis points used as normalizing factor.
+    uint public MAX_BPS = 10000;
+    /// @dev Perfomance fee for the Hauler.
+    uint public perfomanceFee;
+
+
+
+    /// @notice Emitted after fee updation.
+    /// @param fee The new performance fee on Hauler.
+    event UpdatePerformanceFee(uint256 fee);
 
 
     constructor(string memory _name, string memory _symbol, uint8 _decimals, address _wantToken, address _keeper, address _governance) ERC20(_name, _symbol) {
@@ -104,6 +121,22 @@ contract Hauler is IHauler, ERC20 {
         return totalFunds;
     }
 
+
+    function setPerfomanceFee(uint _fee) public onlyGovernance {
+        require(_fee < MAX_BPS / 2, 'Fee must be less than 50% of MAX_BPS');
+        perfomanceFee = _fee;
+        emit UpdatePerformanceFee(_fee);
+    }
+
+    function claimFees() public onlyKeeper {
+        uint currentFunds = totalHaulerFunds();
+        if (currentFunds > prevHaulerFunds) {
+            uint yieldEarned = currentFunds - prevHaulerFunds;
+            yieldEarned = yieldEarned * perfomanceFee / MAX_BPS;
+            IERC20(wantToken).transfer(governance, yieldEarned);
+        }
+        prevHaulerFunds = currentFunds; 
+    }
 
     /// EXECUTOR MANAGEMENT ///
     function addExecutor(address _tradeExecutor) public isValidAddress(_tradeExecutor) onlyKeeper {
