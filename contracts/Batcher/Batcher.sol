@@ -3,7 +3,7 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/IBatcher.sol";
 import "../../interfaces/IHauler.sol";
 import "../ConvexExecutor/interfaces/ICurvePool.sol";
@@ -14,12 +14,12 @@ import "./EIP712.sol";
 /// @title Batcher
 /// @author 0xAd1
 /// @notice Used to batch user deposits and withdrawals until the next rebalance
-contract Batcher is IBatcher, EIP712 {
+contract Batcher is IBatcher, EIP712, ReentrancyGuard {
   using SafeERC20 for IERC20;
 
   uint256 DUST_LIMIT = 10000;
 
-  struct Vault {
+  struct VaultInfo {
     address vaultAddress;
     address tokenAddress;
     uint256 maxAmount;
@@ -27,12 +27,14 @@ contract Batcher is IBatcher, EIP712 {
   }
 
   // mapping(address => Vault) public vaults;
-  Vault public vault;
+  VaultInfo public vaultInfo;
 
   mapping(address => uint256) public depositLedger;
   mapping(address => uint256) public withdrawLedger;
 
   mapping(address => uint256) public userTokens;
+
+  mapping(address => bool) private processedAddresses;
 
   event DepositRequest(
     address indexed sender,
@@ -54,14 +56,15 @@ contract Batcher is IBatcher, EIP712 {
     verificationAuthority = _verificationAuthority;
     governance = _governance;
   
-    vault = Vault({
+    require (haulerAddress != address(0), 'Invalid hauler address');
+    vaultInfo = VaultInfo({
       vaultAddress: haulerAddress,
       tokenAddress: IHauler(haulerAddress).wantToken(),
       maxAmount: maxAmount,
       currentAmount: 0
     });
 
-    IERC20(vault.tokenAddress).approve(haulerAddress, type(uint256).max);
+    IERC20(vaultInfo.tokenAddress).approve(haulerAddress, type(uint256).max);
   }
 
   function setAuthority(address authority) public onlyGovernance {
@@ -72,24 +75,17 @@ contract Batcher is IBatcher, EIP712 {
   function depositFunds(
     uint256 amountIn,
     bytes memory signature
-  ) external override validDeposit(signature) {
-    require(
-      IERC20(vault.tokenAddress).allowance(
-        msg.sender,
-        address(this)
-      ) >= amountIn,
-      "No allowance"
-    );
+  ) external override validDeposit(signature) nonReentrant {
 
-    IERC20(vault.tokenAddress).safeTransferFrom(
+    IERC20(vaultInfo.tokenAddress).safeTransferFrom(
       msg.sender,
       address(this),
       amountIn
     );
 
-    vault.currentAmount += amountIn;
+    vaultInfo.currentAmount += amountIn;
     require(
-      vault.currentAmount <= vault.maxAmount,
+      vaultInfo.currentAmount <= vaultInfo.maxAmount,
       "Exceeded deposit limit"
     );
 
@@ -100,14 +96,9 @@ contract Batcher is IBatcher, EIP712 {
   function depositFundsInCurveLpToken(
     uint256 amountIn,
     bytes memory signature
-  ) external override validDeposit(signature) {
+  ) external override validDeposit(signature) nonReentrant {
     /// Curve Lp Token - UST_Wormhole
     IERC20 lpToken = IERC20(0xCEAF7747579696A2F0bb206a14210e3c9e6fB269);
-
-    require(
-      lpToken.allowance(msg.sender, address(this)) >= amountIn,
-      "No allowance"
-    );
 
     lpToken.safeTransferFrom(msg.sender, address(this), amountIn);
 
@@ -121,58 +112,59 @@ contract Batcher is IBatcher, EIP712 {
       depositLedger[msg.sender] +
       (amountIn);
 
-    emit DepositRequest(msg.sender, vault.vaultAddress, amountIn);
+    emit DepositRequest(msg.sender, vaultInfo.vaultAddress, amountIn);
   }
 
   /// @inheritdoc IBatcher
   function withdrawFunds(uint256 amountIn)
     external
     override
+    nonReentrant
   {
-    require(
-      vault.tokenAddress != address(0),
-      "Invalid hauler address"
-    );
 
     require(
       depositLedger[msg.sender] == 0,
       "Cannot withdraw funds from hauler while waiting to deposit"
     );
 
-    // require(depositLedger[haulerAddress][msg.sender] >= amountOut, "No funds available");
-
 
     if (amountIn > userTokens[msg.sender]) {
-      IERC20(vault.vaultAddress).safeTransferFrom(msg.sender, address(this), amountIn - userTokens[msg.sender]);
-      userTokens[msg.sender] = amountIn;
+      IERC20(vaultInfo.vaultAddress).safeTransferFrom(msg.sender, address(this), amountIn - userTokens[msg.sender]);
+      userTokens[msg.sender] = 0;
+    } else {
+      userTokens[msg.sender] = userTokens[msg.sender] - amountIn;
     }
     
-    userTokens[msg.sender] = userTokens[msg.sender] - amountIn;
+    
 
     withdrawLedger[msg.sender] =
       withdrawLedger[msg.sender] +
       (amountIn);
 
-    vault.currentAmount -= amountIn;
+    vaultInfo.currentAmount -= amountIn;
 
-    emit WithdrawRequest(msg.sender, vault.vaultAddress, amountIn);
+    emit WithdrawRequest(msg.sender, vaultInfo.vaultAddress, amountIn);
   }
 
   /// @inheritdoc IBatcher
   function batchDeposit(address[] memory users)
     external
     override
-    onlyKeeper
+    nonReentrant
   {
-    IHauler hauler = IHauler(vault.vaultAddress);
+    onlyKeeper();
+    IHauler hauler = IHauler(vaultInfo.vaultAddress);
 
     uint256 amountToDeposit = 0;
     uint256 oldLPBalance = IERC20(address(hauler)).balanceOf(address(this));
 
     for (uint256 i = 0; i < users.length; i++) {
-      amountToDeposit =
-        amountToDeposit +
-        (depositLedger[users[i]]);
+      if (!processedAddresses[users[i]]) {
+        amountToDeposit =
+          amountToDeposit +
+          (depositLedger[users[i]]);
+        processedAddresses[users[i]] = true;
+      }
     }
 
     require(amountToDeposit > 0, "no deposits to make");
@@ -193,40 +185,46 @@ contract Batcher is IBatcher, EIP712 {
 
     for (uint256 i = 0; i < users.length; i++) {
       uint256 userAmount = depositLedger[users[i]];
-      if (userAmount > 0) {
-        uint256 userShare = (userAmount * (lpTokensReceived)) /
-          (amountToDeposit);
-        // IERC20(address(hauler)).safeTransfer(users[i], userShare);
-        userTokens[users[i]] = userTokens[users[i]] + userShare;
-        depositLedger[users[i]] = 0;
+      if (processedAddresses[users[i]]) {
+        if (userAmount > 0) {
+          uint256 userShare = (userAmount * (lpTokensReceived)) /
+            (amountToDeposit);
+          userTokens[users[i]] = userTokens[users[i]] + userShare;
+          depositLedger[users[i]] = 0;
+        }
+        processedAddresses[users[i]] = false;
       }
     }
   }
 
   /// @inheritdoc IBatcher
-  function claimTokens(uint256 amount, address recipient) public override {
+  function claimTokens(uint256 amount, address recipient) public override nonReentrant{
     require(userTokens[msg.sender] >= amount, "No funds available");
     userTokens[msg.sender] = userTokens[msg.sender] - amount;
-    IERC20(vault.vaultAddress).safeTransfer(recipient, amount);
+    IERC20(vaultInfo.vaultAddress).safeTransfer(recipient, amount);
   }
 
   /// @inheritdoc IBatcher
   function batchWithdraw(address[] memory users)
     external
     override
-    onlyKeeper
+    nonReentrant
   {
-    IHauler hauler = IHauler(vault.vaultAddress);
+    onlyKeeper();
+    IHauler hauler = IHauler(vaultInfo.vaultAddress);
 
-    IERC20 token = IERC20(vault.tokenAddress);
+    IERC20 token = IERC20(vaultInfo.tokenAddress);
 
     uint256 amountToWithdraw = 0;
     uint256 oldWantBalance = token.balanceOf(address(this));
 
     for (uint256 i = 0; i < users.length; i++) {
-      amountToWithdraw =
-        amountToWithdraw +
-        (withdrawLedger[users[i]]);
+      if (!processedAddresses[users[i]]) {
+        amountToWithdraw =
+          amountToWithdraw +
+          (withdrawLedger[users[i]]);
+        processedAddresses[users[i]] = true;
+      }
     }
 
     require(amountToWithdraw > 0, "no deposits to make");
@@ -246,31 +244,26 @@ contract Batcher is IBatcher, EIP712 {
 
     for (uint256 i = 0; i < users.length; i++) {
       uint256 userAmount = withdrawLedger[users[i]];
-      if (userAmount > 0) {
-        uint256 userShare = (userAmount * wantTokensReceived) /
-          amountToWithdraw;
-        token.safeTransfer(users[i], userShare);
+      if (processedAddresses[users[i]]) {
+        if (userAmount > 0) {
+          uint256 userShare = (userAmount * wantTokensReceived) /
+            amountToWithdraw;
+          token.safeTransfer(users[i], userShare);
 
-        withdrawLedger[users[i]] = 0;
+          withdrawLedger[users[i]] = 0;
+        }
+        processedAddresses[users[i]] = false;
       }
     }
   }
 
   /// @inheritdoc IBatcher
-  function setHaulerLimit(uint256 maxAmount) external override onlyKeeper {
-    vault.maxAmount = maxAmount;
+  function setHaulerLimit(uint256 maxAmount) external override {
+    onlyKeeper();
+    vaultInfo.maxAmount = maxAmount;
   }
 
-  /**
-   * @notice Get the balance of a token in contract
-   * @param token token whose balance needs to be returned
-   * @return balance of a token in contract
-   */
-  function _tokenBalance(IERC20Metadata token) internal view returns (uint256) {
-    return token.balanceOf(address(this));
-  }
-
-  function sweep(address _token) public onlyGovernance {
+  function sweep(address _token) public onlyGovernance nonReentrant{
     IERC20(_token).transfer(
       msg.sender,
       IERC20(_token).balanceOf(address(this))
@@ -327,13 +320,14 @@ contract Batcher is IBatcher, EIP712 {
   }
 
   function keeper() public view returns (address) {
-    require(vault.vaultAddress != address(0), "Hauler not set");
-    return IHauler(vault.vaultAddress).keeper();
+    require(vaultInfo.vaultAddress != address(0), "Hauler not set");
+    return IHauler(vaultInfo.vaultAddress).keeper();
   }
 
 
 
-  function setSlippage(uint256 _slippage) external override onlyKeeper {
+  function setSlippage(uint256 _slippage) external override {
+    onlyKeeper();
     require(_slippage <= 10000, "Slippage must be between 0 and 10000");
     slippageForCurveLp = _slippage;
   }
@@ -343,9 +337,8 @@ contract Batcher is IBatcher, EIP712 {
     _;
   }
 
-  modifier onlyKeeper() {
+  function onlyKeeper() internal view {
     require(msg.sender == keeper(), "Only keeper can call this function");
-    _;
   }
 
   modifier validDeposit(bytes memory signature) {
