@@ -82,6 +82,15 @@ contract PerpV2Controller {
             );
     }
 
+    /// @notice Returns the size of current position in baseTokens
+    /// @return amount size of position in baseTokens
+    function getTotalValueLocked() public view returns (uint256) {
+        return positionInUSDC() + 
+                getFreeCollateral()/(1e12) + 
+                IERC20(perpVault.getSettlementToken()).balanceOf(address(this));
+            
+    }
+
     /// @notice Returns the value of current position in wantToken value
     /// @return amount value of position in wantToken (USDC)
     function positionInUSDC() public view returns (uint256) {
@@ -122,13 +131,20 @@ contract PerpV2Controller {
         uint24 slippage
     ) internal returns (int256 positionSize) {
         uint256 price = formatSqrtPriceX96(getMarkTwapPrice());
-        // accounting for the slippage provided
-        uint256 amountOut = short
-            ? amountIn.mul(MAX_BPS + slippage).div(MAX_BPS)
-            : amountIn.mul(MAX_BPS - slippage).div(MAX_BPS);
-        
-        // As deposit is USDC, amountOut will always be in baseToken terms so division by price.
-        amountOut = amountOut.mul(MAX_BPS).div(price);
+
+        uint256 amountOut;
+        if (slippage == MAX_BPS) {
+            amountOut = 0;
+        } else {
+            // accounting for the slippage provided
+            amountOut = short
+                ? amountIn.mul(MAX_BPS + slippage).div(MAX_BPS)
+                : amountIn.mul(MAX_BPS - slippage).div(MAX_BPS);
+            
+            // As deposit is USDC, amountOut will always be in baseToken terms so division by price.
+            amountOut = amountOut.mul(MAX_BPS).div(price);
+        }
+
         IClearingHouse.OpenPositionParams memory params = IClearingHouse
             .OpenPositionParams({
                 baseToken: address(baseToken),
@@ -157,10 +173,14 @@ contract PerpV2Controller {
             ? uint256(-1 * getTotalPerpPositionSize())
             : uint256(getTotalPerpPositionSize());
 
-        amountOut = (getTotalPerpPositionSize() < 0)
-            ? amountOut.mul(10**4 + slippage).div(10**4)
-            : amountOut.mul(10**4 - slippage).div(10**4);
-        amountOut = amountOut.mul(price).div(MAX_BPS);
+        if (slippage == MAX_BPS) {
+            amountOut = 0;
+        } else {
+            amountOut = (getTotalPerpPositionSize() < 0)
+                ? amountOut.mul(MAX_BPS + slippage).div(MAX_BPS)
+                : amountOut.mul(MAX_BPS - slippage).div(MAX_BPS);
+            amountOut = amountOut.mul(price).div(MAX_BPS);
+        }
 
         IClearingHouse.ClosePositionParams memory params = IClearingHouse
             .ClosePositionParams({

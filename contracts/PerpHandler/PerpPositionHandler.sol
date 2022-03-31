@@ -16,6 +16,10 @@ contract PerpPositionHandler is
   OptimismWrapper,
   SocketV1Controller
 {
+
+  event Deposit(uint256 indexed amount, uint256 indexed blockNumber);
+  event Withdraw(uint256 indexed amount, uint256 indexed blockNumber);
+
   struct OpenPositionParams {
     uint256 _amount;
     bool _isShort;
@@ -122,6 +126,8 @@ contract PerpPositionHandler is
       10,
       depositParams._socketData
     );
+
+    emit Deposit(depositParams._amount, block.number);
   }
 
   // function decoderDeposit(bytes calldata data) internal returns(DepositParams calldata) {
@@ -142,6 +148,7 @@ contract PerpPositionHandler is
       withdrawParams._socketData
     );
     sendMessageToL2(positionHandlerL2Address, L2calldata, withdrawParams._gasLimit);
+    emit Withdraw(withdrawParams._amount, block.number);
   }
 
   function _claimRewards(bytes calldata _data) internal override {
