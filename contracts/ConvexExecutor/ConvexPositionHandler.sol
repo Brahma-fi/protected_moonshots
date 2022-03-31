@@ -17,6 +17,10 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 contract ConvexPositionHandler is BasePositionHandler {
   using SafeERC20 for IERC20;
 
+  event Deposit(uint256 indexed amount, uint256 indexed blockNumber);
+  event Withdraw(uint256 indexed amount, uint256 indexed blockNumber);
+  event Claim(uint256 indexed amount, uint256 indexed blockNumber);
+
   enum UST3PoolCoinIndexes {
     UST,
     DAI,
@@ -93,6 +97,8 @@ contract ConvexPositionHandler is BasePositionHandler {
     );
 
     _convertUSDCIntoLpToken(depositParams._amount);
+
+    emit Deposit(depositParams._amount, block.number);
   }
 
   /// @notice To open staking position in Convex
@@ -177,6 +183,8 @@ contract ConvexPositionHandler is BasePositionHandler {
     if (lpTokensToConvert > 0) {
       _convertLpTokenIntoUSDC(lpTokensToConvert);
     }
+
+    emit Withdraw(withdrawParams._amount, block.number);
   }
 
   /// @notice To claim rewards from Convex Staking position
@@ -184,6 +192,8 @@ contract ConvexPositionHandler is BasePositionHandler {
   /// @param _data is not needed here (empty param)
   function _claimRewards(bytes calldata _data) internal override {
     require(baseRewardPool.getReward(), "reward claim failed");
+
+    uint256 initialUSDCBalance = wantToken.balanceOf(address(this));
 
     // get list of tokens to transfer to harvester
     address[] memory rewardTokens = harvester.rewardTokens();
@@ -199,6 +209,11 @@ contract ConvexPositionHandler is BasePositionHandler {
 
     // convert all rewards to usdc
     harvester.harvest();
+
+    emit Claim(
+      wantToken.balanceOf(address(this)) - initialUSDCBalance,
+      block.number
+    );
   }
 
   /// @notice To get total contract balances in terms of want token
