@@ -8,6 +8,8 @@ interface ITradeExecutor {
         address from;
     }
 
+    function hauler() external view returns (address);
+
     function depositStatus() external returns (bool, address);
     function withdrawalStatus() external returns (bool, address);
 

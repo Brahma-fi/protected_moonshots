@@ -12,7 +12,7 @@ abstract contract BaseTradeExecutor is ITradeExecutor {
   ActionStatus public override depositStatus;
   ActionStatus public override withdrawalStatus;
 
-  address public hauler;
+  address public override hauler;
 
   constructor(address _hauler) {
     hauler = _hauler;
