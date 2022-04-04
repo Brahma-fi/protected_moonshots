@@ -14,7 +14,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title ConvexPositionHandler
 /// @author PradeepSelva
-/// @notice A Position handler to control the long position on Convex
+/// @notice A Position handler to control the osition on Convex
 contract ConvexPositionHandler is BasePositionHandler {
   using SafeERC20 for IERC20;
 
@@ -46,6 +46,8 @@ contract ConvexPositionHandler is BasePositionHandler {
   //////////////////////////////////////////////////////////////*/
   /// @notice the max permitted slippage for swaps
   uint256 public maxSlippage = 30;
+  /// @notice the latest amount of rewards claimed and harvested
+  uint256 public latestHarvestedRewards;
 
   /*///////////////////////////////////////////////////////////////
                             EXTERNAL CONTRACTS
@@ -136,15 +138,13 @@ contract ConvexPositionHandler is BasePositionHandler {
   /**
    @notice Emitted after Want tokens are deposited into contract and converted into LP tokens
    @param amount The amount that was deposited
-   @param blockNumber The block number at which deposit was completed
    */
-  event Deposit(uint256 indexed amount, uint256 indexed blockNumber);
+  event Deposit(uint256 indexed amount);
   /**
    @notice Emitted after Want tokens are withdrawn
    @param amount The amount that was withdrawn
-   @param blockNumber The block number at which withdraw was completed
    */
-  event Withdraw(uint256 indexed amount, uint256 indexed blockNumber);
+  event Withdraw(uint256 indexed amount);
 
   /**
    @notice To deposit into the Curve Pool
@@ -160,7 +160,7 @@ contract ConvexPositionHandler is BasePositionHandler {
 
     _convertUSDCIntoLpToken(depositParams._amount);
 
-    emit Deposit(depositParams._amount, block.number);
+    emit Deposit(depositParams._amount);
   }
 
   /**
@@ -211,7 +211,7 @@ contract ConvexPositionHandler is BasePositionHandler {
       _convertLpTokenIntoUSDC(lpTokensToConvert);
     }
 
-    emit Withdraw(withdrawParams._amount, block.number);
+    emit Withdraw(withdrawParams._amount);
   }
 
   /*///////////////////////////////////////////////////////////////
@@ -266,9 +266,8 @@ contract ConvexPositionHandler is BasePositionHandler {
   /**
    @notice Emitted after rewards are claimed and harvested into want tokens
    @param amount The reward amount that was harvested
-   @param blockNumber The block number at which reward harvesting was completed
    */
-  event Claim(uint256 indexed amount, uint256 indexed blockNumber);
+  event Claim(uint256 indexed amount);
 
   /**
    @notice To claim rewards from Convex Staking position
@@ -295,10 +294,10 @@ contract ConvexPositionHandler is BasePositionHandler {
     // convert all rewards to usdc
     harvester.harvest();
 
-    emit Claim(
-      wantToken.balanceOf(address(this)) - initialUSDCBalance,
-      block.number
-    );
+    latestHarvestedRewards =
+      wantToken.balanceOf(address(this)) -
+      initialUSDCBalance;
+    emit Claim(latestHarvestedRewards);
   }
 
   /*///////////////////////////////////////////////////////////////
