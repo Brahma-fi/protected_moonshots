@@ -89,6 +89,8 @@ contract Hauler is IHauler, ERC20 {
             : amountIn;
         IERC20(wantToken).safeTransferFrom(receiver, address(this), amountIn);
         _mint(receiver, shares);
+        // update the prevHaulerFunds     
+        prevHaulerFunds = totalHaulerFunds();
     }
 
     /// @notice Initiates a withdrawal of hauler tokens to the user.
@@ -107,6 +109,8 @@ contract Hauler is IHauler, ERC20 {
         amountOut = (sharesIn * totalHaulerFunds()) / totalSupply();
         _burn(receiver, sharesIn);
         IERC20(wantToken).safeTransfer(receiver, amountOut);
+        // update the prevHaulerFunds
+        prevHaulerFunds = totalHaulerFunds();
     }
 
     /// @notice Calculates the total amount of underlying tokens the Hauler holds.
@@ -191,7 +195,9 @@ contract Hauler is IHauler, ERC20 {
         if (currentFunds > prevHaulerFunds) {
             uint256 yieldEarned = currentFunds - prevHaulerFunds;
             yieldEarned = (yieldEarned * perfomanceFee) / MAX_BPS;
-            IERC20(wantToken).transfer(governance, yieldEarned);
+            if (yieldEarned > DUST_LIMIT) {
+                IERC20(wantToken).transfer(governance, yieldEarned);
+            }
         }
         prevHaulerFunds = currentFunds;
     }
