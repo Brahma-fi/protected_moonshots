@@ -14,7 +14,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title ConvexPositionHandler
 /// @author PradeepSelva
-/// @notice A Position handler to control the osition on Convex
+/// @notice A Position handler to handle Convex
 contract ConvexPositionHandler is BasePositionHandler {
   using SafeERC20 for IERC20;
 
@@ -251,7 +251,7 @@ contract ConvexPositionHandler is BasePositionHandler {
 
     require(
       closePositionParams._amount <= baseRewardPool.balanceOf(address(this)),
-      "LongPositionHandler :: close amount"
+      "ConvexPositionHandler :: close amount"
     );
 
     /// Unstake _amount and claim rewards from convex

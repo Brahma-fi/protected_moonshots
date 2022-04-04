@@ -114,14 +114,9 @@ contract Harvester is IHarvester {
     wantToken = IERC20Metadata(_addr);
   }
 
-  /// @notice Keeper&Governance function to set a new keeper
+  /// @notice Governance function to set a new keeper
   /// @param _keeper address of new keeper
-  function setKeeper(address _keeper) external override {
-    require(
-      msg.sender == keeper || msg.sender == governance,
-      "Harvester :: keeper|governance"
-    );
-
+  function setKeeper(address _keeper) external override onlyGovernance {
     keeper = _keeper;
   }
 
