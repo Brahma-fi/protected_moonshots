@@ -222,6 +222,10 @@ contract Hauler is IHauler, ERC20 {
             ITradeExecutor(_tradeExecutor).hauler() == address(this),
             "INVALID_HAULER"
         );
+        require(
+            IERC20(wantToken).allowance(_tradeExecutor, address(this)) > 0, 
+            "NO_ALLOWANCE"
+        );
         tradeExecutorsList.pushAddress(_tradeExecutor);
         emit ExecutorAdded(_tradeExecutor);
     }
