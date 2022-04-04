@@ -12,7 +12,7 @@ import "./interfaces/IHarvester.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-/// @title Convexhandler
+/// @title ConvexPositionHandler
 /// @author PradeepSelva
 /// @notice A Position handler to control the long position on Convex
 contract ConvexPositionHandler is BasePositionHandler {
@@ -273,7 +273,7 @@ contract ConvexPositionHandler is BasePositionHandler {
   /**
    @notice To claim rewards from Convex Staking position
    @dev Claims Convex Staking position rewards, and converts them to wantToken i.e., USDC.
-   @param _data is not needed here (empty param)
+   @param _data is not needed here (empty param, to satisfy interface)
    */
   function _claimRewards(bytes calldata _data) internal override {
     require(baseRewardPool.getReward(), "reward claim failed");
