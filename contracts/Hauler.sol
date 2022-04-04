@@ -360,29 +360,29 @@ contract Hauler is IHauler, ERC20 {
     /*///////////////////////////////////////////////////////////////
                     ACCESS MODIFERS
     //////////////////////////////////////////////////////////////*/
-    /// @notice Checks if the sender is the governance.
+    /// @dev Checks if the sender is the governance.
     function onlyGovernance() internal view {
         require(msg.sender == governance, "ONLY_GOV");
     }
 
-    /// @notice Checks if the sender is the keeper.
+    /// @dev Checks if the sender is the keeper.
     function onlyKeeper() internal view {
         require(msg.sender == keeper, "ONLY_KEEPER");
     }
 
-    /// @notice Checks if the sender is the batcher.
+    /// @dev Checks if the sender is the batcher.
     function onlyBatcher() internal view {
         if (batcherOnlyDeposit) {
             require(msg.sender == batcher, "ONLY_BATCHER");
         }
     }
 
-    /// @notice Checks if the address is valid.
+    /// @dev Checks if the address is valid.
     function isValidAddress(address _tradeExecutor) internal pure {
         require(_tradeExecutor != address(0), "NULL_ADDRESS");
     }
 
-    /// @notice Checks if the tradeExecutor is valid.
+    /// @dev Checks if the tradeExecutor is valid.
     function isActiveExecutor(address _tradeExecutor) internal view {
         require(tradeExecutorsList.exists(_tradeExecutor), "INVALID_EXECUTOR");
     }
