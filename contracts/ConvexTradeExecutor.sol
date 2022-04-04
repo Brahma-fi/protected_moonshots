@@ -6,7 +6,7 @@ import { ConvexPositionHandler } from "./ConvexExecutor/ConvexPositionHandler.so
 
 /// @title ConvexTradeExecutor
 /// @author PradeepSelva
-/// @notice A contract to execute the long side of the strategy's trade, on Convex
+/// @notice A contract to execute strategy's trade, on Convex
 contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
   /**
    @notice Creates a new ConvexTradeExecutor
