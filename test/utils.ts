@@ -8,11 +8,15 @@ import {
 } from "../src/types";
 import {
   wantTokenL1,
+  wantTokenL2,
   ust3Pool,
   baseRewardPool,
   curve3PoolZap,
   governance,
-  keeper
+  keeper,
+  perpPositionHandlerL2Address,
+  optimismL1CrossDomainMessenger,
+  convexBooster
 } from "../scripts/constants";
 
 export async function getUSDCContract(): Promise<ERC20> {
@@ -21,7 +25,7 @@ export async function getUSDCContract(): Promise<ERC20> {
 }
 
 export async function setup(): Promise<
-  [string, string, SignerWithAddress, SignerWithAddress]
+  [string, string, SignerWithAddress, SignerWithAddress, SignerWithAddress]
 > {
   let keeperAddress = keeper;
   let governanceAddress = governance;
@@ -36,7 +40,8 @@ export async function setup(): Promise<
   });
   let signer = await hre.ethers.getSigner(keeperAddress);
   let invalidSigner = (await hre.ethers.getSigners())[0];
-  return [keeperAddress, governanceAddress, signer, invalidSigner];
+  let governanceSigner  = await hre.ethers.getSigner(governanceAddress);
+  return [keeperAddress, governanceAddress, signer, governanceSigner, invalidSigner];
 }
 
 export async function getSignature(
@@ -94,6 +99,7 @@ export async function getConvexExecutorContract(
   );
   let convexTradeExecutor = (await ConvexExecutor.deploy(
     baseRewardPool,
+    convexBooster,
     ust3Pool,
     curve3PoolZap,
     _harvester,
@@ -111,8 +117,14 @@ export async function getPerpExecutorContract(
     "PerpTradeExecutor",
     signer
   );
+
   let perpTradeExecutor = (await PerpTradeExecutor.deploy(
-    haulerAddress
+    haulerAddress,
+    wantTokenL2,
+    perpPositionHandlerL2Address,
+    optimismL1CrossDomainMessenger,
+    optimismL1CrossDomainMessenger
+
   )) as PerpTradeExecutor;
   await perpTradeExecutor.deployed();
   return perpTradeExecutor;
