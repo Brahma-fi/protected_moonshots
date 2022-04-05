@@ -83,13 +83,15 @@ contract Hauler is IHauler, ERC20 {
         onlyBatcher();
         isValidAddress(receiver);
         require(amountIn > 0, "ZERO_AMOUNT");
+        // calculate the fees
+        calculateFees();
         // calculate the shares based on the amount.
         shares = totalSupply() > 0
             ? (totalSupply() * amountIn) / totalHaulerFunds()
             : amountIn;
         IERC20(wantToken).safeTransferFrom(receiver, address(this), amountIn);
         _mint(receiver, shares);
-        // update the prevHaulerFunds     
+        // update hauler funds
         prevHaulerFunds = totalHaulerFunds();
     }
 
@@ -103,13 +105,15 @@ contract Hauler is IHauler, ERC20 {
     {
         /// checks for only batcher withdrawal
         onlyBatcher();
-        require(sharesIn > 0, "ZERO_SHARES");
         isValidAddress(receiver);
+        require(sharesIn > 0, "ZERO_SHARES");
+        // calculate the fees
+        calculateFees();
         // calculate the amount based on the shares.
         amountOut = (sharesIn * totalHaulerFunds()) / totalSupply();
         _burn(receiver, sharesIn);
         IERC20(wantToken).safeTransfer(receiver, amountOut);
-        // update the prevHaulerFunds
+        // update hauler funds
         prevHaulerFunds = totalHaulerFunds();
     }
 
@@ -117,7 +121,9 @@ contract Hauler is IHauler, ERC20 {
     /// @return The total amount of underlying tokens the Hauler holds.
     function totalHaulerFunds() public view returns (uint256) {
         return
-            IERC20(wantToken).balanceOf(address(this)) + totalExecutorFunds();
+            IERC20(wantToken).balanceOf(address(this)) +
+            totalExecutorFunds() -
+            accuredFees;
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -168,8 +174,9 @@ contract Hauler is IHauler, ERC20 {
     /// @notice lagging value of hauler total funds.
     uint256 public prevHaulerFunds = type(uint256).max;
     /// @dev Perfomance fee for the Hauler.
-    uint256 public perfomanceFee;
-
+    uint256 public performanceFee;
+    /// @dev accured fees for the Governance.
+    uint256 public accuredFees;
     /// @notice Emitted after fee updation.
     /// @param fee The new performance fee on Hauler.
     event UpdatePerformanceFee(uint256 fee);
@@ -177,10 +184,10 @@ contract Hauler is IHauler, ERC20 {
     /// @notice Updates the performance fee on the Hauler.
     /// @param _fee The new performance fee on the Hauler.
     /// @dev The new fee must be always less than 50% of yield.
-    function setPerfomanceFee(uint256 _fee) public {
+    function setPerformanceFee(uint256 _fee) public {
         onlyGovernance();
         require(_fee < MAX_BPS / 2, "FEE_TOO_HIGH");
-        perfomanceFee = _fee;
+        performanceFee = _fee;
         emit UpdatePerformanceFee(_fee);
     }
 
@@ -188,18 +195,31 @@ contract Hauler is IHauler, ERC20 {
     /// @dev checks the yield made since previous harvest and
     /// calculates the fee based on it. Also note: this function
     /// should be called before processing any new deposits/withdrawals.
-    function claimFees() public {
-        onlyKeeper();
+    function calculateFees() internal {
         uint256 currentFunds = totalHaulerFunds();
         // collect fees only when profit is made.
         if (currentFunds > prevHaulerFunds) {
-            uint256 yieldEarned = currentFunds - prevHaulerFunds;
-            yieldEarned = (yieldEarned * perfomanceFee) / MAX_BPS;
-            if (yieldEarned > DUST_LIMIT) {
-                IERC20(wantToken).transfer(governance, yieldEarned);
-            }
+            require(currentFunds < 2 * prevHaulerFunds, "TOO_MUCH_PROFIT");
+            uint256 yieldEarned = (currentFunds - prevHaulerFunds) *
+                performanceFee;
+            // normalization by MAX_BPS
+            accuredFees += (yieldEarned / MAX_BPS);
         }
-        prevHaulerFunds = currentFunds;
+    }
+
+    /// @notice Emitted when a fees are collected.
+    /// @param collectedFees The amount of fees collected.
+    event FeesCollected(uint256 collectedFees);
+
+    /// @notice Collects the fees from the Hauler.
+    /// @dev This function sends all the accured fees to governance.
+    function collectFees() public {
+        onlyKeeper();
+        if (accuredFees > 0) {
+            IERC20(wantToken).safeTransfer(governance, accuredFees);
+            emit FeesCollected(accuredFees);
+            accuredFees = 0;
+        }
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -223,7 +243,7 @@ contract Hauler is IHauler, ERC20 {
             "INVALID_HAULER"
         );
         require(
-            IERC20(wantToken).allowance(_tradeExecutor, address(this)) > 0, 
+            IERC20(wantToken).allowance(_tradeExecutor, address(this)) > 0,
             "NO_ALLOWANCE"
         );
         tradeExecutorsList.pushAddress(_tradeExecutor);
