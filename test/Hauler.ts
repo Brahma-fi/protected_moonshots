@@ -211,8 +211,9 @@ describe("Hauler", function () {
     let amount = BigNumber.from(90e6);
     await hauler.withdraw(amount, signer.address);
     // collect fees.
-    console.log("Collecting fees", await hauler.accuredFees());
+    expect((await hauler.accuredFees()).gt(BigNumber.from(0))).to.equal(true);
     await hauler.collectFees();
+    expect(await hauler.accuredFees()).to.equal(BigNumber.from(0));
   });
 
   // Operation - Expected Behaviour

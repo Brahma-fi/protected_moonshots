@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import "../library/AddArrayLib.sol";
 
@@ -13,7 +14,7 @@ import "../interfaces/IHauler.sol";
 /// @title Hauler (Brahma Vault)
 /// @author 0xAd1 and Bapireddy
 /// @notice Minimal vault contract to support trades across different protocols.
-contract Hauler is IHauler, ERC20 {
+contract Hauler is IHauler, ERC20, ReentrancyGuard {
     using AddrArrayLib for AddrArrayLib.Addresses;
     using SafeERC20 for IERC20;
     /*///////////////////////////////////////////////////////////////
@@ -77,6 +78,7 @@ contract Hauler is IHauler, ERC20 {
     function deposit(uint256 amountIn, address receiver)
         public
         override
+        nonReentrant
         returns (uint256 shares)
     {
         /// checks for only batcher deposit
@@ -100,7 +102,8 @@ contract Hauler is IHauler, ERC20 {
     /// @param receiver The address to receive the hauler tokens.
     function withdraw(uint256 sharesIn, address receiver)
         public
-        override
+        override 
+        nonReentrant
         returns (uint256 amountOut)
     {
         /// checks for only batcher withdrawal
@@ -149,7 +152,7 @@ contract Hauler is IHauler, ERC20 {
     /// @notice Deposit given amount of want tokens into valid executor.
     /// @param _executor The executor to deposit into.
     /// @param _amount The amount of want tokens to deposit.
-    function depositIntoExecutor(address _executor, uint256 _amount) public {
+    function depositIntoExecutor(address _executor, uint256 _amount) public nonReentrant {
         isActiveExecutor(_executor);
         onlyKeeper();
         require(_amount > 0, "ZERO_AMOUNT");
@@ -160,7 +163,7 @@ contract Hauler is IHauler, ERC20 {
     /// @notice Withdraw given amount of want tokens into valid executor.
     /// @param _executor The executor to withdraw tokens from.
     /// @param _amount The amount of want tokens to withdraw.
-    function withdrawFromExecutor(address _executor, uint256 _amount) public {
+    function withdrawFromExecutor(address _executor, uint256 _amount) public nonReentrant {
         isActiveExecutor(_executor);
         onlyKeeper();
         require(_amount > 0, "ZERO_AMOUNT");
