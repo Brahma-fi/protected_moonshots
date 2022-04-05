@@ -5,7 +5,6 @@ import {
   Hauler,
   ConvexTradeExecutor,
   ERC20,
-  PerpPositionHandler,
   PerpTradeExecutor,
 } from "../src/types";
 import { wantTokenL1 } from "../scripts/constants";
@@ -16,9 +15,7 @@ import {
   getConvexExecutorContract,
   getPerpExecutorContract,
   mineBlocks,
-  getUSDCContract,
 } from "./utils";
-import { sign } from "crypto";
 
 describe("Hauler", function () {
   let hauler: Hauler;
@@ -26,42 +23,47 @@ describe("Hauler", function () {
   let perpTradeExecutor: PerpTradeExecutor;
   let token_name: string = "BUSDC";
   let token_symbol: string = "BUSDC";
-  let token_decimals: number = 6;
   let keeperAddress: string;
   let governanceAddress: string;
   let signer: SignerWithAddress;
   let invalidSigner: SignerWithAddress;
+  let governanceSigner: SignerWithAddress;
   let USDC: ERC20;
-
+  let depositAmount: BigNumber;
   before(async () => {
-    [keeperAddress, governanceAddress, signer, invalidSigner] = await setup();
-    USDC = (await hre.ethers.getContractAt(
-      "ERC20",
-      wantTokenL1
-    )) as ERC20;
+    [
+      keeperAddress,
+      governanceAddress,
+      signer,
+      governanceSigner,
+      invalidSigner,
+    ] = await setup();
+    USDC = (await hre.ethers.getContractAt("ERC20", wantTokenL1)) as ERC20;
   });
 
   // Operation - Expected Behaviour
   // deployment - check access modifiers are set properly.
   it("Check address assignment hauler", async function () {
-    const Hauler = await hre.ethers.getContractFactory(
-      "Hauler",
-      signer
-    );
+    const Hauler = await hre.ethers.getContractFactory("Hauler", signer);
     hauler = (await Hauler.deploy(
       token_name,
       token_symbol,
-      token_decimals,
       wantTokenL1,
       keeperAddress,
       governanceAddress
     )) as Hauler;
     await hauler.deployed();
     console.log("Hauler deployed at: ", hauler.address);
-    expect(await hauler.decimals()).to.equals(token_decimals);
+    // set performance fee
+    await hauler
+      .connect(governanceSigner)
+      .setPerformanceFee(BigNumber.from(1000));
+
+    expect(await hauler.decimals()).to.equals(await USDC.decimals());
     expect(await hauler.name()).to.equal(token_name);
     expect(await hauler.keeper()).to.equals(keeperAddress);
     expect(await hauler.governance()).to.equal(governanceAddress);
+    expect(await hauler.performanceFee()).to.equal(BigNumber.from(1000));
   });
 
   // Operation - Expected Behaviour
@@ -69,48 +71,44 @@ describe("Hauler", function () {
   //         - deposit should fail when the trade executor funds aren't updated.
 
   it("Depositing funds into Hauler", async function () {
-    let amount = BigNumber.from(100e6);
-    await USDC.connect(signer).approve(
-      hauler.address,
-      utils.parseEther("1")
-    );
-    await hauler.deposit(amount, keeperAddress);
+    depositAmount = BigNumber.from(10000e6);
+    await USDC.connect(signer).approve(hauler.address, utils.parseEther("1"));
+    await hauler.deposit(depositAmount, keeperAddress);
 
-    perpTradeExecutor = await getPerpExecutorContract(
-      hauler.address,
-      signer
-    );
+    perpTradeExecutor = await getPerpExecutorContract(hauler.address, signer);
 
-    await hauler.addExecutor(perpTradeExecutor.address);
+    await hauler
+      .connect(governanceSigner)
+      .addExecutor(perpTradeExecutor.address);
     await perpTradeExecutor.setPosValue(BigNumber.from(0));
-    expect(await hauler.totalHaulerFunds()).to.equal(amount);
-    expect(await hauler.totalSupply()).to.equal(amount);
-    expect(await hauler.balanceOf(signer.address)).to.equal(amount);
-
-    const start = new Date();
+    expect(await hauler.totalHaulerFunds()).to.equal(depositAmount);
+    expect(await hauler.totalSupply()).to.equal(depositAmount);
+    expect(await hauler.balanceOf(signer.address)).to.equal(depositAmount);
+    expect(await hauler.accuredFees()).to.equal(BigNumber.from(0));
 
     // move time forward
-    // await ethers.provider.send("evm_setNextBlockTimestamp", [start.getTime()+(7*24*60*60)]);
     await mineBlocks(60);
 
-    await expect(hauler.deposit(amount, keeperAddress)).to.be.revertedWith(
-      "Executor funds are not up to date"
-    );
+    await expect(
+      hauler.deposit(depositAmount, keeperAddress)
+    ).to.be.revertedWith("FUNDS_NOT_UPDATED");
   });
 
   // Operation - Expected Behaviour
-  // addExecutor - should be done by keeper, increase in number of executors if address is unique. Address added should match with index value in list.
+  // addExecutor - should be done by gvoernance, increase in number of executors if address is unique. Address added should match with index value in list.
   it("Adding an executor", async function () {
     let tempExecutor = await getConvexExecutorContract(hauler.address);
     convexTradeExecutor = await getConvexExecutorContract(hauler.address);
 
     await expect(
       hauler.connect(invalidSigner).addExecutor(tempExecutor.address)
-    ).to.be.revertedWith("Only keeper call");
+    ).to.be.revertedWith("ONLY_GOV");
 
-    await hauler.addExecutor(tempExecutor.address);
-    await hauler.addExecutor(convexTradeExecutor.address);
-    await hauler.addExecutor(tempExecutor.address);
+    await hauler.connect(governanceSigner).addExecutor(tempExecutor.address);
+    await hauler
+      .connect(governanceSigner)
+      .addExecutor(convexTradeExecutor.address);
+    await hauler.connect(governanceSigner).addExecutor(tempExecutor.address);
 
     expect(await hauler.totalExecutors()).to.equal(BigNumber.from(3));
     expect(await hauler.executorByIndex(1)).to.equal(tempExecutor.address);
@@ -122,34 +120,32 @@ describe("Hauler", function () {
   // Operation - Expected Behaviour
   // depositIntoExecutor - should be done by keeper, increase in funds of executor. Totalfunds should remain same.
   it("Deposit funds into executor", async function () {
-    let amount = BigNumber.from(100e6);
+    let amount = depositAmount;
     await perpTradeExecutor.setPosValue(BigNumber.from(0));
 
     await expect(
       hauler
         .connect(invalidSigner)
         .depositIntoExecutor(convexTradeExecutor.address, amount)
-    ).to.be.revertedWith("Only keeper call");
+    ).to.be.revertedWith("ONLY_KEEPER");
 
     await hauler.depositIntoExecutor(convexTradeExecutor.address, amount);
     expect(await hauler.totalHaulerFunds()).to.equal(amount);
     expect((await convexTradeExecutor.totalFunds())[0]).to.equal(amount);
-    expect(await USDC.balanceOf(hauler.address)).to.equal(
-      BigNumber.from(0)
-    );
+    expect(await USDC.balanceOf(hauler.address)).to.equal(BigNumber.from(0));
   });
 
   // Operation - Expected Behaviour
   // withdrawFromExecutor - should be done by keeper, increase in funds of executor. Totalfunds should remain same.
   it("Withdraw funds into executor", async function () {
-    let amount = BigNumber.from(100e6);
+    let amount = depositAmount;
     await perpTradeExecutor.setPosValue(BigNumber.from(0));
 
     await expect(
       hauler
         .connect(invalidSigner)
         .withdrawFromExecutor(convexTradeExecutor.address, amount)
-    ).to.be.revertedWith("Only keeper call");
+    ).to.be.revertedWith("ONLY_KEEPER");
 
     await hauler.withdrawFromExecutor(convexTradeExecutor.address, amount);
     expect(await hauler.totalHaulerFunds()).to.equal(amount);
@@ -160,18 +156,20 @@ describe("Hauler", function () {
   });
 
   // Operation - Expected Behaviour
-  // removeExecutor - should be done by keeper, decrease in number of executors if address is unique.
+  // removeExecutor - should be done by governance, decrease in number of executors if address is unique.
   it("Removing an executor", async function () {
     await expect(
-      hauler
-        .connect(invalidSigner)
-        .removeExecutor(convexTradeExecutor.address)
-    ).to.be.revertedWith("Only keeper call");
+      hauler.connect(invalidSigner).removeExecutor(convexTradeExecutor.address)
+    ).to.be.revertedWith("ONLY_GOV");
 
-    await hauler.removeExecutor(convexTradeExecutor.address);
+    await hauler
+      .connect(governanceSigner)
+      .removeExecutor(convexTradeExecutor.address);
     expect(await hauler.totalExecutors()).to.equal(BigNumber.from(2));
 
-    await hauler.removeExecutor(convexTradeExecutor.address);
+    await hauler
+      .connect(governanceSigner)
+      .removeExecutor(convexTradeExecutor.address);
     expect(await hauler.totalExecutors()).to.equal(BigNumber.from(2));
   });
 
@@ -179,18 +177,42 @@ describe("Hauler", function () {
   // withdraw - decrease in balance of pool, decrease in totalSupply, tokens should be more from depositer address.
   //         - withdraw should fail when the trade executor funds aren't updated.
   it("Withdrawing funds from Hauler", async function () {
-    let amount = BigNumber.from(100e6);
+    let amount = BigNumber.from(10e6);
     await mineBlocks(60);
-    await expect(
-      hauler.withdraw(amount, signer.address)
-    ).to.be.revertedWith("Executor funds are not up to date");
-    await perpTradeExecutor.setPosValue(BigNumber.from(0));
-    await hauler.withdraw(amount, signer.address);
-    expect(await hauler.totalHaulerFunds()).to.equal(BigNumber.from(0));
-    expect(await hauler.totalSupply()).to.equal(BigNumber.from(0));
-    expect(await hauler.balanceOf(signer.address)).to.equal(
-      BigNumber.from(0)
+    await expect(hauler.withdraw(amount, signer.address)).to.be.revertedWith(
+      "FUNDS_NOT_UPDATED"
     );
+    let remainingBalance = depositAmount.sub(amount);
+    await perpTradeExecutor.setPosValue(0);
+    await hauler.withdraw(amount, signer.address);
+    let comparision = (await hauler.totalHaulerFunds()).gt(BigNumber.from(0));
+    expect(comparision).to.equal(true);
+    expect(await hauler.totalSupply()).to.equal(remainingBalance);
+    expect(await hauler.balanceOf(signer.address)).to.equal(remainingBalance);
+    // remove perp trade executor
+    await perpTradeExecutor.setPosValue(BigNumber.from(0));
+    await hauler
+      .connect(governanceSigner)
+      .removeExecutor(perpTradeExecutor.address);
+  });
+
+  // Operation - Expected Behaviour
+  // collectFees - Gather any yield accumulated.
+  it("Collecting fees", async function () {
+    let tempExecutor = await hauler.executorByIndex(0);
+    // Transfer funds to executor position
+    USDC.connect(signer).transfer(tempExecutor, depositAmount.div(2));
+    // withdraw funds from execturor.
+    await hauler.withdrawFromExecutor(
+      tempExecutor,
+      await USDC.balanceOf(tempExecutor)
+    );
+    // withdraw funds from hauler.
+    let amount = BigNumber.from(90e6);
+    await hauler.withdraw(amount, signer.address);
+    // collect fees.
+    console.log("Collecting fees", await hauler.accuredFees());
+    await hauler.collectFees();
   });
 
   // Operation - Expected Behaviour
@@ -199,24 +221,32 @@ describe("Hauler", function () {
     let batcherAddress = invalidSigner.address;
     await expect(
       hauler.connect(invalidSigner).setBatcher(batcherAddress)
-    ).to.be.revertedWith("Only governance call");
+    ).to.be.revertedWith("ONLY_GOV");
     let governanceSigner = await hre.ethers.getSigner(governanceAddress);
 
     await hauler.connect(governanceSigner).setBatcher(batcherAddress);
     await hauler.connect(governanceSigner).setBatcherOnlyDeposit(true);
-    
+
     expect(await hauler.batcher()).to.equal(batcherAddress);
-    await USDC.connect(signer).transfer(invalidSigner.address, BigNumber.from(100e6));
+    await USDC.connect(signer).transfer(
+      invalidSigner.address,
+      BigNumber.from(100e6)
+    );
     let amount = await USDC.balanceOf(invalidSigner.address);
     await USDC.connect(invalidSigner).approve(
       hauler.address,
       utils.parseEther("1")
     );
     await hauler.connect(invalidSigner).deposit(amount, invalidSigner.address);
-    expect(await hauler.balanceOf(invalidSigner.address)).to.equal(amount);
+    let expected_balance = amount
+      .mul(await hauler.totalSupply())
+      .div(await hauler.totalHaulerFunds());
+    expect(await hauler.balanceOf(invalidSigner.address)).to.equal(
+      expected_balance
+    );
     await expect(
-       hauler.connect(signer).deposit(amount, signer.address)
-    ).to.be.revertedWith("Only batcher call");
+      hauler.connect(signer).deposit(amount, signer.address)
+    ).to.be.revertedWith("ONLY_BATCHER");
   });
 
   // Operation - Expected Behaviour
@@ -224,7 +254,7 @@ describe("Hauler", function () {
   it("Setting keeper", async function () {
     await expect(
       hauler.connect(invalidSigner).setKeeper(governanceAddress)
-    ).to.be.revertedWith("Only governance call");
+    ).to.be.revertedWith("ONLY_GOV");
     let governanceSigner = await hre.ethers.getSigner(governanceAddress);
 
     await hauler.connect(governanceSigner).setKeeper(governanceAddress);
@@ -236,7 +266,7 @@ describe("Hauler", function () {
   it("Changing governance", async function () {
     await expect(
       hauler.connect(invalidSigner).setGovernance(keeperAddress)
-    ).to.be.revertedWith("Only governance call");
+    ).to.be.revertedWith("ONLY_GOV");
     let governanceSigner = await hre.ethers.getSigner(governanceAddress);
 
     await hauler.connect(governanceSigner).setGovernance(signer.address);
