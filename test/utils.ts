@@ -1,18 +1,22 @@
 import hre from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import {
-  Hauler,
+  Vault,
   ERC20,
   ConvexTradeExecutor,
   PerpTradeExecutor
 } from "../src/types";
 import {
   wantTokenL1,
+  wantTokenL2,
   ust3Pool,
   baseRewardPool,
   curve3PoolZap,
   governance,
-  keeper
+  keeper,
+  perpPositionHandlerL2Address,
+  optimismL1CrossDomainMessenger,
+  convexBooster
 } from "../scripts/constants";
 
 export async function getUSDCContract(): Promise<ERC20> {
@@ -21,7 +25,7 @@ export async function getUSDCContract(): Promise<ERC20> {
 }
 
 export async function setup(): Promise<
-  [string, string, SignerWithAddress, SignerWithAddress]
+  [string, string, SignerWithAddress, SignerWithAddress, SignerWithAddress]
 > {
   let keeperAddress = keeper;
   let governanceAddress = governance;
@@ -36,7 +40,14 @@ export async function setup(): Promise<
   });
   let signer = await hre.ethers.getSigner(keeperAddress);
   let invalidSigner = (await hre.ethers.getSigners())[0];
-  return [keeperAddress, governanceAddress, signer, invalidSigner];
+  let governanceSigner = await hre.ethers.getSigner(governanceAddress);
+  return [
+    keeperAddress,
+    governanceAddress,
+    signer,
+    governanceSigner,
+    invalidSigner
+  ];
 }
 
 export async function getSignature(
@@ -66,27 +77,27 @@ export async function getSignature(
   return hre.ethers.utils.hexlify(signature);
 }
 
-export async function getHaulerContract(): Promise<Hauler> {
+export async function getvaultContract(): Promise<Vault> {
   let token_name: string = "BUSDC";
   let token_symbol: string = "BUSDC";
   let token_decimals: number = 6;
   let [keeperAddress, governanceAddress, signer, invalidSigner] = await setup();
-  const Hauler = await hre.ethers.getContractFactory("Hauler", signer);
-  let hauler = (await Hauler.deploy(
+  const vaultFactory = await hre.ethers.getContractFactory("Vault", signer);
+  let vault = (await vaultFactory.deploy(
     token_name,
     token_symbol,
     token_decimals,
     wantTokenL1,
     keeperAddress,
     governanceAddress
-  )) as Hauler;
-  await hauler.deployed();
-  console.log("Hauler deployed at: ", hauler.address);
-  return hauler;
+  )) as Vault;
+  await vault.deployed();
+  console.log("Vault deployed at: ", vault.address);
+  return vault;
 }
 
 export async function getConvexExecutorContract(
-  haulerAddress: string
+  vaultAddress: string
 ): Promise<ConvexTradeExecutor> {
   let _harvester = "0xAE75B29ADe678372D77A8B41225654138a7E6ff1";
   const ConvexExecutor = await hre.ethers.getContractFactory(
@@ -94,25 +105,31 @@ export async function getConvexExecutorContract(
   );
   let convexTradeExecutor = (await ConvexExecutor.deploy(
     baseRewardPool,
+    convexBooster,
     ust3Pool,
     curve3PoolZap,
     _harvester,
-    haulerAddress
+    vaultAddress
   )) as ConvexTradeExecutor;
   await convexTradeExecutor.deployed();
   return convexTradeExecutor;
 }
 
 export async function getPerpExecutorContract(
-  haulerAddress: string,
+  vaultAddress: string,
   signer: SignerWithAddress
 ): Promise<PerpTradeExecutor> {
   const PerpTradeExecutor = await hre.ethers.getContractFactory(
     "PerpTradeExecutor",
     signer
   );
+
   let perpTradeExecutor = (await PerpTradeExecutor.deploy(
-    haulerAddress
+    vaultAddress,
+    wantTokenL2,
+    perpPositionHandlerL2Address,
+    optimismL1CrossDomainMessenger,
+    optimismL1CrossDomainMessenger
   )) as PerpTradeExecutor;
   await perpTradeExecutor.deployed();
   return perpTradeExecutor;

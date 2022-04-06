@@ -11,13 +11,16 @@ import "@perp/curie-contract/contracts/interface/IExchange.sol";
 import "@perp/curie-contract/contracts/interface/IClearingHouseConfig.sol";
 import "@perp/curie-contract/contracts/interface/IIndexPrice.sol";
 
-import {SafeMathUpgradeable} from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
-import {SignedSafeMathUpgradeable} from "@openzeppelin/contracts-upgradeable/math/SignedSafeMathUpgradeable.sol";
+
+import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
+import { SignedSafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SignedSafeMathUpgradeable.sol";
+
 
 /// @title PerpV2Controller
 /// @author 0xAd1
 /// @notice Handles positions on PerpV2
 contract PerpV2Controller {
+
     using SignedSafeMathUpgradeable for int256;
     using SafeMathUpgradeable for uint256;
 
@@ -230,7 +233,5 @@ contract PerpV2Controller {
     {
         return uint256(sqrtPriceX96).mul(uint256(sqrtPriceX96).mul(MAX_BPS)) >> (96 * 2);
     }
-
-
 
 }
