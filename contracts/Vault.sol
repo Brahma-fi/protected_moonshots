@@ -204,7 +204,7 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
   function collectFees() internal {
     uint256 currentFunds = totalvaultFunds();
     // collect fees only when profit is made.
-    if (currentFunds > prevvaultFunds) {
+    if ((performanceFee > 0) && (currentFunds > prevvaultFunds)) {
       uint256 yieldEarned = (currentFunds - prevvaultFunds) * performanceFee;
       // normalization by MAX_BPS
       yieldEarned = (yieldEarned / MAX_BPS);
