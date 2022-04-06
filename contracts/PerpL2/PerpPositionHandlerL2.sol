@@ -21,31 +21,33 @@ contract PerpPositionHandlerL2 is
 {
     using SafeMathUpgradeable for uint256;
 
-    struct PerpPosition {
-        uint256 entryMarkPrice;
-        uint256 entryIndexPrice;
-        uint256 entryAmount;
-        bool isShort;
-        bool isActive;
-    }
 
-    /// @notice wantTokenL1 getter
-    /// @return address of wantTokenL1 contract
+    /*///////////////////////////////////////////////////////////////
+                            STATE VARIABLES
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice wantTokenL1 address
     address public wantTokenL1;
 
-    /// @notice wantTokenL2 getter
-    /// @return address of wantTokenL2 contract
+    /// @notice wantTokenL2 address
     address public wantTokenL2;
 
-    /// @notice SPHL1 getter
-    /// @return address of SPHL1 contract
+    /// @notice Address of PerpTradeExecutor on L1
     address public positionHandlerL1;
+
+    /// @notice Address of socket registry on L2
     address public socketRegistry;
 
+    /// @notice Keeper address
     address public keeper;
 
+    /// @notice Details of current position on Perp
     PerpPosition public perpPosition;
 
+
+    /*///////////////////////////////////////////////////////////////
+                            INITIALIZING
+    //////////////////////////////////////////////////////////////*/
     constructor(
         address _wantTokenL1,
         address _wantTokenL2,
@@ -54,46 +56,12 @@ contract PerpPositionHandlerL2 is
         address _clearingHouse,
         address _clearingHouseConfig,
         address _accountBalance,
-        address _orderBook,
         address _exchange,
         address _baseToken,
         address _quoteTokenvUSDC,
         address _keeper,
         address _socketRegistry
     ) {
-        init(
-            _wantTokenL1,
-            _wantTokenL2,
-            _positionHandlerL1,
-            _perpVault,
-            _clearingHouse,
-            _clearingHouseConfig,
-            _accountBalance,
-            _orderBook,
-            _exchange,
-            _baseToken,
-            _quoteTokenvUSDC,
-            _keeper,
-            _socketRegistry
-        );
-    }
-
-    function init(
-        address _wantTokenL1,
-        address _wantTokenL2,
-        address _positionHandlerL1,
-        address _perpVault,
-        address _clearingHouse,
-        address _clearingHouseConfig,
-        address _accountBalance,
-        address _orderBook,
-        address _exchange,
-        address _baseToken,
-        address _quoteTokenvUSDC,
-        address _keeper,
-        address _socketRegistry
-    ) internal {
-
         wantTokenL1 = _wantTokenL1;
         wantTokenL2 = _wantTokenL2;
         positionHandlerL1 = _positionHandlerL1;
@@ -101,7 +69,6 @@ contract PerpPositionHandlerL2 is
         clearingHouse = IClearingHouse(_clearingHouse);
         clearingHouseConfig = IClearingHouseConfig(_clearingHouseConfig);
         accountBalance = IAccountBalance(_accountBalance);
-        orderBook = IOrderBook(_orderBook);
         exchange = IExchange(_exchange);
         baseToken = IERC20(_baseToken);
         quoteTokenvUSDC = IERC20(_quoteTokenvUSDC);
@@ -109,36 +76,17 @@ contract PerpPositionHandlerL2 is
         socketRegistry = _socketRegistry;
     }
 
-    /// @inheritdoc IPositionHandler
-    // opens short position by default and accepts
-    function openPosition(
-        bool isShort,
-        uint256 amountIn,
-        uint24 slippage
-    ) public override onlyAuthorized {
-        require(perpPosition.isActive == false, "Position already open");
-        uint256 wantTokenBalance = IERC20(wantTokenL2).balanceOf(address(this));
-        _depositToPerp(wantTokenBalance);
-        perpPosition = PerpPosition({
-            entryMarkPrice: formatSqrtPriceX96(getMarkTwapPrice()),
-            entryIndexPrice: getIndexTwapPrice(),
-            // entryIndexPrice: getIndexTwapPrice(),
-            entryAmount: amountIn,
-            isShort: isShort,
-            isActive: true
-        });
-        _openPositionByAmount(isShort, amountIn, slippage);
-    }
 
-    /// @inheritdoc IPositionHandler
-    function closePosition(uint24 slippage) public override onlyAuthorized {
-        require(perpPosition.isActive, "No active position");
-        _closePosition(slippage);
-        perpPosition.isActive = false;
-        _withdrawFromPerp(getFreeCollateral());
-    }
+    /*///////////////////////////////////////////////////////////////
+                        DEPOSIT / WITHDRAW LOGIC
+    //////////////////////////////////////////////////////////////*/
 
-    /// @inheritdoc IPositionHandler
+    /// @notice Bridges wantToken back to strategy on L1
+    /// @dev Check MovrV1Controller for more details on implementation of token bridging
+    /// @param amountOut amount needed to be sent to strategy
+    /// @param allowanceTarget address of contract to provide ERC20 allowance to
+    /// @param _socketRegistry address of movr contract to send txn to
+    /// @param socketData movr txn calldata
     function withdraw(
         uint256 amountOut,
         address allowanceTarget,
@@ -161,7 +109,52 @@ contract PerpPositionHandlerL2 is
         );
     }
 
-    /// @inheritdoc IPositionHandler
+
+    /*///////////////////////////////////////////////////////////////
+                        OPEN / CLOSE LOGIC
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Creates a new position on Perp V2
+    /// @dev Will deposit all USDC balance to Perp. Will close any existing position, then open a position with given amountIn on Perp.
+    /// @param isShort true for short, false for long
+    /// @param amountIn the amountIn with respect to free collateral on perp for new position
+    /// @param slippage slippage while opening position, calculated out of 10000
+    function openPosition(
+        bool isShort,
+        uint256 amountIn,
+        uint24 slippage
+    ) public override onlyAuthorized {
+        require(perpPosition.isActive == false, "Position already open");
+        uint256 wantTokenBalance = IERC20(wantTokenL2).balanceOf(address(this));
+        _depositToPerp(wantTokenBalance);
+        perpPosition = PerpPosition({
+            entryMarkPrice: formatSqrtPriceX96(getMarkTwapPrice()),
+            entryIndexPrice: getIndexTwapPrice(),
+            // entryIndexPrice: getIndexTwapPrice(),
+            entryAmount: amountIn,
+            isShort: isShort,
+            isActive: true
+        });
+        _openPositionByAmount(isShort, amountIn, slippage);
+    }
+
+    /// @notice Closes existing position on Perp V2
+    /// @dev Closes the position, withdraws all the funds from perp as well.
+    /// @param slippage slippage while closing position, calculated out of 10000
+    function closePosition(uint24 slippage) public override onlyAuthorized {
+        require(perpPosition.isActive, "No active position");
+        _closePosition(slippage);
+        perpPosition.isActive = false;
+        _withdrawFromPerp(getFreeCollateral());
+    }
+
+
+    /*///////////////////////////////////////////////////////////////
+                            MAINTAINANCE FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Sweep tokens 
+    /// @param _token Address of the token to sweepr
     function sweep(address _token) public override onlyAuthorized {
         IERC20(_token).transfer(
             msg.sender,
@@ -169,14 +162,26 @@ contract PerpPositionHandlerL2 is
         );
     }
 
+    /// @notice referral code setter
+    /// @param _referralCode updated referral code
     function setReferralCode(bytes32 _referralCode) public onlyAuthorized {
         referralCode = _referralCode;
     }
 
+    /// @notice socket registry setter
+    /// @param _socketRegistry new address of socket registry
     function setSocketRegistry(address _socketRegistry) public onlyAuthorized {
         socketRegistry = _socketRegistry;
     }
 
+    /// @notice keeper setter
+    /// @param _keeper new keeper address
+    function setKeeper(address _keeper) public onlyAuthorized {
+        keeper = _keeper;
+    }
+
+
+    /// @notice checks wether txn sender is keeper address or PerpTradeExecutor using optimism gateway
     modifier onlyAuthorized() {
         require(
             ((msg.sender == L2CrossDomainMessenger &&
