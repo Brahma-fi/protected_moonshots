@@ -30,7 +30,7 @@ contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
       _convexBooster,
       _ust3Pool,
       _curve3PoolZap,
-      haulerWantToken(),
+      vaultWantToken(),
       _harvester
     );
   }
@@ -78,7 +78,7 @@ contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
       _convexBooster,
       _ust3Pool,
       _curve3PoolZap,
-      haulerWantToken(),
+      vaultWantToken(),
       _harvester
     );
   }

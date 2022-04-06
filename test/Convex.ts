@@ -101,7 +101,7 @@ const deploy = async () => {
   )) as ConvexTradeExecutor;
 };
 
-describe.only("Convex Trade Executor", function () {
+describe("Convex Trade Executor", function () {
   before(async () => {
     [keeperAddress, governanceAddress, signer, invalidSigner] = await setup();
     governance = await ethers.getSigner(governanceAddress);

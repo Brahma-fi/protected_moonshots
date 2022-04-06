@@ -10,7 +10,7 @@ import { ust3Pool } from "../scripts/constants";
 // Path: test/Batcher.ts
 // Main access modifiers owner, governor.
 
-describe.only("Batcher", function () {
+describe("Batcher", function () {
     let batcher: Batcher;
     let keeperAddress: string;
     let governanceAddress: string;
