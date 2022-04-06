@@ -1,138 +1,136 @@
-17 Mar, 2022
-------------
+07 Apr, 2022
+-------------
 
-Batcher.sweep(address) (contracts/Batcher/Batcher.sol#259-264) ignores return value by IERC20(_token).transfer(msg.sender,IERC20(_token).balanceOf(address(this))) (contracts/Batcher/Batcher.sol#260-263)
+Batcher.sweep(address) (contracts/Batcher/Batcher.sol#362-368) ignores return value by IERC20(_token).transfer(msg.sender,IERC20(_token).balanceOf(address(this))) (contracts/Batcher/Batcher.sol#364-367)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#unchecked-transfer
 
 ---
 
-Batcher.batchDeposit(address,address[]) (contracts/Batcher/Batcher.sol#142-183) uses a dangerous strict equality:
-	- require(bool,string)(lpTokensReceived == lpTokensReportedByvault,LP tokens received by vault does not match) (contracts/Batcher/Batcher.sol#169-172)
-Batcher.batchWithdraw(address,address[]) (contracts/Batcher/Batcher.sol#186-229) uses a dangerous strict equality:
-	- require(bool,string)(wantTokensReceived == wantTokensReportedByvault,Want tokens received by vault does not match) (contracts/Batcher/Batcher.sol#214-217)
+Batcher.batchDeposit(address[]) (contracts/Batcher/Batcher.sol#172-213) uses a dangerous strict equality:
+	- require(bool,string)(lpTokensReceived == lpTokensReportedByVault,LP tokens received by vault does not match) (contracts/Batcher/Batcher.sol#196-199)
+Batcher.batchWithdraw(address[]) (contracts/Batcher/Batcher.sol#219-267) uses a dangerous strict equality:
+	- require(bool,string)(wantTokensReceived == wantTokensReportedByVault,Want tokens received by vault does not match) (contracts/Batcher/Batcher.sol#249-252)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#dangerous-strict-equalities
 
-Reentrancy in Batcher.batchDeposit(address,address[]) (contracts/Batcher/Batcher.sol#142-183):
+Reentrancy in Batcher.batchWithdraw(address[]) (contracts/Batcher/Batcher.sol#219-267):
 	External calls:
-	- lpTokensReportedByvault = vault.deposit(amountToDeposit,address(this)) (contracts/Batcher/Batcher.sol#160-163)
-	- IERC20(address(vault)).safeTransfer(users[i_scope_0],userShare) (contracts/Batcher/Batcher.sol#179)
+	- wantTokensReportedByVault = vault.withdraw(amountToWithdraw,address(this)) (contracts/Batcher/Batcher.sol#241-244)
+	- token.safeTransfer(users[i_scope_0],userShare) (contracts/Batcher/Batcher.sol#260)
 	State variables written after the call(s):
-	- depositLedger[vaultAddress][users[i_scope_0]] = 0 (contracts/Batcher/Batcher.sol#180)
-Reentrancy in Batcher.batchWithdraw(address,address[]) (contracts/Batcher/Batcher.sol#186-229):
+	- processedAddresses[users[i_scope_0]] = false (contracts/Batcher/Batcher.sol#264)
+	- withdrawLedger[users[i_scope_0]] = 0 (contracts/Batcher/Batcher.sol#262)
+Reentrancy in Batcher.depositFunds(uint256,bytes) (contracts/Batcher/Batcher.sol#73-92):
 	External calls:
-	- wantTokensReportedByvault = vault.withdraw(amountToWithdraw,address(this)) (contracts/Batcher/Batcher.sol#206-209)
-	- token.safeTransfer(users[i_scope_0],userShare) (contracts/Batcher/Batcher.sol#224)
+	- IERC20(vaultInfo.tokenAddress).safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Batcher/Batcher.sol#79-83)
 	State variables written after the call(s):
-	- withdrawLedger[vaultAddress][users[i_scope_0]] = 0 (contracts/Batcher/Batcher.sol#226)
-Reentrancy in Batcher.depositFunds(uint256,address,bytes) (contracts/Batcher/Batcher.sol#59-82):
+	- vaultInfo.currentAmount += amountIn (contracts/Batcher/Batcher.sol#85)
+Reentrancy in Batcher.withdrawFunds(uint256) (contracts/Batcher/Batcher.sol#119-141):
 	External calls:
-	- IERC20(vaults[vaultAddress].tokenAddress).safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Batcher/Batcher.sol#72-76)
+	- IERC20(vaultInfo.vaultAddress).safeTransferFrom(msg.sender,address(this),amountIn - userTokens[msg.sender]) (contracts/Batcher/Batcher.sol#126-130)
 	State variables written after the call(s):
-	- vaults[vaultAddress].currentAmount += amountIn (contracts/Batcher/Batcher.sol#78)
-Reentrancy in Batcher.withdrawFunds(uint256,address) (contracts/Batcher/Batcher.sol#114-139):
-	External calls:
-	- IERC20(vaultAddress).safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Batcher/Batcher.sol#130)
-	State variables written after the call(s):
-	- vaults[vaultAddress].currentAmount -= amountIn (contracts/Batcher/Batcher.sol#136)
+	- userTokens[msg.sender] = 0 (contracts/Batcher/Batcher.sol#131)
+	- vaultInfo.currentAmount -= amountIn (contracts/Batcher/Batcher.sol#138)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-1
 
-Batcher.setSlippage(uint256) (contracts/Batcher/Batcher.sol#316-322) contains a tautology or contradiction:
-	- require(bool,string)(_slippage >= 0 && _slippage <= 10000,Slippage must be between 0 and 10000) (contracts/Batcher/Batcher.sol#317-320)
-Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#tautology-or-contradiction
-
-Batcher.setVaultParams(address,address,uint256) (contracts/Batcher/Batcher.sol#232-248) ignores return value by IERC20(token).approve(vaultAddress,type()(uint256).max) (contracts/Batcher/Batcher.sol#247)
+Batcher.constructor(address,address,address,uint256) (contracts/Batcher/Batcher.sol#35-53) ignores return value by IERC20(vaultInfo.tokenAddress).approve(vaultAddress,type()(uint256).max) (contracts/Batcher/Batcher.sol#52)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#unused-return
 
 ---
 
-Batcher.setAuthority(address) (contracts/Batcher/Batcher.sol#54-56) should emit an event for:
-	- verificationAuthority = authority (contracts/Batcher/Batcher.sol#55)
-Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#missing-events-access-control
-
-Batcher.setSlippage(uint256) (contracts/Batcher/Batcher.sol#316-322) should emit an event for:
-	- slippageForCurveLp = _slippage (contracts/Batcher/Batcher.sol#321)
+Batcher.setSlippage(uint256) (contracts/Batcher/Batcher.sol#354-358) should emit an event for:
+	- slippageForCurveLp = _slippage (contracts/Batcher/Batcher.sol#357)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#missing-events-arithmetic
 
-Batcher.constructor(address,address)._verificationAuthority (contracts/Batcher/Batcher.sol#49) lacks a zero-check on :
-		- verificationAuthority = _verificationAuthority (contracts/Batcher/Batcher.sol#50)
-Batcher.constructor(address,address)._governance (contracts/Batcher/Batcher.sol#49) lacks a zero-check on :
-		- governance = _governance (contracts/Batcher/Batcher.sol#51)
-Batcher.setAuthority(address).authority (contracts/Batcher/Batcher.sol#54) lacks a zero-check on :
-		- verificationAuthority = authority (contracts/Batcher/Batcher.sol#55)
-Batcher.setGovernance(address)._governance (contracts/Batcher/Batcher.sol#266) lacks a zero-check on :
-		- pendingGovernance = _governance (contracts/Batcher/Batcher.sol#267)
+Batcher.constructor(address,address,address,uint256)._verificationAuthority (contracts/Batcher/Batcher.sol#36) lacks a zero-check on :
+		- verificationAuthority = _verificationAuthority (contracts/Batcher/Batcher.sol#41)
+Batcher.constructor(address,address,address,uint256)._governance (contracts/Batcher/Batcher.sol#37) lacks a zero-check on :
+		- governance = _governance (contracts/Batcher/Batcher.sol#42)
+Batcher.setAuthority(address).authority (contracts/Batcher/Batcher.sol#341) lacks a zero-check on :
+		- verificationAuthority = authority (contracts/Batcher/Batcher.sol#343)
+Batcher.setGovernance(address)._governance (contracts/Batcher/Batcher.sol#399) lacks a zero-check on :
+		- pendingGovernance = _governance (contracts/Batcher/Batcher.sol#401)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#missing-zero-address-validation
 
-Reentrancy in Batcher.depositFunds(uint256,address,bytes) (contracts/Batcher/Batcher.sol#59-82):
+Variable 'ECDSA.tryRecover(bytes32,bytes).r (node_modules/@openzeppelin/contracts/utils/cryptography/ECDSA.sol#62)' in ECDSA.tryRecover(bytes32,bytes) (node_modules/@openzeppelin/contracts/utils/cryptography/ECDSA.sol#57-86) potentially used before declaration: r = mload(uint256)(signature + 0x20) (node_modules/@openzeppelin/contracts/utils/cryptography/ECDSA.sol#79)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#pre-declaration-usage-of-local-variables
+
+Reentrancy in Batcher.batchDeposit(address[]) (contracts/Batcher/Batcher.sol#172-213):
 	External calls:
-	- IERC20(vaults[vaultAddress].tokenAddress).safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Batcher/Batcher.sol#72-76)
+	- lpTokensReportedByVault = vault.deposit(amountToDeposit,address(this)) (contracts/Batcher/Batcher.sol#188-191)
 	State variables written after the call(s):
-	- _completeDeposit(vaultAddress,amountIn) (contracts/Batcher/Batcher.sol#81)
-		- depositLedger[vaultAddress][msg.sender] = depositLedger[vaultAddress][msg.sender] + (amountIn) (contracts/Batcher/Batcher.sol#106-108)
-Reentrancy in Batcher.depositFundsInCurveLpToken(uint256,address,bytes) (contracts/Batcher/Batcher.sol#85-103):
+	- depositLedger[users[i_scope_0]] = 0 (contracts/Batcher/Batcher.sol#208)
+	- processedAddresses[users[i_scope_0]] = false (contracts/Batcher/Batcher.sol#210)
+	- userTokens[users[i_scope_0]] = userTokens[users[i_scope_0]] + userShare (contracts/Batcher/Batcher.sol#207)
+Reentrancy in Batcher.depositFunds(uint256,bytes) (contracts/Batcher/Batcher.sol#73-92):
 	External calls:
-	- lpToken.safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Batcher/Batcher.sol#98)
-	- usdcReceived = _convertLpTokenIntoUSDC(lpToken) (contracts/Batcher/Batcher.sol#100)
+	- IERC20(vaultInfo.tokenAddress).safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Batcher/Batcher.sol#79-83)
+	State variables written after the call(s):
+	- _completeDeposit(amountIn) (contracts/Batcher/Batcher.sol#91)
+		- depositLedger[msg.sender] = depositLedger[msg.sender] + (amountIn) (contracts/Batcher/Batcher.sol#290)
+Reentrancy in Batcher.depositFundsInCurveLpToken(uint256,bytes) (contracts/Batcher/Batcher.sol#99-113):
+	External calls:
+	- lpToken.safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Batcher/Batcher.sol#108)
+	- usdcReceived = _convertLpTokenIntoUSDC(lpToken) (contracts/Batcher/Batcher.sol#110)
 		- returndata = address(token).functionCall(data,SafeERC20: low-level call failed) (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#93)
-		- lpToken.safeApprove(address(curve3PoolZap),_amount) (contracts/Batcher/Batcher.sol#296)
+		- lpToken.safeApprove(address(curve3PoolZap),_amount) (contracts/Batcher/Batcher.sol#316)
 		- (success,returndata) = target.call{value: value}(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#137)
-		- expectedWantTokensOut = curve3PoolZap.calc_withdraw_one_coin(address(ust3Pool),_amount,usdcIndexInPool) (contracts/Batcher/Batcher.sol#301-305)
-		- receivedWantTokens = curve3PoolZap.remove_liquidity_one_coin(address(ust3Pool),_amount,usdcIndexInPool,(expectedWantTokensOut * (MAX_BPS - slippageForCurveLp)) / (MAX_BPS)) (contracts/Batcher/Batcher.sol#307-312)
+		- receivedWantTokens = curve3PoolZap.remove_liquidity_one_coin(address(ust3Pool),_amount,usdcIndexInPool,(expectedWantTokensOut * (MAX_BPS - slippageForCurveLp)) / (MAX_BPS)) (contracts/Batcher/Batcher.sol#327-332)
 	External calls sending eth:
-	- usdcReceived = _convertLpTokenIntoUSDC(lpToken) (contracts/Batcher/Batcher.sol#100)
+	- usdcReceived = _convertLpTokenIntoUSDC(lpToken) (contracts/Batcher/Batcher.sol#110)
 		- (success,returndata) = target.call{value: value}(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#137)
 	State variables written after the call(s):
-	- _completeDeposit(vaultAddress,usdcReceived) (contracts/Batcher/Batcher.sol#102)
-		- depositLedger[vaultAddress][msg.sender] = depositLedger[vaultAddress][msg.sender] + (amountIn) (contracts/Batcher/Batcher.sol#106-108)
-Reentrancy in Batcher.withdrawFunds(uint256,address) (contracts/Batcher/Batcher.sol#114-139):
+	- _completeDeposit(usdcReceived) (contracts/Batcher/Batcher.sol#112)
+		- depositLedger[msg.sender] = depositLedger[msg.sender] + (amountIn) (contracts/Batcher/Batcher.sol#290)
+Reentrancy in Batcher.withdrawFunds(uint256) (contracts/Batcher/Batcher.sol#119-141):
 	External calls:
-	- IERC20(vaultAddress).safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Batcher/Batcher.sol#130)
+	- IERC20(vaultInfo.vaultAddress).safeTransferFrom(msg.sender,address(this),amountIn - userTokens[msg.sender]) (contracts/Batcher/Batcher.sol#126-130)
 	State variables written after the call(s):
-	- withdrawLedger[vaultAddress][msg.sender] = withdrawLedger[vaultAddress][msg.sender] + (amountIn) (contracts/Batcher/Batcher.sol#132-134)
+	- withdrawLedger[msg.sender] = withdrawLedger[msg.sender] + (amountIn) (contracts/Batcher/Batcher.sol#136)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-2
 
-Reentrancy in Batcher.depositFunds(uint256,address,bytes) (contracts/Batcher/Batcher.sol#59-82):
+Reentrancy in Batcher.depositFunds(uint256,bytes) (contracts/Batcher/Batcher.sol#73-92):
 	External calls:
-	- IERC20(vaults[vaultAddress].tokenAddress).safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Batcher/Batcher.sol#72-76)
+	- IERC20(vaultInfo.tokenAddress).safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Batcher/Batcher.sol#79-83)
 	Event emitted after the call(s):
-	- DepositRequest(msg.sender,vaultAddress,amountIn) (contracts/Batcher/Batcher.sol#110)
-		- _completeDeposit(vaultAddress,amountIn) (contracts/Batcher/Batcher.sol#81)
-Reentrancy in Batcher.depositFundsInCurveLpToken(uint256,address,bytes) (contracts/Batcher/Batcher.sol#85-103):
+	- DepositRequest(msg.sender,vaultInfo.vaultAddress,amountIn) (contracts/Batcher/Batcher.sol#292)
+		- _completeDeposit(amountIn) (contracts/Batcher/Batcher.sol#91)
+Reentrancy in Batcher.depositFundsInCurveLpToken(uint256,bytes) (contracts/Batcher/Batcher.sol#99-113):
 	External calls:
-	- lpToken.safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Batcher/Batcher.sol#98)
-	- usdcReceived = _convertLpTokenIntoUSDC(lpToken) (contracts/Batcher/Batcher.sol#100)
+	- lpToken.safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Batcher/Batcher.sol#108)
+	- usdcReceived = _convertLpTokenIntoUSDC(lpToken) (contracts/Batcher/Batcher.sol#110)
 		- returndata = address(token).functionCall(data,SafeERC20: low-level call failed) (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#93)
-		- lpToken.safeApprove(address(curve3PoolZap),_amount) (contracts/Batcher/Batcher.sol#296)
+		- lpToken.safeApprove(address(curve3PoolZap),_amount) (contracts/Batcher/Batcher.sol#316)
 		- (success,returndata) = target.call{value: value}(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#137)
-		- expectedWantTokensOut = curve3PoolZap.calc_withdraw_one_coin(address(ust3Pool),_amount,usdcIndexInPool) (contracts/Batcher/Batcher.sol#301-305)
-		- receivedWantTokens = curve3PoolZap.remove_liquidity_one_coin(address(ust3Pool),_amount,usdcIndexInPool,(expectedWantTokensOut * (MAX_BPS - slippageForCurveLp)) / (MAX_BPS)) (contracts/Batcher/Batcher.sol#307-312)
+		- receivedWantTokens = curve3PoolZap.remove_liquidity_one_coin(address(ust3Pool),_amount,usdcIndexInPool,(expectedWantTokensOut * (MAX_BPS - slippageForCurveLp)) / (MAX_BPS)) (contracts/Batcher/Batcher.sol#327-332)
 	External calls sending eth:
-	- usdcReceived = _convertLpTokenIntoUSDC(lpToken) (contracts/Batcher/Batcher.sol#100)
+	- usdcReceived = _convertLpTokenIntoUSDC(lpToken) (contracts/Batcher/Batcher.sol#110)
 		- (success,returndata) = target.call{value: value}(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#137)
 	Event emitted after the call(s):
-	- DepositRequest(msg.sender,vaultAddress,amountIn) (contracts/Batcher/Batcher.sol#110)
-		- _completeDeposit(vaultAddress,usdcReceived) (contracts/Batcher/Batcher.sol#102)
-Reentrancy in Batcher.withdrawFunds(uint256,address) (contracts/Batcher/Batcher.sol#114-139):
+	- DepositRequest(msg.sender,vaultInfo.vaultAddress,amountIn) (contracts/Batcher/Batcher.sol#292)
+		- _completeDeposit(usdcReceived) (contracts/Batcher/Batcher.sol#112)
+Reentrancy in Batcher.withdrawFunds(uint256) (contracts/Batcher/Batcher.sol#119-141):
 	External calls:
-	- IERC20(vaultAddress).safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Batcher/Batcher.sol#130)
+	- IERC20(vaultInfo.vaultAddress).safeTransferFrom(msg.sender,address(this),amountIn - userTokens[msg.sender]) (contracts/Batcher/Batcher.sol#126-130)
 	Event emitted after the call(s):
-	- WithdrawRequest(msg.sender,vaultAddress,amountIn) (contracts/Batcher/Batcher.sol#138)
+	- WithdrawRequest(msg.sender,vaultInfo.vaultAddress,amountIn) (contracts/Batcher/Batcher.sol#140)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-3
 
 Address.verifyCallResult(bool,bytes,string) (node_modules/@openzeppelin/contracts/utils/Address.sol#201-221) uses assembly
 	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/Address.sol#213-216)
-EIP712.splitSignature(bytes) (contracts/Batcher/EIP712.sol#45-73) uses assembly
-	- INLINE ASM (contracts/Batcher/EIP712.sol#56-70)
+ECDSA.tryRecover(bytes32,bytes) (node_modules/@openzeppelin/contracts/utils/cryptography/ECDSA.sol#57-86) uses assembly
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/cryptography/ECDSA.sol#67-71)
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/cryptography/ECDSA.sol#78-81)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#assembly-usage
 
 Different versions of Solidity is used:
 	- Version used: ['^0.8.0', '^0.8.1', '^0.8.4']
-	- ^0.8.0 (node_modules/@openzeppelin/contracts/access/Ownable.sol#4)
+	- ^0.8.0 (node_modules/@openzeppelin/contracts/security/ReentrancyGuard.sol#4)
 	- ^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol#4)
 	- ^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol#4)
 	- ^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#4)
 	- ^0.8.1 (node_modules/@openzeppelin/contracts/utils/Address.sol#4)
-	- ^0.8.0 (node_modules/@openzeppelin/contracts/utils/Context.sol#4)
+	- ^0.8.0 (node_modules/@openzeppelin/contracts/utils/Strings.sol#4)
+	- ^0.8.0 (node_modules/@openzeppelin/contracts/utils/cryptography/ECDSA.sol#4)
 	- ^0.8.4 (contracts/Batcher/Batcher.sol#2)
 	- ^0.8.0 (contracts/Batcher/EIP712.sol#2)
 	- ^0.8.0 (contracts/Batcher/interfaces/IBatcher.sol#2)
@@ -148,18 +146,25 @@ Address.functionDelegateCall(address,bytes,string) (node_modules/@openzeppelin/c
 Address.functionStaticCall(address,bytes) (node_modules/@openzeppelin/contracts/utils/Address.sol#147-149) is never used and should be removed
 Address.functionStaticCall(address,bytes,string) (node_modules/@openzeppelin/contracts/utils/Address.sol#157-166) is never used and should be removed
 Address.sendValue(address,uint256) (node_modules/@openzeppelin/contracts/utils/Address.sol#60-65) is never used and should be removed
-Batcher._tokenBalance(IERC20Metadata) (contracts/Batcher/Batcher.sol#255-257) is never used and should be removed
-Context._msgData() (node_modules/@openzeppelin/contracts/utils/Context.sol#21-23) is never used and should be removed
+ECDSA.recover(bytes32,bytes32,bytes32) (node_modules/@openzeppelin/contracts/utils/cryptography/ECDSA.sol#130-138) is never used and should be removed
+ECDSA.recover(bytes32,uint8,bytes32,bytes32) (node_modules/@openzeppelin/contracts/utils/cryptography/ECDSA.sol#181-190) is never used and should be removed
+ECDSA.toEthSignedMessageHash(bytes) (node_modules/@openzeppelin/contracts/utils/cryptography/ECDSA.sol#214-216) is never used and should be removed
+ECDSA.toEthSignedMessageHash(bytes32) (node_modules/@openzeppelin/contracts/utils/cryptography/ECDSA.sol#200-204) is never used and should be removed
+ECDSA.toTypedDataHash(bytes32,bytes32) (node_modules/@openzeppelin/contracts/utils/cryptography/ECDSA.sol#227-229) is never used and should be removed
 SafeERC20.safeDecreaseAllowance(IERC20,address,uint256) (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#69-80) is never used and should be removed
 SafeERC20.safeIncreaseAllowance(IERC20,address,uint256) (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#60-67) is never used and should be removed
+Strings.toHexString(uint256) (node_modules/@openzeppelin/contracts/utils/Strings.sol#40-51) is never used and should be removed
+Strings.toHexString(uint256,uint256) (node_modules/@openzeppelin/contracts/utils/Strings.sol#56-66) is never used and should be removed
+Strings.toString(uint256) (node_modules/@openzeppelin/contracts/utils/Strings.sol#15-35) is never used and should be removed
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#dead-code
 
-Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/access/Ownable.sol#4) allows old versions
+Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/security/ReentrancyGuard.sol#4) allows old versions
 Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol#4) allows old versions
 Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol#4) allows old versions
 Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#4) allows old versions
 Pragma version^0.8.1 (node_modules/@openzeppelin/contracts/utils/Address.sol#4) allows old versions
-Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/utils/Context.sol#4) allows old versions
+Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/utils/Strings.sol#4) allows old versions
+Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/utils/cryptography/ECDSA.sol#4) allows old versions
 Pragma version^0.8.0 (contracts/Batcher/EIP712.sol#2) allows old versions
 Pragma version^0.8.0 (contracts/Batcher/interfaces/IBatcher.sol#2) allows old versions
 Pragma version^0.8.0 (contracts/ConvexExecutor/interfaces/ICurveDepositZapper.sol#2) allows old versions
@@ -177,10 +182,9 @@ Low level call in Address.functionDelegateCall(address,bytes,string) (node_modul
 	- (success,returndata) = target.delegatecall(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#191)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#low-level-calls
 
-Parameter Batcher.sweep(address)._token (contracts/Batcher/Batcher.sol#259) is not in mixedCase
-Parameter Batcher.setGovernance(address)._governance (contracts/Batcher/Batcher.sol#266) is not in mixedCase
-Parameter Batcher.setSlippage(uint256)._slippage (contracts/Batcher/Batcher.sol#316) is not in mixedCase
-Variable Batcher.DUST_LIMIT (contracts/Batcher/Batcher.sol#21) is not in mixedCase
+Parameter Batcher.setSlippage(uint256)._slippage (contracts/Batcher/Batcher.sol#354) is not in mixedCase
+Parameter Batcher.sweep(address)._token (contracts/Batcher/Batcher.sol#362) is not in mixedCase
+Parameter Batcher.setGovernance(address)._governance (contracts/Batcher/Batcher.sol#399) is not in mixedCase
 Function ICurveDepositZapper.calc_withdraw_one_coin(address,uint256,int128) (contracts/ConvexExecutor/interfaces/ICurveDepositZapper.sol#5-9) is not in mixedCase
 Parameter ICurveDepositZapper.calc_withdraw_one_coin(address,uint256,int128)._token_amount (contracts/ConvexExecutor/interfaces/ICurveDepositZapper.sol#7) is not in mixedCase
 Function ICurveDepositZapper.calc_token_amount(address,uint256[4],bool) (contracts/ConvexExecutor/interfaces/ICurveDepositZapper.sol#11-15) is not in mixedCase
@@ -201,19 +205,14 @@ Function ICurvePool.get_dy(int128,int128,uint256) (contracts/ConvexExecutor/inte
 Function ICurvePool.get_virtual_price() (contracts/ConvexExecutor/interfaces/ICurvePool.sol#29) is not in mixedCase
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#conformance-to-solidity-naming-conventions
 
-Batcher.DUST_LIMIT (contracts/Batcher/Batcher.sol#21) is never used in Batcher (contracts/Batcher/Batcher.sol#18-347)
+Batcher.DUST_LIMIT (contracts/Batcher/Batcher.sol#25) is never used in Batcher (contracts/Batcher/Batcher.sol#17-409)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#unused-state-variable
 
-Batcher.DUST_LIMIT (contracts/Batcher/Batcher.sol#21) should be constant
-Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#state-variables-that-could-be-declared-constant
-
-renounceOwnership() should be declared external:
-	- Ownable.renounceOwnership() (node_modules/@openzeppelin/contracts/access/Ownable.sol#54-56)
-transferOwnership(address) should be declared external:
-	- Ownable.transferOwnership(address) (node_modules/@openzeppelin/contracts/access/Ownable.sol#62-65)
+claimTokens(uint256,address) should be declared external:
+	- Batcher.claimTokens(uint256,address) (contracts/Batcher/Batcher.sol#148-156)
 setAuthority(address) should be declared external:
-	- Batcher.setAuthority(address) (contracts/Batcher/Batcher.sol#54-56)
+	- Batcher.setAuthority(address) (contracts/Batcher/Batcher.sol#341-344)
 sweep(address) should be declared external:
-	- Batcher.sweep(address) (contracts/Batcher/Batcher.sol#259-264)
+	- Batcher.sweep(address) (contracts/Batcher/Batcher.sol#362-368)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#public-function-that-could-be-declared-external
-contracts/Batcher/Batcher.sol analyzed (12 contracts with 77 detectors), 78 result(s) found
+contracts/Batcher/Batcher.sol analyzed (13 contracts with 77 detectors), 81 result(s) found
