@@ -2,10 +2,10 @@ import { expect } from "chai";
 import hre from "hardhat";
 
 import {
-  Hauler,
+  Vault,
   ConvexTradeExecutor,
   ERC20,
-  PerpTradeExecutor,
+  PerpTradeExecutor
 } from "../src/types";
 import { wantTokenL1 } from "../scripts/constants";
 import { BigNumber, utils } from "ethers";
@@ -14,11 +14,11 @@ import {
   setup,
   getConvexExecutorContract,
   getPerpExecutorContract,
-  mineBlocks,
+  mineBlocks
 } from "./utils";
 
-describe("Hauler", function () {
-  let hauler: Hauler;
+describe("Vault", function () {
+  let vault: Vault;
   let convexTradeExecutor: ConvexTradeExecutor;
   let perpTradeExecutor: PerpTradeExecutor;
   let token_name: string = "BUSDC";
@@ -36,82 +36,82 @@ describe("Hauler", function () {
       governanceAddress,
       signer,
       governanceSigner,
-      invalidSigner,
+      invalidSigner
     ] = await setup();
     USDC = (await hre.ethers.getContractAt("ERC20", wantTokenL1)) as ERC20;
   });
 
   // Operation - Expected Behaviour
   // deployment - check access modifiers are set properly.
-  it("Check address assignment hauler", async function () {
-    const Hauler = await hre.ethers.getContractFactory("Hauler", signer);
-    hauler = (await Hauler.deploy(
+  it("Check address assignment vault", async function () {
+    const vaultFactory = await hre.ethers.getContractFactory("Vault", signer);
+    vault = (await vaultFactory.deploy(
       token_name,
       token_symbol,
       wantTokenL1,
       keeperAddress,
       governanceAddress
-    )) as Hauler;
-    await hauler.deployed();
-    console.log("Hauler deployed at: ", hauler.address);
+    )) as Vault;
+    await vault.deployed();
+    console.log("Vault deployed at: ", vault.address);
     // set performance fee
-    await hauler
+    await vault
       .connect(governanceSigner)
       .setPerformanceFee(BigNumber.from(1000));
 
-    expect(await hauler.decimals()).to.equals(await USDC.decimals());
-    expect(await hauler.name()).to.equal(token_name);
-    expect(await hauler.keeper()).to.equals(keeperAddress);
-    expect(await hauler.governance()).to.equal(governanceAddress);
-    expect(await hauler.performanceFee()).to.equal(BigNumber.from(1000));
+    expect(await vault.decimals()).to.equals(await USDC.decimals());
+    expect(await vault.name()).to.equal(token_name);
+    expect(await vault.keeper()).to.equals(keeperAddress);
+    expect(await vault.governance()).to.equal(governanceAddress);
+    expect(await vault.performanceFee()).to.equal(BigNumber.from(1000));
   });
 
   // Operation - Expected Behaviour
   // deposit - increase in balance of pool, increase in totalSupply, tokens should be supplied to depositer address.
   //         - deposit should fail when the trade executor funds aren't updated.
 
-  it("Depositing funds into Hauler", async function () {
+  it("Depositing funds into vault", async function () {
     depositAmount = BigNumber.from(10000e6);
-    await USDC.connect(signer).approve(hauler.address, utils.parseEther("1"));
-    await hauler.deposit(depositAmount, keeperAddress);
+    await USDC.connect(signer).approve(vault.address, utils.parseEther("1"));
+    await vault.deposit(depositAmount, keeperAddress);
 
-    perpTradeExecutor = await getPerpExecutorContract(hauler.address, signer);
+    perpTradeExecutor = await getPerpExecutorContract(vault.address, signer);
 
-    await hauler
+    await vault
       .connect(governanceSigner)
       .addExecutor(perpTradeExecutor.address);
     await perpTradeExecutor.setPosValue(BigNumber.from(0));
-    expect(await hauler.totalHaulerFunds()).to.equal(depositAmount);
-    expect(await hauler.totalSupply()).to.equal(depositAmount);
-    expect(await hauler.balanceOf(signer.address)).to.equal(depositAmount);
+    expect(await vault.totalvaultFunds()).to.equal(depositAmount);
+    expect(await vault.totalSupply()).to.equal(depositAmount);
+    expect(await vault.balanceOf(signer.address)).to.equal(depositAmount);
 
     // move time forward
     await mineBlocks(60);
 
     await expect(
-      hauler.deposit(depositAmount, keeperAddress)
+      vault.deposit(depositAmount, keeperAddress)
     ).to.be.revertedWith("FUNDS_NOT_UPDATED");
   });
 
   // Operation - Expected Behaviour
   // addExecutor - should be done by gvoernance, increase in number of executors if address is unique. Address added should match with index value in list.
   it("Adding an executor", async function () {
-    let tempExecutor = await getConvexExecutorContract(hauler.address);
-    convexTradeExecutor = await getConvexExecutorContract(hauler.address);
+    let tempExecutor = await getConvexExecutorContract(vault.address);
+    convexTradeExecutor = await getConvexExecutorContract(vault.address);
 
     await expect(
-      hauler.connect(invalidSigner).addExecutor(tempExecutor.address)
+      vault.connect(invalidSigner).addExecutor(tempExecutor.address)
     ).to.be.revertedWith("ONLY_GOV");
 
-    await hauler.connect(governanceSigner).addExecutor(tempExecutor.address);
-    await hauler
+    await vault.connect(governanceSigner).addExecutor(tempExecutor.address);
+    await vault
       .connect(governanceSigner)
       .addExecutor(convexTradeExecutor.address);
-    await hauler.connect(governanceSigner).addExecutor(tempExecutor.address);
+    await vault.connect(governanceSigner).addExecutor(tempExecutor.address);
 
-    expect(await hauler.totalExecutors()).to.equal(BigNumber.from(3));
-    expect(await hauler.executorByIndex(1)).to.equal(tempExecutor.address);
-    expect(await hauler.executorByIndex(2)).to.equal(
+    expect(await vault.totalExecutors()).to.equal(BigNumber.from(3));
+    expect(await vault.executorByIndex(1)).to.equal(tempExecutor.address);
+    expect(await vault.executorByIndex(2)).to.equal(
       convexTradeExecutor.address
     );
   });
@@ -123,15 +123,15 @@ describe("Hauler", function () {
     await perpTradeExecutor.setPosValue(BigNumber.from(0));
 
     await expect(
-      hauler
+      vault
         .connect(invalidSigner)
         .depositIntoExecutor(convexTradeExecutor.address, amount)
     ).to.be.revertedWith("ONLY_KEEPER");
 
-    await hauler.depositIntoExecutor(convexTradeExecutor.address, amount);
-    expect(await hauler.totalHaulerFunds()).to.equal(amount);
+    await vault.depositIntoExecutor(convexTradeExecutor.address, amount);
+    expect(await vault.totalvaultFunds()).to.equal(amount);
     expect((await convexTradeExecutor.totalFunds())[0]).to.equal(amount);
-    expect(await USDC.balanceOf(hauler.address)).to.equal(BigNumber.from(0));
+    expect(await USDC.balanceOf(vault.address)).to.equal(BigNumber.from(0));
   });
 
   // Operation - Expected Behaviour
@@ -141,56 +141,56 @@ describe("Hauler", function () {
     await perpTradeExecutor.setPosValue(BigNumber.from(0));
 
     await expect(
-      hauler
+      vault
         .connect(invalidSigner)
         .withdrawFromExecutor(convexTradeExecutor.address, amount)
     ).to.be.revertedWith("ONLY_KEEPER");
 
-    await hauler.withdrawFromExecutor(convexTradeExecutor.address, amount);
-    expect(await hauler.totalHaulerFunds()).to.equal(amount);
+    await vault.withdrawFromExecutor(convexTradeExecutor.address, amount);
+    expect(await vault.totalvaultFunds()).to.equal(amount);
     expect((await convexTradeExecutor.totalFunds())[0]).to.equal(
       BigNumber.from(0)
     );
-    expect(await USDC.balanceOf(hauler.address)).to.equal(amount);
+    expect(await USDC.balanceOf(vault.address)).to.equal(amount);
   });
 
   // Operation - Expected Behaviour
   // removeExecutor - should be done by governance, decrease in number of executors if address is unique.
   it("Removing an executor", async function () {
     await expect(
-      hauler.connect(invalidSigner).removeExecutor(convexTradeExecutor.address)
+      vault.connect(invalidSigner).removeExecutor(convexTradeExecutor.address)
     ).to.be.revertedWith("ONLY_GOV");
 
-    await hauler
+    await vault
       .connect(governanceSigner)
       .removeExecutor(convexTradeExecutor.address);
-    expect(await hauler.totalExecutors()).to.equal(BigNumber.from(2));
+    expect(await vault.totalExecutors()).to.equal(BigNumber.from(2));
 
-    await hauler
+    await vault
       .connect(governanceSigner)
       .removeExecutor(convexTradeExecutor.address);
-    expect(await hauler.totalExecutors()).to.equal(BigNumber.from(2));
+    expect(await vault.totalExecutors()).to.equal(BigNumber.from(2));
   });
 
   // Operation - Expected Behaviour
   // withdraw - decrease in balance of pool, decrease in totalSupply, tokens should be more from depositer address.
   //         - withdraw should fail when the trade executor funds aren't updated.
-  it("Withdrawing funds from Hauler", async function () {
+  it("Withdrawing funds from vault", async function () {
     let amount = BigNumber.from(10e6);
     await mineBlocks(60);
-    await expect(hauler.withdraw(amount, signer.address)).to.be.revertedWith(
+    await expect(vault.withdraw(amount, signer.address)).to.be.revertedWith(
       "FUNDS_NOT_UPDATED"
     );
     let remainingBalance = depositAmount.sub(amount);
     await perpTradeExecutor.setPosValue(0);
-    await hauler.withdraw(amount, signer.address);
-    let comparision = (await hauler.totalHaulerFunds()).gt(BigNumber.from(0));
+    await vault.withdraw(amount, signer.address);
+    let comparision = (await vault.totalvaultFunds()).gt(BigNumber.from(0));
     expect(comparision).to.equal(true);
-    expect(await hauler.totalSupply()).to.equal(remainingBalance);
-    expect(await hauler.balanceOf(signer.address)).to.equal(remainingBalance);
+    expect(await vault.totalSupply()).to.equal(remainingBalance);
+    expect(await vault.balanceOf(signer.address)).to.equal(remainingBalance);
     // remove perp trade executor
     await perpTradeExecutor.setPosValue(BigNumber.from(0));
-    await hauler
+    await vault
       .connect(governanceSigner)
       .removeExecutor(perpTradeExecutor.address);
   });
@@ -198,21 +198,23 @@ describe("Hauler", function () {
   // Operation - Expected Behaviour
   // collectFees - Gather any yield accumulated.
   it("Collecting fees", async function () {
-    let tempExecutor = await hauler.executorByIndex(0);
+    let tempExecutor = await vault.executorByIndex(0);
     // Transfer funds to executor position
     USDC.connect(signer).transfer(tempExecutor, depositAmount.div(2));
     // withdraw funds from execturor.
-    await hauler.withdrawFromExecutor(
+    await vault.withdrawFromExecutor(
       tempExecutor,
       await USDC.balanceOf(tempExecutor)
     );
-    // withdraw funds from hauler.
+    // withdraw funds from vault.
     let amount = BigNumber.from(90e6);
-    let balanceBefore  = await  USDC.balanceOf(governanceAddress);
+    let balanceBefore = await USDC.balanceOf(governanceAddress);
     // collect fees.
-    await hauler.withdraw(amount, signer.address);
+    await vault.withdraw(amount, signer.address);
     let balanceAfter = await USDC.balanceOf(governanceAddress);
-    expect(balanceAfter.sub(balanceBefore).gt(BigNumber.from(0))).to.equal(true);
+    expect(balanceAfter.sub(balanceBefore).gt(BigNumber.from(0))).to.equal(
+      true
+    );
   });
 
   // Operation - Expected Behaviour
@@ -220,32 +222,32 @@ describe("Hauler", function () {
   it("Setting batcher", async function () {
     let batcherAddress = invalidSigner.address;
     await expect(
-      hauler.connect(invalidSigner).setBatcher(batcherAddress)
+      vault.connect(invalidSigner).setBatcher(batcherAddress)
     ).to.be.revertedWith("ONLY_GOV");
     let governanceSigner = await hre.ethers.getSigner(governanceAddress);
 
-    await hauler.connect(governanceSigner).setBatcher(batcherAddress);
-    await hauler.connect(governanceSigner).setBatcherOnlyDeposit(true);
+    await vault.connect(governanceSigner).setBatcher(batcherAddress);
+    await vault.connect(governanceSigner).setBatcherOnlyDeposit(true);
 
-    expect(await hauler.batcher()).to.equal(batcherAddress);
+    expect(await vault.batcher()).to.equal(batcherAddress);
     await USDC.connect(signer).transfer(
       invalidSigner.address,
       BigNumber.from(100e6)
     );
     let amount = await USDC.balanceOf(invalidSigner.address);
     await USDC.connect(invalidSigner).approve(
-      hauler.address,
+      vault.address,
       utils.parseEther("1")
     );
-    await hauler.connect(invalidSigner).deposit(amount, invalidSigner.address);
+    await vault.connect(invalidSigner).deposit(amount, invalidSigner.address);
     let expected_balance = amount
-      .mul(await hauler.totalSupply())
-      .div(await hauler.totalHaulerFunds());
-    expect(await hauler.balanceOf(invalidSigner.address)).to.equal(
+      .mul(await vault.totalSupply())
+      .div(await vault.totalvaultFunds());
+    expect(await vault.balanceOf(invalidSigner.address)).to.equal(
       expected_balance
     );
     await expect(
-      hauler.connect(signer).deposit(amount, signer.address)
+      vault.connect(signer).deposit(amount, signer.address)
     ).to.be.revertedWith("ONLY_BATCHER");
   });
 
@@ -253,24 +255,24 @@ describe("Hauler", function () {
   // setKeeper - only governance can set the keeper.
   it("Setting keeper", async function () {
     await expect(
-      hauler.connect(invalidSigner).setKeeper(governanceAddress)
+      vault.connect(invalidSigner).setKeeper(governanceAddress)
     ).to.be.revertedWith("ONLY_GOV");
     let governanceSigner = await hre.ethers.getSigner(governanceAddress);
 
-    await hauler.connect(governanceSigner).setKeeper(governanceAddress);
-    expect(await hauler.keeper()).to.equal(governanceAddress);
+    await vault.connect(governanceSigner).setKeeper(governanceAddress);
+    expect(await vault.keeper()).to.equal(governanceAddress);
   });
 
   // Operation - Expected Behaviour
   // changeGovernance - only governance can change the governance.
   it("Changing governance", async function () {
     await expect(
-      hauler.connect(invalidSigner).setGovernance(keeperAddress)
+      vault.connect(invalidSigner).setGovernance(keeperAddress)
     ).to.be.revertedWith("ONLY_GOV");
     let governanceSigner = await hre.ethers.getSigner(governanceAddress);
 
-    await hauler.connect(governanceSigner).setGovernance(signer.address);
-    await hauler.acceptGovernance();
-    expect(await hauler.governance()).to.equal(signer.address);
+    await vault.connect(governanceSigner).setGovernance(signer.address);
+    await vault.acceptGovernance();
+    expect(await vault.governance()).to.equal(signer.address);
   });
 });

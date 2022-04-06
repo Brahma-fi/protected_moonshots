@@ -3,63 +3,65 @@ pragma solidity ^0.8.0;
 
 /**
  * @title IPeripheryBatcher
- * @notice A batcher to resolve hauler deposits/withdrawals in batches
+ * @notice A batcher to resolve vault deposits/withdrawals in batches
  * @dev Provides an interface for Batcher
  */
 interface IBatcher {
   /**
    * @notice Stores the deposits for future batching via periphery
    * @param amountIn Value of token to be deposited
-   * @param haulerAddress address of hauler to deposit into
+   * @param vaultAddress address of vault to deposit into
    * @param signature signature verifying that depositor has enough karma and is authorized to deposit by brahma
    */
   function depositFunds(
     uint256 amountIn,
-    address haulerAddress,
+    address vaultAddress,
     bytes memory signature
   ) external;
 
   /**
    * @notice Stores the deposits for future batching via periphery
    * @param amountIn Value of Lp token to be deposited
-   * @param haulerAddress address of hauler to deposit into
+   * @param vaultAddress address of vault to deposit into
    * @param signature signature verifying that depositor has enough karma and is authorized to deposit by brahma
    */
   function depositFundsInCurveLpToken(
     uint256 amountIn,
-    address haulerAddress,
+    address vaultAddress,
     bytes memory signature
   ) external;
 
   /**
    * @notice Stores the deposits for future batching via periphery
    * @param amountOut Value of token to be deposited
-   * @param haulerAddress address of hauler to deposit into
+   * @param vaultAddress address of vault to deposit into
    */
-  function withdrawFunds(uint256 amountOut, address haulerAddress) external;
+  function withdrawFunds(uint256 amountOut, address vaultAddress) external;
 
   /**
    * @notice Performs deposits on the periphery for the supplied users in batch
-   * @param haulerAddress address of hauler to deposit inton
+   * @param vaultAddress address of vault to deposit inton
    * @param users array of users whose deposits must be resolved
    */
-  function batchDeposit(address haulerAddress, address[] memory users) external;
+  function batchDeposit(address vaultAddress, address[] memory users) external;
 
   /**
    * @notice Performs withdraws on the periphery for the supplied users in batch
-   * @param haulerAddress address of hauler to deposit inton
+   * @param vaultAddress address of vault to deposit inton
    * @param users array of users whose deposits must be resolved
    */
-  function batchWithdraw(address haulerAddress, address[] memory users)
-    external;
+  function batchWithdraw(address vaultAddress, address[] memory users) external;
 
   /**
-   * @notice To set a token address as the deposit token for a hauler
-   * @param haulerAddress address of hauler to deposit inton
-   * @param token address of token which is to be deposited into hauler
+   * @notice To set a token address as the deposit token for a vault
+   * @param vaultAddress address of vault to deposit inton
+   * @param token address of token which is to be deposited into vault
    */
-  function setHaulerParams(address haulerAddress, address token, uint256 maxLimit) external;
-
+  function setVaultParams(
+    address vaultAddress,
+    address token,
+    uint256 maxLimit
+  ) external;
 
   /**
    * @notice To set slippage param for curve lp token conversion
