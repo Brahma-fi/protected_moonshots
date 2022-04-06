@@ -89,12 +89,12 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
     collectFees();
     // calculate the shares based on the amount.
     shares = totalSupply() > 0
-      ? (totalSupply() * amountIn) / totalvaultFunds()
+      ? (totalSupply() * amountIn) / totalVaultFunds()
       : amountIn;
     IERC20(wantToken).safeTransferFrom(receiver, address(this), amountIn);
     _mint(receiver, shares);
     // update vault funds
-    prevvaultFunds = totalvaultFunds();
+    prevVaultFunds = totalVaultFunds();
   }
 
   /// @notice Initiates a withdrawal of vault tokens to the user.
@@ -113,16 +113,16 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
     // collect the fees
     collectFees();
     // calculate the amount based on the shares.
-    amountOut = (sharesIn * totalvaultFunds()) / totalSupply();
+    amountOut = (sharesIn * totalVaultFunds()) / totalSupply();
     _burn(receiver, sharesIn);
     IERC20(wantToken).safeTransfer(receiver, amountOut);
     // update vault funds
-    prevvaultFunds = totalvaultFunds();
+    prevVaultFunds = totalVaultFunds();
   }
 
   /// @notice Calculates the total amount of underlying tokens the vault holds.
   /// @return The total amount of underlying tokens the vault holds.
-  function totalvaultFunds() public view returns (uint256) {
+  function totalVaultFunds() public view returns (uint256) {
     return IERC20(wantToken).balanceOf(address(this)) + totalExecutorFunds();
   }
 
@@ -175,7 +175,7 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
                            FEE CONFIGURATION
     //////////////////////////////////////////////////////////////*/
   /// @notice lagging value of vault total funds.
-  uint256 public prevvaultFunds = type(uint256).max;
+  uint256 public prevVaultFunds = type(uint256).max;
   /// @dev Perfomance fee for the vault.
   uint256 public performanceFee;
   /// @notice Emitted after fee updation.
@@ -202,10 +202,10 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
   /// calculates the fee based on it. Also note: this function
   /// should be called before processing any new deposits/withdrawals.
   function collectFees() internal {
-    uint256 currentFunds = totalvaultFunds();
+    uint256 currentFunds = totalVaultFunds();
     // collect fees only when profit is made.
-    if ((performanceFee > 0) && (currentFunds > prevvaultFunds)) {
-      uint256 yieldEarned = (currentFunds - prevvaultFunds) * performanceFee;
+    if ((performanceFee > 0) && (currentFunds > prevVaultFunds)) {
+      uint256 yieldEarned = (currentFunds - prevVaultFunds) * performanceFee;
       // normalization by MAX_BPS
       yieldEarned = (yieldEarned / MAX_BPS);
       IERC20(wantToken).safeTransfer(governance, yieldEarned);
