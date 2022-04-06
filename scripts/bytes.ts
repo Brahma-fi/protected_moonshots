@@ -11,7 +11,7 @@ const getDepositBytes = async () => {
   );
 
   const usdcBal = await usdc.balanceOf(convexTE.address);
-  console.log("Hauler USDC bal:", usdcBal.toString());
+  console.log("Vault USDC bal:", usdcBal.toString());
   const paramsInBytes = ethers.utils.AbiCoder.prototype.encode(
     ["tuple(uint256)"],
     [[usdcBal]]

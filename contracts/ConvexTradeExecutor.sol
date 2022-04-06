@@ -15,7 +15,7 @@ contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
    @param _ust3Pool address of curve's UST3 Pool
    @param _curve3PoolZap address of curve 3 pool zap
    @param _harvester address of reward harvester contract
-   @param _hauler address of the Hauler
+   @param _vault address of the Vault
    */
   constructor(
     address _baseRewardPool,
@@ -23,8 +23,8 @@ contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
     address _ust3Pool,
     address _curve3PoolZap,
     address _harvester,
-    address _hauler
-  ) BaseTradeExecutor(_hauler) {
+    address _vault
+  ) BaseTradeExecutor(_vault) {
     ConvexPositionHandler._configHandler(
       _baseRewardPool,
       _convexBooster,

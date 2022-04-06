@@ -77,7 +77,7 @@ export async function getSignature(
   return hre.ethers.utils.hexlify(signature);
 }
 
-export async function getvaultContract(): Promise<Vault> {
+export async function getVaultContract(): Promise<Vault> {
   let token_name: string = "BUSDC";
   let token_symbol: string = "BUSDC";
   let token_decimals: number = 6;
