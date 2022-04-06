@@ -81,7 +81,7 @@ describe("Vault", function () {
       .connect(governanceSigner)
       .addExecutor(perpTradeExecutor.address);
     await perpTradeExecutor.setPosValue(BigNumber.from(0));
-    expect(await vault.totalvaultFunds()).to.equal(depositAmount);
+    expect(await vault.totalVaultFunds()).to.equal(depositAmount);
     expect(await vault.totalSupply()).to.equal(depositAmount);
     expect(await vault.balanceOf(signer.address)).to.equal(depositAmount);
 
@@ -129,7 +129,7 @@ describe("Vault", function () {
     ).to.be.revertedWith("ONLY_KEEPER");
 
     await vault.depositIntoExecutor(convexTradeExecutor.address, amount);
-    expect(await vault.totalvaultFunds()).to.equal(amount);
+    expect(await vault.totalVaultFunds()).to.equal(amount);
     expect((await convexTradeExecutor.totalFunds())[0]).to.equal(amount);
     expect(await USDC.balanceOf(vault.address)).to.equal(BigNumber.from(0));
   });
@@ -147,7 +147,7 @@ describe("Vault", function () {
     ).to.be.revertedWith("ONLY_KEEPER");
 
     await vault.withdrawFromExecutor(convexTradeExecutor.address, amount);
-    expect(await vault.totalvaultFunds()).to.equal(amount);
+    expect(await vault.totalVaultFunds()).to.equal(amount);
     expect((await convexTradeExecutor.totalFunds())[0]).to.equal(
       BigNumber.from(0)
     );
@@ -184,7 +184,7 @@ describe("Vault", function () {
     let remainingBalance = depositAmount.sub(amount);
     await perpTradeExecutor.setPosValue(0);
     await vault.withdraw(amount, signer.address);
-    let comparision = (await vault.totalvaultFunds()).gt(BigNumber.from(0));
+    let comparision = (await vault.totalVaultFunds()).gt(BigNumber.from(0));
     expect(comparision).to.equal(true);
     expect(await vault.totalSupply()).to.equal(remainingBalance);
     expect(await vault.balanceOf(signer.address)).to.equal(remainingBalance);
@@ -242,7 +242,7 @@ describe("Vault", function () {
     await vault.connect(invalidSigner).deposit(amount, invalidSigner.address);
     let expected_balance = amount
       .mul(await vault.totalSupply())
-      .div(await vault.totalvaultFunds());
+      .div(await vault.totalVaultFunds());
     expect(await vault.balanceOf(invalidSigner.address)).to.equal(
       expected_balance
     );

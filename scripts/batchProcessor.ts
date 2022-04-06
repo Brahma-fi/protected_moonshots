@@ -63,10 +63,7 @@ const main = async () => {
   await perpTE.setPosValue(lastDeposit, { gasLimit: 1000000 });
 
   // do the batch Deposit on batcher
-  batcher.batchDeposit(
-    "0x1C4ceb52ab54a35F9d03FcC156a7c57F965e081e",
-    depositers
-  );
+  batcher.batchDeposit(depositers);
 
   // based on pmusdc balance withdraw funds from convex te.
   const pmusdcBalance = await pmusdc.balanceOf(
@@ -85,10 +82,7 @@ const main = async () => {
   );
 
   // do the batch withdraw on batcher.
-  await batcher.batchWithdraw(
-    "0x1C4ceb52ab54a35F9d03FcC156a7c57F965e081e",
-    withdrawers
-  );
+  await batcher.batchWithdraw(withdrawers);
 };
 
 main()
