@@ -6,7 +6,7 @@ import { wantTokenL1 } from "../scripts/constants";
 import {
   ConvexTradeExecutor,
   Harvester,
-  Hauler,
+  Vault,
   IConvexRewards,
   IERC20
 } from "../src/types";
@@ -34,7 +34,7 @@ const _3CRVPOOL = "0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7";
 
 let convexTradeExecutor: ConvexTradeExecutor;
 let harvester: Harvester;
-let hauler: Hauler;
+let vault: Vault;
 let baseRewardPool: IConvexRewards;
 
 let USDC: IERC20;
@@ -54,7 +54,7 @@ const deploy = async () => {
     "ConvexTradeExecutor"
   );
   const HarvesterFactory = await ethers.getContractFactory("Harvester");
-  const HaulerFactory = await ethers.getContractFactory("Hauler", signer);
+  const vaultFactory = await ethers.getContractFactory("Vault", signer);
   LP = (await ethers.getContractAt(
     "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20",
     ConvexTradeExecutorConfig.ust3Pool
@@ -79,14 +79,14 @@ const deploy = async () => {
 
   USDC = await getUSDCContract();
 
-  hauler = (await HaulerFactory.deploy(
+  vault = (await vaultFactory.deploy(
     "PMUSDC",
     "PMUSDC",
     6,
     wantTokenL1,
     keeperAddress,
     governanceAddress
-  )) as Hauler;
+  )) as Vault;
 
   harvester = (await HarvesterFactory.deploy(
     keeperAddress,
@@ -97,7 +97,7 @@ const deploy = async () => {
   convexTradeExecutor = (await convexTradeExecutorFactory.deploy(
     ...Object.values(ConvexTradeExecutorConfig),
     harvester.address,
-    hauler.address
+    vault.address
   )) as ConvexTradeExecutor;
 };
 
