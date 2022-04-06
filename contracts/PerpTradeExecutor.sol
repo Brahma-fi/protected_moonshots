@@ -9,6 +9,13 @@ import "../interfaces/IVault.sol";
 /// @author 0xAd1
 /// @notice A contract to execute manage a Perp Position Handler on Optimism 
 contract PerpTradeExecutor is BaseTradeExecutor, PerpPositionHandler {
+
+    /// @notice Constructor of the Trade Executor
+    /// @param vault Address of the Hauler contract
+    /// @param _wantTokenL2 address of wantToken equivalent on L2
+    /// @param _l2HandlerAddress address of PerpHandler on L2
+    /// @param _L1CrossDomainMessenger address of optimism gateway cross domain messenger
+    /// @param _socketRegistry address of socketRegistry on L1
   constructor(
     address vault,
     address _wantTokenL2,
@@ -17,22 +24,21 @@ contract PerpTradeExecutor is BaseTradeExecutor, PerpPositionHandler {
     address _socketRegistry
   ) BaseTradeExecutor(vault) {
     _initHandler(
+      vaultWantToken(),
       _wantTokenL2,
       _l2HandlerAddress,
       _L1CrossDomainMessenger,
       _socketRegistry
     );
-    wantTokenL1 = IVault(vault).wantToken();
   }
 
-    /// @notice Constructor of the Trade Executor
-    /// @param hauler Address of the Hauler contract
+    /// @notice init handler
     /// @param _wantTokenL2 address of wantToken equivalent on L2
     /// @param _l2HandlerAddress address of PerpHandler on L2
     /// @param _L1CrossDomainMessenger address of optimism gateway cross domain messenger
     /// @param _socketRegistry address of socketRegistry on L1
-    constructor(address hauler, address _wantTokenL2, address _l2HandlerAddress, address _L1CrossDomainMessenger, address _socketRegistry) BaseTradeExecutor(hauler){
-        _initHandler(haulerWantToken(), _wantTokenL2, _l2HandlerAddress, _L1CrossDomainMessenger, _socketRegistry);
+    function initHandler(address _wantTokenL2, address _l2HandlerAddress, address _L1CrossDomainMessenger, address _socketRegistry) public onlyKeeper {
+        _initHandler(vaultWantToken(), _wantTokenL2, _l2HandlerAddress, _L1CrossDomainMessenger, _socketRegistry);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -44,7 +50,7 @@ contract PerpTradeExecutor is BaseTradeExecutor, PerpPositionHandler {
     /// @return posValue total want token amount
     /// @return lastUpdatedBlock block number of last pos update on L1
     function totalFunds() public view override returns (uint256 posValue, uint256 lastUpdatedBlock) {
-        return ( positionInWantToken.posValue + IERC20(haulerWantToken()).balanceOf(address(this)), positionInWantToken.lastUpdatedBlock );
+        return ( positionInWantToken.posValue + IERC20(vaultWantToken()).balanceOf(address(this)), positionInWantToken.lastUpdatedBlock );
     }
 
 
@@ -70,7 +76,7 @@ contract PerpTradeExecutor is BaseTradeExecutor, PerpPositionHandler {
     /// @param _L1CrossDomainMessenger address of optimism gateway cross domain messenger
     /// @param _socketRegistry address of socketRegistry on L1
     function setHandler (address _wantTokenL2, address _l2HandlerAddress, address _L1CrossDomainMessenger, address _socketRegistry) public onlyKeeper {
-        _initHandler(haulerWantToken(), _wantTokenL2, _l2HandlerAddress, _L1CrossDomainMessenger, _socketRegistry);
+        _initHandler(vaultWantToken(), _wantTokenL2, _l2HandlerAddress, _L1CrossDomainMessenger, _socketRegistry);
     }
 
 

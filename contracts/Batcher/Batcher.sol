@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/IBatcher.sol";
-import "../../interfaces/IHauler.sol";
+import "../../interfaces/IVault.sol";
 import "../ConvexExecutor/interfaces/ICurvePool.sol";
 import "../ConvexExecutor/interfaces/ICurveDepositZapper.sol";
 
@@ -41,7 +41,7 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     require (haulerAddress != address(0), 'Invalid hauler address');
     vaultInfo = VaultInfo({
       vaultAddress: haulerAddress,
-      tokenAddress: IHauler(haulerAddress).wantToken(),
+      tokenAddress: IVault(haulerAddress).wantToken(),
       maxAmount: maxAmount,
       currentAmount: 0
     });
@@ -180,7 +180,7 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     nonReentrant
   {
     onlyKeeper();
-    IHauler hauler = IHauler(vaultInfo.vaultAddress);
+    IVault hauler = IVault(vaultInfo.vaultAddress);
 
     uint256 amountToDeposit = 0;
     uint256 oldLPBalance = IERC20(address(hauler)).balanceOf(address(this));
@@ -235,7 +235,7 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     nonReentrant
   {
     onlyKeeper();
-    IHauler hauler = IHauler(vaultInfo.vaultAddress);
+    IVault hauler = IVault(vaultInfo.vaultAddress);
 
     IERC20 token = IERC20(vaultInfo.tokenAddress);
 
@@ -402,7 +402,7 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
   /// @return Keeper address
   function keeper() public view returns (address) {
     require(vaultInfo.vaultAddress != address(0), "Hauler not set");
-    return IHauler(vaultInfo.vaultAddress).keeper();
+    return IVault(vaultInfo.vaultAddress).keeper();
   }
 
   /// @notice Helper to asset msg.sender as keeper address

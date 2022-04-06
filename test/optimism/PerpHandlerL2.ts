@@ -29,7 +29,7 @@ import {
 
 import { moverCall } from "../api";
 
-describe.only("PerpHandlerL2 [OPTIMISM]", function () {
+describe("PerpHandlerL2 [OPTIMISM]", function () {
   let keeperAddress: string;
   let governanceAddress: string;
   let signer: SignerWithAddress;
