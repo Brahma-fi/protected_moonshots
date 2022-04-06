@@ -1,5 +1,5 @@
 import hre from "hardhat";
-import { Hauler } from "../../src/types";
+import { vault } from "../../src/types";
 
 const HarvesterConfig = {
   keeper: "0xAE75B29ADe678372D77A8B41225654138a7E6ff1",
@@ -15,7 +15,7 @@ async function main() {
   const harvester = (await Harvester.deploy(...Object.values(HarvesterConfig), {
     maxPriorityFeePerGas: feeData["maxPriorityFeePerGas"], // Recommended maxPriorityFeePerGas
     maxFeePerGas: feeData["maxFeePerGas"] // Recommended maxFeePerGas
-  })) as Hauler;
+  })) as vault;
 
   await harvester.deployed();
   console.log("Harvester deployed to:", harvester.address);

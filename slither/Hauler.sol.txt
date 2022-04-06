@@ -1,67 +1,67 @@
 17 Mar, 2022
 ------------
 
-Hauler.deposit(uint256,address) (contracts/Hauler.sol#46-58) ignores return value by IERC20(wantToken).transferFrom(receiver,address(this),amountIn) (contracts/Hauler.sol#56)
-Hauler.withdraw(uint256,address) (contracts/Hauler.sol#60-67) ignores return value by IERC20(wantToken).transfer(receiver,amountOut) (contracts/Hauler.sol#66)
-Hauler.depositIntoExecutor(address,uint256) (contracts/Hauler.sol#75-78) ignores return value by IERC20(wantToken).transfer(_executor,_amount) (contracts/Hauler.sol#77)
-Hauler.withdrawFromExecutor(address,uint256) (contracts/Hauler.sol#80-83) ignores return value by IERC20(wantToken).transferFrom(_executor,address(this),_amount) (contracts/Hauler.sol#82)
+vault.deposit(uint256,address) (contracts/vault.sol#46-58) ignores return value by IERC20(wantToken).transferFrom(receiver,address(this),amountIn) (contracts/vault.sol#56)
+vault.withdraw(uint256,address) (contracts/vault.sol#60-67) ignores return value by IERC20(wantToken).transfer(receiver,amountOut) (contracts/vault.sol#66)
+vault.depositIntoExecutor(address,uint256) (contracts/vault.sol#75-78) ignores return value by IERC20(wantToken).transfer(_executor,_amount) (contracts/vault.sol#77)
+vault.withdrawFromExecutor(address,uint256) (contracts/vault.sol#80-83) ignores return value by IERC20(wantToken).transferFrom(_executor,address(this),_amount) (contracts/vault.sol#82)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#unchecked-transfer
 
 ---
 
-Reentrancy in Hauler.deposit(uint256,address) (contracts/Hauler.sol#46-58):
+Reentrancy in vault.deposit(uint256,address) (contracts/vault.sol#46-58):
 	External calls:
-	- IERC20(wantToken).transferFrom(receiver,address(this),amountIn) (contracts/Hauler.sol#56)
+	- IERC20(wantToken).transferFrom(receiver,address(this),amountIn) (contracts/vault.sol#56)
 	State variables written after the call(s):
-	- _mint(receiver,shares) (contracts/Hauler.sol#57)
+	- _mint(receiver,shares) (contracts/vault.sol#57)
 		- _totalSupply += amount (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#262)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-1
 
 ---
 
-Hauler.constructor(string,string,uint8,address,address,address)._name (contracts/Hauler.sol#34) shadows:
+vault.constructor(string,string,uint8,address,address,address)._name (contracts/vault.sol#34) shadows:
 	- ERC20._name (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#42) (state variable)
-Hauler.constructor(string,string,uint8,address,address,address)._symbol (contracts/Hauler.sol#34) shadows:
+vault.constructor(string,string,uint8,address,address,address)._symbol (contracts/vault.sol#34) shadows:
 	- ERC20._symbol (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#43) (state variable)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#local-variable-shadowing
 
-Hauler.setBatcher(address) (contracts/Hauler.sol#120-122) should emit an event for:
-	- batcher = _batcher (contracts/Hauler.sol#121)
-Hauler.setKeeper(address) (contracts/Hauler.sol#137-139) should emit an event for:
-	- keeper = _keeper (contracts/Hauler.sol#138)
+vault.setBatcher(address) (contracts/vault.sol#120-122) should emit an event for:
+	- batcher = _batcher (contracts/vault.sol#121)
+vault.setKeeper(address) (contracts/vault.sol#137-139) should emit an event for:
+	- keeper = _keeper (contracts/vault.sol#138)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#missing-events-access-control
 
-Hauler.constructor(string,string,uint8,address,address,address)._wantToken (contracts/Hauler.sol#34) lacks a zero-check on :
-		- wantToken = _wantToken (contracts/Hauler.sol#36)
-Hauler.constructor(string,string,uint8,address,address,address)._keeper (contracts/Hauler.sol#34) lacks a zero-check on :
-		- keeper = _keeper (contracts/Hauler.sol#37)
-Hauler.constructor(string,string,uint8,address,address,address)._governance (contracts/Hauler.sol#34) lacks a zero-check on :
-		- governance = _governance (contracts/Hauler.sol#38)
-Hauler.setBatcher(address)._batcher (contracts/Hauler.sol#120) lacks a zero-check on :
-		- batcher = _batcher (contracts/Hauler.sol#121)
-Hauler.setGovernance(address)._governance (contracts/Hauler.sol#128) lacks a zero-check on :
-		- pendingGovernance = _governance (contracts/Hauler.sol#129)
-Hauler.setKeeper(address)._keeper (contracts/Hauler.sol#137) lacks a zero-check on :
-		- keeper = _keeper (contracts/Hauler.sol#138)
+vault.constructor(string,string,uint8,address,address,address)._wantToken (contracts/vault.sol#34) lacks a zero-check on :
+		- wantToken = _wantToken (contracts/vault.sol#36)
+vault.constructor(string,string,uint8,address,address,address)._keeper (contracts/vault.sol#34) lacks a zero-check on :
+		- keeper = _keeper (contracts/vault.sol#37)
+vault.constructor(string,string,uint8,address,address,address)._governance (contracts/vault.sol#34) lacks a zero-check on :
+		- governance = _governance (contracts/vault.sol#38)
+vault.setBatcher(address)._batcher (contracts/vault.sol#120) lacks a zero-check on :
+		- batcher = _batcher (contracts/vault.sol#121)
+vault.setGovernance(address)._governance (contracts/vault.sol#128) lacks a zero-check on :
+		- pendingGovernance = _governance (contracts/vault.sol#129)
+vault.setKeeper(address)._keeper (contracts/vault.sol#137) lacks a zero-check on :
+		- keeper = _keeper (contracts/vault.sol#138)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#missing-zero-address-validation
 
-Hauler.totalExecutorFunds() (contracts/Hauler.sol#95-105) has external calls inside a loop: (executorFunds,blockUpdated) = ITradeExecutor(executor).totalFunds() (contracts/Hauler.sol#99)
+vault.totalExecutorFunds() (contracts/vault.sol#95-105) has external calls inside a loop: (executorFunds,blockUpdated) = ITradeExecutor(executor).totalFunds() (contracts/vault.sol#99)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation/#calls-inside-a-loop
 
-Reentrancy in Hauler.deposit(uint256,address) (contracts/Hauler.sol#46-58):
+Reentrancy in vault.deposit(uint256,address) (contracts/vault.sol#46-58):
 	External calls:
-	- IERC20(wantToken).transferFrom(receiver,address(this),amountIn) (contracts/Hauler.sol#56)
+	- IERC20(wantToken).transferFrom(receiver,address(this),amountIn) (contracts/vault.sol#56)
 	State variables written after the call(s):
-	- _mint(receiver,shares) (contracts/Hauler.sol#57)
+	- _mint(receiver,shares) (contracts/vault.sol#57)
 		- _balances[account] += amount (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#263)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-2
 
-Reentrancy in Hauler.deposit(uint256,address) (contracts/Hauler.sol#46-58):
+Reentrancy in vault.deposit(uint256,address) (contracts/vault.sol#46-58):
 	External calls:
-	- IERC20(wantToken).transferFrom(receiver,address(this),amountIn) (contracts/Hauler.sol#56)
+	- IERC20(wantToken).transferFrom(receiver,address(this),amountIn) (contracts/vault.sol#56)
 	Event emitted after the call(s):
 	- Transfer(address(0),account,amount) (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#264)
-		- _mint(receiver,shares) (contracts/Hauler.sol#57)
+		- _mint(receiver,shares) (contracts/vault.sol#57)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-3
 
 AddrArrayLib.getAllAddresses(AddrArrayLib.Addresses) (library/AddArrayLib.sol#76-78) is never used and should be removed
@@ -72,23 +72,23 @@ Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol
 Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol#4) allows old versions
 Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol#4) allows old versions
 Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/utils/Context.sol#4) allows old versions
-Pragma version^0.8.0 (contracts/Hauler.sol#2) allows old versions
-Pragma version^0.8.0 (interfaces/IHauler.sol#2) allows old versions
+Pragma version^0.8.0 (contracts/vault.sol#2) allows old versions
+Pragma version^0.8.0 (interfaces/IVault.sol#2) allows old versions
 Pragma version^0.8.0 (interfaces/ITradeExecutor.sol#2) allows old versions
 Pragma version^0.8.0 (library/AddArrayLib.sol#2) allows old versions
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#incorrect-versions-of-solidity
 
-Parameter Hauler.depositIntoExecutor(address,uint256)._executor (contracts/Hauler.sol#75) is not in mixedCase
-Parameter Hauler.depositIntoExecutor(address,uint256)._amount (contracts/Hauler.sol#75) is not in mixedCase
-Parameter Hauler.withdrawFromExecutor(address,uint256)._executor (contracts/Hauler.sol#80) is not in mixedCase
-Parameter Hauler.withdrawFromExecutor(address,uint256)._amount (contracts/Hauler.sol#80) is not in mixedCase
-Parameter Hauler.executorByIndex(uint256)._index (contracts/Hauler.sol#90) is not in mixedCase
-Parameter Hauler.addExecutor(address)._tradeExecutor (contracts/Hauler.sol#109) is not in mixedCase
-Parameter Hauler.removeExecutor(address)._tradeExecutor (contracts/Hauler.sol#113) is not in mixedCase
-Parameter Hauler.setBatcher(address)._batcher (contracts/Hauler.sol#120) is not in mixedCase
-Parameter Hauler.setBatcherOnlyDeposit(bool)._batcherOnlyDeposit (contracts/Hauler.sol#124) is not in mixedCase
-Parameter Hauler.setGovernance(address)._governance (contracts/Hauler.sol#128) is not in mixedCase
-Parameter Hauler.setKeeper(address)._keeper (contracts/Hauler.sol#137) is not in mixedCase
+Parameter vault.depositIntoExecutor(address,uint256)._executor (contracts/vault.sol#75) is not in mixedCase
+Parameter vault.depositIntoExecutor(address,uint256)._amount (contracts/vault.sol#75) is not in mixedCase
+Parameter vault.withdrawFromExecutor(address,uint256)._executor (contracts/vault.sol#80) is not in mixedCase
+Parameter vault.withdrawFromExecutor(address,uint256)._amount (contracts/vault.sol#80) is not in mixedCase
+Parameter vault.executorByIndex(uint256)._index (contracts/vault.sol#90) is not in mixedCase
+Parameter vault.addExecutor(address)._tradeExecutor (contracts/vault.sol#109) is not in mixedCase
+Parameter vault.removeExecutor(address)._tradeExecutor (contracts/vault.sol#113) is not in mixedCase
+Parameter vault.setBatcher(address)._batcher (contracts/vault.sol#120) is not in mixedCase
+Parameter vault.setBatcherOnlyDeposit(bool)._batcherOnlyDeposit (contracts/vault.sol#124) is not in mixedCase
+Parameter vault.setGovernance(address)._governance (contracts/vault.sol#128) is not in mixedCase
+Parameter vault.setKeeper(address)._keeper (contracts/vault.sol#137) is not in mixedCase
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#conformance-to-solidity-naming-conventions
 
 name() should be declared external:
@@ -97,7 +97,7 @@ symbol() should be declared external:
 	- ERC20.symbol() (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#70-72)
 decimals() should be declared external:
 	- ERC20.decimals() (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#87-89)
-	- Hauler.decimals() (contracts/Hauler.sol#41-43)
+	- vault.decimals() (contracts/vault.sol#41-43)
 balanceOf(address) should be declared external:
 	- ERC20.balanceOf(address) (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#101-103)
 transfer(address,uint256) should be declared external:
@@ -111,26 +111,26 @@ increaseAllowance(address,uint256) should be declared external:
 decreaseAllowance(address,uint256) should be declared external:
 	- ERC20.decreaseAllowance(address,uint256) (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#201-210)
 deposit(uint256,address) should be declared external:
-	- Hauler.deposit(uint256,address) (contracts/Hauler.sol#46-58)
+	- vault.deposit(uint256,address) (contracts/vault.sol#46-58)
 withdraw(uint256,address) should be declared external:
-	- Hauler.withdraw(uint256,address) (contracts/Hauler.sol#60-67)
+	- vault.withdraw(uint256,address) (contracts/vault.sol#60-67)
 depositIntoExecutor(address,uint256) should be declared external:
-	- Hauler.depositIntoExecutor(address,uint256) (contracts/Hauler.sol#75-78)
+	- vault.depositIntoExecutor(address,uint256) (contracts/vault.sol#75-78)
 withdrawFromExecutor(address,uint256) should be declared external:
-	- Hauler.withdrawFromExecutor(address,uint256) (contracts/Hauler.sol#80-83)
+	- vault.withdrawFromExecutor(address,uint256) (contracts/vault.sol#80-83)
 addExecutor(address) should be declared external:
-	- Hauler.addExecutor(address) (contracts/Hauler.sol#109-111)
+	- vault.addExecutor(address) (contracts/vault.sol#109-111)
 removeExecutor(address) should be declared external:
-	- Hauler.removeExecutor(address) (contracts/Hauler.sol#113-118)
+	- vault.removeExecutor(address) (contracts/vault.sol#113-118)
 setBatcher(address) should be declared external:
-	- Hauler.setBatcher(address) (contracts/Hauler.sol#120-122)
+	- vault.setBatcher(address) (contracts/vault.sol#120-122)
 setBatcherOnlyDeposit(bool) should be declared external:
-	- Hauler.setBatcherOnlyDeposit(bool) (contracts/Hauler.sol#124-126)
+	- vault.setBatcherOnlyDeposit(bool) (contracts/vault.sol#124-126)
 setGovernance(address) should be declared external:
-	- Hauler.setGovernance(address) (contracts/Hauler.sol#128-130)
+	- vault.setGovernance(address) (contracts/vault.sol#128-130)
 acceptGovernance() should be declared external:
-	- Hauler.acceptGovernance() (contracts/Hauler.sol#132-135)
+	- vault.acceptGovernance() (contracts/vault.sol#132-135)
 setKeeper(address) should be declared external:
-	- Hauler.setKeeper(address) (contracts/Hauler.sol#137-139)
+	- vault.setKeeper(address) (contracts/vault.sol#137-139)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#public-function-that-could-be-declared-external
-contracts/Hauler.sol analyzed (8 contracts with 77 detectors), 59 result(s) found
+contracts/vault.sol analyzed (8 contracts with 77 detectors), 59 result(s) found
