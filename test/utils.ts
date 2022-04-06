@@ -78,6 +78,7 @@ export async function getSignature(
 }
 
 export async function getVaultContract(): Promise<Vault> {
+  console.log('here1')
   let token_name: string = "BUSDC";
   let token_symbol: string = "BUSDC";
   let token_decimals: number = 6;
@@ -86,13 +87,13 @@ export async function getVaultContract(): Promise<Vault> {
   let vault = (await vaultFactory.deploy(
     token_name,
     token_symbol,
-    token_decimals,
     wantTokenL1,
     keeperAddress,
     governanceAddress
   )) as Vault;
   await vault.deployed();
   console.log("Vault deployed at: ", vault.address);
+  console.log('here2')
   return vault;
 }
 
