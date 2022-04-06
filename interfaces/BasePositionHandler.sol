@@ -5,14 +5,17 @@ abstract contract BasePositionHandler {
 
   /// @notice To be emitted when a deposit is made by position handler
   /// @param amount The amount of tokens deposited
-  /// @param blockNumber The block number of the deposit
-  event Deposit(uint256 indexed amount, uint256 indexed blockNumber);
+  event Deposit(uint256 indexed amount);
 
 
   /// @notice To be emitted when a withdraw is made by position handler
   /// @param amount The amount of tokens withdrawn
-  /// @param blockNumber The block number of the withdraw
-  event Withdraw(uint256 indexed amount, uint256 indexed blockNumber);
+  event Withdraw(uint256 indexed amount);
+
+
+  /// @notice Emitted after rewards are claimed and harvested into want tokens
+  /// @param amount The reward amount that was harvested
+  event Claim(uint256 indexed amount);
   
 
   /// @notice struct to store data related to position

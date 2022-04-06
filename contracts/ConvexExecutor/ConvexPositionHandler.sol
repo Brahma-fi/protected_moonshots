@@ -136,17 +136,6 @@ contract ConvexPositionHandler is BasePositionHandler {
   //////////////////////////////////////////////////////////////*/
 
   /**
-   @notice Emitted after Want tokens are deposited into contract and converted into LP tokens
-   @param amount The amount that was deposited
-   */
-  event Deposit(uint256 indexed amount);
-  /**
-   @notice Emitted after Want tokens are withdrawn
-   @param amount The amount that was withdrawn
-   */
-  event Withdraw(uint256 indexed amount);
-
-  /**
    @notice To deposit into the Curve Pool
    @dev Converts USDC to lp tokens via Curve
    @param _data Encoded AmountParams as _data with USDC amount
@@ -262,12 +251,6 @@ contract ConvexPositionHandler is BasePositionHandler {
   /*///////////////////////////////////////////////////////////////
                       REWARDS LOGIC
   //////////////////////////////////////////////////////////////*/
-
-  /**
-   @notice Emitted after rewards are claimed and harvested into want tokens
-   @param amount The reward amount that was harvested
-   */
-  event Claim(uint256 indexed amount);
 
   /**
    @notice To claim rewards from Convex Staking position
