@@ -1,12 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/IBatcher.sol";
-import "../../interfaces/IVault.sol";
+import "../../interfaces/IHauler.sol";
 import "../ConvexExecutor/interfaces/ICurvePool.sol";
 import "../ConvexExecutor/interfaces/ICurveDepositZapper.sol";
 
@@ -15,198 +14,249 @@ import "./EIP712.sol";
 /// @title Batcher
 /// @author 0xAd1
 /// @notice Used to batch user deposits and withdrawals until the next rebalance
-contract Batcher is Ownable, IBatcher, EIP712 {
+contract Batcher is IBatcher, EIP712, ReentrancyGuard {
   using SafeERC20 for IERC20;
 
+  /// @notice minimum amount of tokens to be processed
   uint256 DUST_LIMIT = 10000;
 
-  struct Vault {
+  
+  struct VaultInfo {
+    address vaultAddress;
     address tokenAddress;
     uint256 maxAmount;
     uint256 currentAmount;
   }
 
-  mapping(address => Vault) public vaults;
+  /// @notice Hauler parameters for the batcher
+  VaultInfo public vaultInfo;
 
-  mapping(address => mapping(address => uint256)) public depositLedger;
-  mapping(address => mapping(address => uint256)) public withdrawLedger;
+  /// @notice Ledger to maintain addresses and their amounts to be deposited into hauler
+  mapping(address => uint256) public depositLedger;
 
+  /// @notice Ledger to maintain addresses and their amounts to be withdrawn from hauler
+  mapping(address => uint256) public withdrawLedger;
+
+  /// @notice Ledger to maintain addresses and hauler tokens which batcher owes them
+  mapping(address => uint256) public userTokens;
+
+  /// @notice Priavte mapping used to check duplicate addresses while processing batch deposits and withdrawals
+  mapping(address => bool) private processedAddresses;
+
+  /// @notice Deposit event
+  /// @param sender Address of the depositor
+  /// @param hauler Address of the hauler
+  /// @param amountIn Tokens deposited
   event DepositRequest(
     address indexed sender,
-    address indexed vault,
+    address indexed hauler,
     uint256 amountIn
   );
+
+  /// @notice Withdraw event
+  /// @param sender Address of the withdawer
+  /// @param hauler Address of the hauler
+  /// @param amountOut Tokens deposited
   event WithdrawRequest(
     address indexed sender,
-    address indexed vault,
+    address indexed hauler,
     uint256 amountOut
   );
 
+  /// @notice Address which authorises users to deposit into Batcher
   address public verificationAuthority;
+
+  /// @notice Governance address
   address public governance;
+
+  /// @notice Pending governance address
   address public pendingGovernance;
   uint256 public slippageForCurveLp = 30;
 
-  constructor(address _verificationAuthority, address _governance) {
+  constructor(address _verificationAuthority, address _governance, address haulerAddress, uint256 maxAmount) {
     verificationAuthority = _verificationAuthority;
     governance = _governance;
+  
+    require (haulerAddress != address(0), 'Invalid hauler address');
+    vaultInfo = VaultInfo({
+      vaultAddress: haulerAddress,
+      tokenAddress: IHauler(haulerAddress).wantToken(),
+      maxAmount: maxAmount,
+      currentAmount: 0
+    });
+
+    IERC20(vaultInfo.tokenAddress).approve(haulerAddress, type(uint256).max);
   }
 
-  function setAuthority(address authority) public onlyGovernance {
+  /// @notice Function to set authority address
+  /// @param authority New authority address
+  function setAuthority(address authority) public {
+    onlyGovernance();
     verificationAuthority = authority;
   }
 
   /// @inheritdoc IBatcher
   function depositFunds(
     uint256 amountIn,
-    address vaultAddress,
     bytes memory signature
-  ) external override validDeposit(vaultAddress, signature) {
-    require(
-      IERC20(vaults[vaultAddress].tokenAddress).allowance(
-        msg.sender,
-        address(this)
-      ) >= amountIn,
-      "No allowance"
-    );
-
-    IERC20(vaults[vaultAddress].tokenAddress).safeTransferFrom(
+  ) external override nonReentrant {
+    validDeposit(signature);
+    IERC20(vaultInfo.tokenAddress).safeTransferFrom(
       msg.sender,
       address(this),
       amountIn
     );
 
-    vaults[vaultAddress].currentAmount += amountIn;
+    vaultInfo.currentAmount += amountIn;
     require(
-      vaults[vaultAddress].currentAmount <= vaults[vaultAddress].maxAmount,
+      vaultInfo.currentAmount <= vaultInfo.maxAmount,
       "Exceeded deposit limit"
     );
 
-    _completeDeposit(vaultAddress, amountIn);
+    _completeDeposit(amountIn);
   }
 
   /// @inheritdoc IBatcher
   function depositFundsInCurveLpToken(
     uint256 amountIn,
-    address vaultAddress,
     bytes memory signature
-  ) external override validDeposit(vaultAddress, signature) {
+  ) external override nonReentrant {
+    validDeposit(signature);
     /// Curve Lp Token - UST_Wormhole
     IERC20 lpToken = IERC20(0xCEAF7747579696A2F0bb206a14210e3c9e6fB269);
-
-    require(
-      lpToken.allowance(msg.sender, address(this)) >= amountIn,
-      "No allowance"
-    );
 
     lpToken.safeTransferFrom(msg.sender, address(this), amountIn);
 
     uint256 usdcReceived = _convertLpTokenIntoUSDC(lpToken);
 
-    _completeDeposit(vaultAddress, usdcReceived);
+    _completeDeposit(usdcReceived);
   }
 
-  function _completeDeposit(address vaultAddress, uint256 amountIn) internal {
-    depositLedger[vaultAddress][msg.sender] =
-      depositLedger[vaultAddress][msg.sender] +
+  /// @notice Common internal helper to process deposit requests from both wantTokena and CurveLPToken
+  /// @param amountIn Amount of want tokens deposited
+  function _completeDeposit(uint256 amountIn) internal {
+    depositLedger[msg.sender] =
+      depositLedger[msg.sender] +
       (amountIn);
 
-    emit DepositRequest(msg.sender, vaultAddress, amountIn);
+    emit DepositRequest(msg.sender, vaultInfo.vaultAddress, amountIn);
   }
 
   /// @inheritdoc IBatcher
-  function withdrawFunds(uint256 amountIn, address vaultAddress)
+  function withdrawFunds(uint256 amountIn)
     external
     override
+    nonReentrant
   {
-    require(
-      vaults[vaultAddress].tokenAddress != address(0),
-      "Invalid vault address"
-    );
 
     require(
-      depositLedger[vaultAddress][msg.sender] == 0,
-      "Cannot withdraw funds from vault while waiting to deposit"
+      depositLedger[msg.sender] == 0,
+      "Cannot withdraw funds from hauler while waiting to deposit"
     );
 
-    // require(depositLedger[vaultAddress][msg.sender] >= amountOut, "No funds available");
 
-    IERC20(vaultAddress).safeTransferFrom(msg.sender, address(this), amountIn);
+    if (amountIn > userTokens[msg.sender]) {
+      IERC20(vaultInfo.vaultAddress).safeTransferFrom(msg.sender, address(this), amountIn - userTokens[msg.sender]);
+      userTokens[msg.sender] = 0;
+    } else {
+      userTokens[msg.sender] = userTokens[msg.sender] - amountIn;
+    }
+    
+    
 
-    withdrawLedger[vaultAddress][msg.sender] =
-      withdrawLedger[vaultAddress][msg.sender] +
+    withdrawLedger[msg.sender] =
+      withdrawLedger[msg.sender] +
       (amountIn);
 
-    vaults[vaultAddress].currentAmount -= amountIn;
+    vaultInfo.currentAmount -= amountIn;
 
-    emit WithdrawRequest(msg.sender, vaultAddress, amountIn);
+    emit WithdrawRequest(msg.sender, vaultInfo.vaultAddress, amountIn);
   }
 
   /// @inheritdoc IBatcher
-  function batchDeposit(address vaultAddress, address[] memory users)
+  function batchDeposit(address[] memory users)
     external
     override
-    onlyOwner
+    nonReentrant
   {
-    IVault vault = IVault(vaultAddress);
+    onlyKeeper();
+    IHauler hauler = IHauler(vaultInfo.vaultAddress);
 
     uint256 amountToDeposit = 0;
-    uint256 oldLPBalance = IERC20(address(vault)).balanceOf(address(this));
+    uint256 oldLPBalance = IERC20(address(hauler)).balanceOf(address(this));
 
     for (uint256 i = 0; i < users.length; i++) {
-      amountToDeposit =
-        amountToDeposit +
-        (depositLedger[vaultAddress][users[i]]);
+      if (!processedAddresses[users[i]]) {
+        amountToDeposit =
+          amountToDeposit +
+          (depositLedger[users[i]]);
+        processedAddresses[users[i]] = true;
+      }
     }
 
     require(amountToDeposit > 0, "no deposits to make");
 
-    uint256 lpTokensReportedByvault = vault.deposit(
+    uint256 lpTokensReportedByHauler = hauler.deposit(
       amountToDeposit,
       address(this)
     );
 
-    uint256 lpTokensReceived = IERC20(address(vault)).balanceOf(address(this)) -
-      (oldLPBalance);
+    uint256 lpTokensReceived = IERC20(address(hauler)).balanceOf(
+      address(this)
+    ) - (oldLPBalance);
 
     require(
-      lpTokensReceived == lpTokensReportedByvault,
-      "LP tokens received by vault does not match"
+      lpTokensReceived == lpTokensReportedByHauler,
+      "LP tokens received by hauler does not match"
     );
 
     for (uint256 i = 0; i < users.length; i++) {
-      uint256 userAmount = depositLedger[vaultAddress][users[i]];
-      if (userAmount > 0) {
-        uint256 userShare = (userAmount * (lpTokensReceived)) /
-          (amountToDeposit);
-        IERC20(address(vault)).safeTransfer(users[i], userShare);
-        depositLedger[vaultAddress][users[i]] = 0;
+      uint256 userAmount = depositLedger[users[i]];
+      if (processedAddresses[users[i]]) {
+        if (userAmount > 0) {
+          uint256 userShare = (userAmount * (lpTokensReceived)) /
+            (amountToDeposit);
+          userTokens[users[i]] = userTokens[users[i]] + userShare;
+          depositLedger[users[i]] = 0;
+        }
+        processedAddresses[users[i]] = false;
       }
     }
   }
 
   /// @inheritdoc IBatcher
-  function batchWithdraw(address vaultAddress, address[] memory users)
+  function claimTokens(uint256 amount, address recipient) public override nonReentrant{
+    require(userTokens[msg.sender] >= amount, "No funds available");
+    userTokens[msg.sender] = userTokens[msg.sender] - amount;
+    IERC20(vaultInfo.vaultAddress).safeTransfer(recipient, amount);
+  }
+
+  /// @inheritdoc IBatcher
+  function batchWithdraw(address[] memory users)
     external
     override
-    onlyOwner
+    nonReentrant
   {
-    IVault vault = IVault(vaultAddress);
+    onlyKeeper();
+    IHauler hauler = IHauler(vaultInfo.vaultAddress);
 
-    IERC20 token = IERC20(vaults[vaultAddress].tokenAddress);
+    IERC20 token = IERC20(vaultInfo.tokenAddress);
 
     uint256 amountToWithdraw = 0;
     uint256 oldWantBalance = token.balanceOf(address(this));
 
     for (uint256 i = 0; i < users.length; i++) {
-      amountToWithdraw =
-        amountToWithdraw +
-        (withdrawLedger[vaultAddress][users[i]]);
+      if (!processedAddresses[users[i]]) {
+        amountToWithdraw =
+          amountToWithdraw +
+          (withdrawLedger[users[i]]);
+        processedAddresses[users[i]] = true;
+      }
     }
 
     require(amountToWithdraw > 0, "no deposits to make");
 
-    uint256 wantTokensReportedByvault = vault.withdraw(
+    uint256 wantTokensReportedByHauler = hauler.withdraw(
       amountToWithdraw,
       address(this)
     );
@@ -215,61 +265,49 @@ contract Batcher is Ownable, IBatcher, EIP712 {
       (oldWantBalance);
 
     require(
-      wantTokensReceived == wantTokensReportedByvault,
-      "Want tokens received by vault does not match"
+      wantTokensReceived == wantTokensReportedByHauler,
+      "Want tokens received by hauler does not match"
     );
 
     for (uint256 i = 0; i < users.length; i++) {
-      uint256 userAmount = withdrawLedger[vaultAddress][users[i]];
-      if (userAmount > 0) {
-        uint256 userShare = (userAmount * wantTokensReceived) /
-          amountToWithdraw;
-        token.safeTransfer(users[i], userShare);
+      uint256 userAmount = withdrawLedger[users[i]];
+      if (processedAddresses[users[i]]) {
+        if (userAmount > 0) {
+          uint256 userShare = (userAmount * wantTokensReceived) /
+            amountToWithdraw;
+          token.safeTransfer(users[i], userShare);
 
-        withdrawLedger[vaultAddress][users[i]] = 0;
+          withdrawLedger[users[i]] = 0;
+        }
+        processedAddresses[users[i]] = false;
       }
     }
   }
 
   /// @inheritdoc IBatcher
-  function setVaultParams(
-    address vaultAddress,
-    address token,
-    uint256 maxLimit
-  ) external override onlyOwner {
-    require(vaultAddress != address(0), "Invalid vault address");
-    require(token != address(0), "Invalid token address");
-    // (, , IERC20Metadata token0, IERC20Metadata token1) = _getVault(vaultAddress);
-    // require(address(token0) == token || address(token1) == token, 'wrong token address');
-    vaults[vaultAddress] = Vault({
-      tokenAddress: token,
-      maxAmount: maxLimit,
-      currentAmount: 0
-    });
-
-    IERC20(token).approve(vaultAddress, type(uint256).max);
+  function setHaulerLimit(uint256 maxAmount) external override {
+    onlyKeeper();
+    vaultInfo.maxAmount = maxAmount;
   }
 
-  /**
-   * @notice Get the balance of a token in contract
-   * @param token token whose balance needs to be returned
-   * @return balance of a token in contract
-   */
-  function _tokenBalance(IERC20Metadata token) internal view returns (uint256) {
-    return token.balanceOf(address(this));
-  }
-
-  function sweep(address _token) public onlyGovernance {
+  /// @notice Function to sweep funds out in case of emergency, can only be called by governance
+  /// @param _token Address of token to sweep
+  function sweep(address _token) public nonReentrant{
+    onlyGovernance();
     IERC20(_token).transfer(
       msg.sender,
       IERC20(_token).balanceOf(address(this))
     );
   }
 
-  function setGovernance(address _governance) external onlyGovernance {
+  /// @notice Function to change governance. New address will need to accept the governance role
+  /// @param _governance Address of new temporary governance
+  function setGovernance(address _governance) external {
+    onlyGovernance();
     pendingGovernance = _governance;
   }
 
+  /// @notice Function to accept governance role. Only pending governance can accept this role
   function acceptGovernance() external {
     require(
       msg.sender == pendingGovernance,
@@ -315,32 +353,43 @@ contract Batcher is Ownable, IBatcher, EIP712 {
     );
   }
 
-  function setSlippage(uint256 _slippage) external override onlyOwner {
+  /// @notice Helper to get Keeper address from Hauler contract
+  /// @return Keeper address
+  function keeper() public view returns (address) {
+    require(vaultInfo.vaultAddress != address(0), "Hauler not set");
+    return IHauler(vaultInfo.vaultAddress).keeper();
+  }
+
+
+  /// @notice Setting slippage for swaps
+  /// @param _slippage Must be between 0 and 10000
+  function setSlippage(uint256 _slippage) external override {
+    onlyKeeper();
     require(_slippage <= 10000, "Slippage must be between 0 and 10000");
     slippageForCurveLp = _slippage;
   }
 
-  modifier onlyGovernance() {
+  /// @notice Helper to asset msg.sender as governance address
+  function onlyGovernance() internal view{
     require(governance == msg.sender, "Only governance can call this");
-    _;
   }
 
-  modifier validDeposit(address vaultAddress, bytes memory signature) {
+  /// @notice Helper to asset msg.sender as keeper address
+  function onlyKeeper() internal view {
+    require(msg.sender == keeper(), "Only keeper can call this function");
+  }
+
+  /// @notice Helper to verify signature against verification authority
+  /// @param signature Should be generated by verificationAuthority. Should contain msg.sender 
+  function validDeposit(bytes memory signature) internal view {
     require(
       verifySignatureAgainstAuthority(signature, verificationAuthority),
       "Signature is not valid"
     );
 
     require(
-      vaults[vaultAddress].tokenAddress != address(0),
-      "Invalid vault address"
+      withdrawLedger[msg.sender] == 0,
+      "Cannot deposit funds to hauler while waiting to withdraw"
     );
-
-    require(
-      withdrawLedger[vaultAddress][msg.sender] == 0,
-      "Cannot deposit funds to vault while waiting to withdraw"
-    );
-
-    _;
   }
 }
