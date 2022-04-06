@@ -152,7 +152,7 @@ contract PerpPositionHandler is
       depositParams._socketData
     );
 
-    emit Deposit(depositParams._amount, block.number);
+    emit Deposit(depositParams._amount);
   }
 
   /// @notice Sends message to SPHL2 to send tokens back to strategy using Socket
@@ -168,7 +168,7 @@ contract PerpPositionHandler is
       withdrawParams._socketData
     );
     sendMessageToL2(positionHandlerL2Address, L2calldata, withdrawParams._gasLimit);
-    emit Withdraw(withdrawParams._amount, block.number);
+    emit Withdraw(withdrawParams._amount);
   }
 
 
