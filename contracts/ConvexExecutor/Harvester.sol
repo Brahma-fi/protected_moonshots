@@ -177,7 +177,7 @@ contract Harvester is IHarvester {
       _3crvPool.remove_liquidity_one_coin(_3crvBalance, 1, 0);
     }
 
-    // send token usdc back to hauler
+    // send token usdc back to vault
     wantToken.safeTransfer(msg.sender, wantToken.balanceOf(address(this)));
   }
 

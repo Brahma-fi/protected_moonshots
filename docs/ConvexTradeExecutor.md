@@ -12,15 +12,15 @@ description: The ConvexTradeExecutor Contract
 
 ## 1. Introduction
 
-THe `ConvexTradeExecutor` is the long position handler. The `Hauler` deposits to and withdraws funds in USDC, which is then converted to Curve LP tokens which are converted and staked on convex, to accrue rewards and earn yield.
+THe `ConvexTradeExecutor` is the long position handler. The `Vault` deposits to and withdraws funds in USDC, which is then converted to Curve LP tokens which are converted and staked on convex, to accrue rewards and earn yield.
 
 ## 2. Contract Details
 
 **- Key Functionalities**
 
-- `initiateDeposit` - Converts the want tokens sent by hauler into Curve LP (UST3 Metapool) tokens.
+- `initiateDeposit` - Converts the want tokens sent by vault into Curve LP (UST3 Metapool) tokens.
 
-- `initiateWithdraw` - Prepares enough want token balance in the contract by unstaking/converting LP Tokens if needed, for the hauler to pull.
+- `initiateWithdraw` - Prepares enough want token balance in the contract by unstaking/converting LP Tokens if needed, for the vault to pull.
 
 - `openPosition` - Opens a long position on Convex by staking Curve LP (UST3 Metapool) tokens.
 
@@ -30,14 +30,14 @@ THe `ConvexTradeExecutor` is the long position handler. The `Hauler` deposits to
 
 ## 3. Roles
 
-| Role Name  | Access                                             | Description                                                                                                                                       |
-| ---------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Governance | Mutable by current _Governance_ role (from Hauler) | To modify the contract's base state and call `sweep` to sweep funds.                                                                              |
-| Keeper     | Mutable by _Governance_ role (from Hauler)         | To perform all the main operations like `setSlippage`, `initiateDeposit`, `initiateWithdraw`, `openPosition`, `closePosition` and `claimRewards`. |
+| Role Name  | Access                                            | Description                                                                                                                                       |
+| ---------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Governance | Mutable by current _Governance_ role (from Vault) | To modify the contract's base state and call `sweep` to sweep funds.                                                                              |
+| Keeper     | Mutable by _Governance_ role (from Vault)         | To perform all the main operations like `setSlippage`, `initiateDeposit`, `initiateWithdraw`, `openPosition`, `closePosition` and `claimRewards`. |
 
 ## 4. Mechanisms & Concepts
 
-The `ConvexTradeExecutor` is responsible for handling the long position of the strategy. It accepts deposits from `Hauler` in `wantToken` and converts this into Curve LP (UST3 Metapool) Tokens, which are converted to Convex Curve LP Tokens and staked on Convex. It also claims rewards from the Convex staked position, and harvests these into `wantToken`s. At the final stage, it prepares enough `wantToken`s, by either unstaking from position or converting LP Tokens, for the `Hauler` to pull.
+The `ConvexTradeExecutor` is responsible for handling the long position of the strategy. It accepts deposits from `Vault` in `wantToken` and converts this into Curve LP (UST3 Metapool) Tokens, which are converted to Convex Curve LP Tokens and staked on Convex. It also claims rewards from the Convex staked position, and harvests these into `wantToken`s. At the final stage, it prepares enough `wantToken`s, by either unstaking from position or converting LP Tokens, for the `Vault` to pull.
 
 ## 5. Gotchas
 
