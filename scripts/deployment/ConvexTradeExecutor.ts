@@ -1,5 +1,5 @@
 import hre from "hardhat";
-import { vault } from "../../src/types";
+import { Vault } from "../../src/types";
 
 const ConvexTradeExecutorConfig = {
   baseRewardPool: "0x7e2b9B5244bcFa5108A76D5E7b507CFD5581AD4A",
@@ -23,7 +23,7 @@ async function main() {
       maxPriorityFeePerGas: feeData["maxPriorityFeePerGas"], // Recommended maxPriorityFeePerGas
       maxFeePerGas: feeData["maxFeePerGas"] // Recommended maxFeePerGas
     }
-  )) as vault;
+  )) as Vault;
 
   await convexTradeExecutor.deployed();
   console.log("ConvexTradeExecutor deployed to:", convexTradeExecutor.address);

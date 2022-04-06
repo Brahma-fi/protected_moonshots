@@ -2,7 +2,7 @@ import { expect } from "chai";
 import hre from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import {
-  vault,
+  Vault,
   IERC20,
   PerpPositionHandlerL2,
   IClearingHouseConfig,
@@ -35,7 +35,7 @@ describe("PerpHandlerL2 [OPTIMISM]", function () {
   let signer: SignerWithAddress;
   let signerL2: SignerWithAddress;
   let invalidSigner: SignerWithAddress;
-  let vault: vault;
+  let vault: Vault;
 
   let perpL2Handler: PerpPositionHandlerL2;
   let USDC: IERC20;
