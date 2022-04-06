@@ -1,5 +1,5 @@
 import hre from "hardhat";
-import { vault, PerpTradeExecutor } from "../../src/types";
+import { Vault, PerpTradeExecutor } from "../../src/types";
 
 const PerpTradeExecutorConfig = {
   vault: "0x1C4ceb52ab54a35F9d03FcC156a7c57F965e081e",
