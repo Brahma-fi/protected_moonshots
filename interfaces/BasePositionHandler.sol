@@ -2,21 +2,13 @@
 pragma solidity ^0.8.0;
 
 abstract contract BasePositionHandler {
-
   /// @notice To be emitted when a deposit is made by position handler
   /// @param amount The amount of tokens deposited
   event Deposit(uint256 indexed amount);
 
-
   /// @notice To be emitted when a withdraw is made by position handler
   /// @param amount The amount of tokens withdrawn
   event Withdraw(uint256 indexed amount);
-
-
-  /// @notice Emitted after rewards are claimed and harvested into want tokens
-  /// @param amount The reward amount that was harvested
-  event Claim(uint256 indexed amount);
-  
 
   /// @notice struct to store data related to position
   /// @param posValue The value of the position in vault wantToken
