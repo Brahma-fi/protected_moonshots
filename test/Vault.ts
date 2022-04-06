@@ -17,7 +17,7 @@ import {
   mineBlocks
 } from "./utils";
 
-describe("Vault", function () {
+describe("Vault [MAINNET]", function () {
   let vault: Vault;
   let convexTradeExecutor: ConvexTradeExecutor;
   let perpTradeExecutor: PerpTradeExecutor;
