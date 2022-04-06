@@ -2,68 +2,74 @@
 pragma solidity ^0.8.0;
 
 /**
- * @title IPeripheryBatcher
+ * @title IBatcher
  * @notice A batcher to resolve hauler deposits/withdrawals in batches
  * @dev Provides an interface for Batcher
  */
 interface IBatcher {
-  /**
-   * @notice Stores the deposits for future batching via periphery
-   * @param amountIn Value of token to be deposited
-   * @param haulerAddress address of hauler to deposit into
-   * @param signature signature verifying that depositor has enough karma and is authorized to deposit by brahma
-   */
+
+  /// @notice Data structure to store vault info
+  /// @param vaultAddress Address of the vault
+  /// @param tokenAddress Address vault's want token
+  /// @param maxAmount Max amount of tokens to deposit in vault
+  /// @param currentAmount Current amount of wantTokens deposited in the vault
+  struct VaultInfo {
+    address vaultAddress;
+    address tokenAddress;
+    uint256 maxAmount;
+    uint256 currentAmount;
+  }
+
+  /// @notice Deposit event
+  /// @param sender Address of the depositor
+  /// @param hauler Address of the hauler
+  /// @param amountIn Tokens deposited
+  event DepositRequest(
+    address indexed sender,
+    address indexed hauler,
+    uint256 amountIn
+  );
+
+  /// @notice Withdraw event
+  /// @param sender Address of the withdawer
+  /// @param hauler Address of the hauler
+  /// @param amountOut Tokens deposited
+  event WithdrawRequest(
+    address indexed sender,
+    address indexed hauler,
+    uint256 amountOut
+  );
+
+
   function depositFunds(
     uint256 amountIn,
-    address haulerAddress,
     bytes memory signature
   ) external;
 
-  /**
-   * @notice Stores the deposits for future batching via periphery
-   * @param amountIn Value of Lp token to be deposited
-   * @param haulerAddress address of hauler to deposit into
-   * @param signature signature verifying that depositor has enough karma and is authorized to deposit by brahma
-   */
+
   function depositFundsInCurveLpToken(
     uint256 amountIn,
-    address haulerAddress,
     bytes memory signature
   ) external;
 
-  /**
-   * @notice Stores the deposits for future batching via periphery
-   * @param amountOut Value of token to be deposited
-   * @param haulerAddress address of hauler to deposit into
-   */
-  function withdrawFunds(uint256 amountOut, address haulerAddress) external;
 
-  /**
-   * @notice Performs deposits on the periphery for the supplied users in batch
-   * @param haulerAddress address of hauler to deposit inton
-   * @param users array of users whose deposits must be resolved
-   */
-  function batchDeposit(address haulerAddress, address[] memory users) external;
+  function claimTokens(
+    uint256 amount,
+    address recipient
+  ) external;
 
-  /**
-   * @notice Performs withdraws on the periphery for the supplied users in batch
-   * @param haulerAddress address of hauler to deposit inton
-   * @param users array of users whose deposits must be resolved
-   */
-  function batchWithdraw(address haulerAddress, address[] memory users)
+
+  function withdrawFunds(uint256 amountOut) external;
+
+
+  function batchDeposit(address[] memory users) external;
+
+
+  function batchWithdraw(address[] memory users)
     external;
 
-  /**
-   * @notice To set a token address as the deposit token for a hauler
-   * @param haulerAddress address of hauler to deposit inton
-   * @param token address of token which is to be deposited into hauler
-   */
-  function setHaulerParams(address haulerAddress, address token, uint256 maxLimit) external;
 
+  function setHaulerLimit(uint256 maxLimit) external;
 
-  /**
-   * @notice To set slippage param for curve lp token conversion
-   * @param slippage for curve lp token to usdc conversion
-   */
   function setSlippage(uint256 slippage) external;
 }

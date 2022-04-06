@@ -3,13 +3,27 @@ pragma solidity ^0.8.0;
 
 import "./BaseTradeExecutor.sol";
 import "./PerpHandler/PerpPositionHandler.sol";
-import "../interfaces/IHauler.sol";
+import "../interfaces/IVault.sol";
 
 /// @title PerpTradeExecutor
 /// @author 0xAd1
 /// @notice A contract to execute manage a Perp Position Handler on Optimism 
 contract PerpTradeExecutor is BaseTradeExecutor, PerpPositionHandler {
-
+  constructor(
+    address vault,
+    address _wantTokenL2,
+    address _l2HandlerAddress,
+    address _L1CrossDomainMessenger,
+    address _socketRegistry
+  ) BaseTradeExecutor(vault) {
+    _initHandler(
+      _wantTokenL2,
+      _l2HandlerAddress,
+      _L1CrossDomainMessenger,
+      _socketRegistry
+    );
+    wantTokenL1 = IVault(vault).wantToken();
+  }
 
     /// @notice Constructor of the Trade Executor
     /// @param hauler Address of the Hauler contract
@@ -104,3 +118,4 @@ contract PerpTradeExecutor is BaseTradeExecutor, PerpPositionHandler {
 
 
 }
+

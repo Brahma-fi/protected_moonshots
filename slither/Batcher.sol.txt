@@ -7,40 +7,40 @@ Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#uncheck
 ---
 
 Batcher.batchDeposit(address,address[]) (contracts/Batcher/Batcher.sol#142-183) uses a dangerous strict equality:
-	- require(bool,string)(lpTokensReceived == lpTokensReportedByHauler,LP tokens received by hauler does not match) (contracts/Batcher/Batcher.sol#169-172)
+	- require(bool,string)(lpTokensReceived == lpTokensReportedByvault,LP tokens received by vault does not match) (contracts/Batcher/Batcher.sol#169-172)
 Batcher.batchWithdraw(address,address[]) (contracts/Batcher/Batcher.sol#186-229) uses a dangerous strict equality:
-	- require(bool,string)(wantTokensReceived == wantTokensReportedByHauler,Want tokens received by hauler does not match) (contracts/Batcher/Batcher.sol#214-217)
+	- require(bool,string)(wantTokensReceived == wantTokensReportedByvault,Want tokens received by vault does not match) (contracts/Batcher/Batcher.sol#214-217)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#dangerous-strict-equalities
 
 Reentrancy in Batcher.batchDeposit(address,address[]) (contracts/Batcher/Batcher.sol#142-183):
 	External calls:
-	- lpTokensReportedByHauler = hauler.deposit(amountToDeposit,address(this)) (contracts/Batcher/Batcher.sol#160-163)
-	- IERC20(address(hauler)).safeTransfer(users[i_scope_0],userShare) (contracts/Batcher/Batcher.sol#179)
+	- lpTokensReportedByvault = vault.deposit(amountToDeposit,address(this)) (contracts/Batcher/Batcher.sol#160-163)
+	- IERC20(address(vault)).safeTransfer(users[i_scope_0],userShare) (contracts/Batcher/Batcher.sol#179)
 	State variables written after the call(s):
-	- depositLedger[haulerAddress][users[i_scope_0]] = 0 (contracts/Batcher/Batcher.sol#180)
+	- depositLedger[vaultAddress][users[i_scope_0]] = 0 (contracts/Batcher/Batcher.sol#180)
 Reentrancy in Batcher.batchWithdraw(address,address[]) (contracts/Batcher/Batcher.sol#186-229):
 	External calls:
-	- wantTokensReportedByHauler = hauler.withdraw(amountToWithdraw,address(this)) (contracts/Batcher/Batcher.sol#206-209)
+	- wantTokensReportedByvault = vault.withdraw(amountToWithdraw,address(this)) (contracts/Batcher/Batcher.sol#206-209)
 	- token.safeTransfer(users[i_scope_0],userShare) (contracts/Batcher/Batcher.sol#224)
 	State variables written after the call(s):
-	- withdrawLedger[haulerAddress][users[i_scope_0]] = 0 (contracts/Batcher/Batcher.sol#226)
+	- withdrawLedger[vaultAddress][users[i_scope_0]] = 0 (contracts/Batcher/Batcher.sol#226)
 Reentrancy in Batcher.depositFunds(uint256,address,bytes) (contracts/Batcher/Batcher.sol#59-82):
 	External calls:
-	- IERC20(vaults[haulerAddress].tokenAddress).safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Batcher/Batcher.sol#72-76)
+	- IERC20(vaults[vaultAddress].tokenAddress).safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Batcher/Batcher.sol#72-76)
 	State variables written after the call(s):
-	- vaults[haulerAddress].currentAmount += amountIn (contracts/Batcher/Batcher.sol#78)
+	- vaults[vaultAddress].currentAmount += amountIn (contracts/Batcher/Batcher.sol#78)
 Reentrancy in Batcher.withdrawFunds(uint256,address) (contracts/Batcher/Batcher.sol#114-139):
 	External calls:
-	- IERC20(haulerAddress).safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Batcher/Batcher.sol#130)
+	- IERC20(vaultAddress).safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Batcher/Batcher.sol#130)
 	State variables written after the call(s):
-	- vaults[haulerAddress].currentAmount -= amountIn (contracts/Batcher/Batcher.sol#136)
+	- vaults[vaultAddress].currentAmount -= amountIn (contracts/Batcher/Batcher.sol#136)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-1
 
 Batcher.setSlippage(uint256) (contracts/Batcher/Batcher.sol#316-322) contains a tautology or contradiction:
 	- require(bool,string)(_slippage >= 0 && _slippage <= 10000,Slippage must be between 0 and 10000) (contracts/Batcher/Batcher.sol#317-320)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#tautology-or-contradiction
 
-Batcher.setHaulerParams(address,address,uint256) (contracts/Batcher/Batcher.sol#232-248) ignores return value by IERC20(token).approve(haulerAddress,type()(uint256).max) (contracts/Batcher/Batcher.sol#247)
+Batcher.setVaultParams(address,address,uint256) (contracts/Batcher/Batcher.sol#232-248) ignores return value by IERC20(token).approve(vaultAddress,type()(uint256).max) (contracts/Batcher/Batcher.sol#247)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#unused-return
 
 ---
@@ -65,10 +65,10 @@ Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#missing
 
 Reentrancy in Batcher.depositFunds(uint256,address,bytes) (contracts/Batcher/Batcher.sol#59-82):
 	External calls:
-	- IERC20(vaults[haulerAddress].tokenAddress).safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Batcher/Batcher.sol#72-76)
+	- IERC20(vaults[vaultAddress].tokenAddress).safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Batcher/Batcher.sol#72-76)
 	State variables written after the call(s):
-	- _completeDeposit(haulerAddress,amountIn) (contracts/Batcher/Batcher.sol#81)
-		- depositLedger[haulerAddress][msg.sender] = depositLedger[haulerAddress][msg.sender] + (amountIn) (contracts/Batcher/Batcher.sol#106-108)
+	- _completeDeposit(vaultAddress,amountIn) (contracts/Batcher/Batcher.sol#81)
+		- depositLedger[vaultAddress][msg.sender] = depositLedger[vaultAddress][msg.sender] + (amountIn) (contracts/Batcher/Batcher.sol#106-108)
 Reentrancy in Batcher.depositFundsInCurveLpToken(uint256,address,bytes) (contracts/Batcher/Batcher.sol#85-103):
 	External calls:
 	- lpToken.safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Batcher/Batcher.sol#98)
@@ -82,21 +82,21 @@ Reentrancy in Batcher.depositFundsInCurveLpToken(uint256,address,bytes) (contrac
 	- usdcReceived = _convertLpTokenIntoUSDC(lpToken) (contracts/Batcher/Batcher.sol#100)
 		- (success,returndata) = target.call{value: value}(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#137)
 	State variables written after the call(s):
-	- _completeDeposit(haulerAddress,usdcReceived) (contracts/Batcher/Batcher.sol#102)
-		- depositLedger[haulerAddress][msg.sender] = depositLedger[haulerAddress][msg.sender] + (amountIn) (contracts/Batcher/Batcher.sol#106-108)
+	- _completeDeposit(vaultAddress,usdcReceived) (contracts/Batcher/Batcher.sol#102)
+		- depositLedger[vaultAddress][msg.sender] = depositLedger[vaultAddress][msg.sender] + (amountIn) (contracts/Batcher/Batcher.sol#106-108)
 Reentrancy in Batcher.withdrawFunds(uint256,address) (contracts/Batcher/Batcher.sol#114-139):
 	External calls:
-	- IERC20(haulerAddress).safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Batcher/Batcher.sol#130)
+	- IERC20(vaultAddress).safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Batcher/Batcher.sol#130)
 	State variables written after the call(s):
-	- withdrawLedger[haulerAddress][msg.sender] = withdrawLedger[haulerAddress][msg.sender] + (amountIn) (contracts/Batcher/Batcher.sol#132-134)
+	- withdrawLedger[vaultAddress][msg.sender] = withdrawLedger[vaultAddress][msg.sender] + (amountIn) (contracts/Batcher/Batcher.sol#132-134)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-2
 
 Reentrancy in Batcher.depositFunds(uint256,address,bytes) (contracts/Batcher/Batcher.sol#59-82):
 	External calls:
-	- IERC20(vaults[haulerAddress].tokenAddress).safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Batcher/Batcher.sol#72-76)
+	- IERC20(vaults[vaultAddress].tokenAddress).safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Batcher/Batcher.sol#72-76)
 	Event emitted after the call(s):
-	- DepositRequest(msg.sender,haulerAddress,amountIn) (contracts/Batcher/Batcher.sol#110)
-		- _completeDeposit(haulerAddress,amountIn) (contracts/Batcher/Batcher.sol#81)
+	- DepositRequest(msg.sender,vaultAddress,amountIn) (contracts/Batcher/Batcher.sol#110)
+		- _completeDeposit(vaultAddress,amountIn) (contracts/Batcher/Batcher.sol#81)
 Reentrancy in Batcher.depositFundsInCurveLpToken(uint256,address,bytes) (contracts/Batcher/Batcher.sol#85-103):
 	External calls:
 	- lpToken.safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Batcher/Batcher.sol#98)
@@ -110,13 +110,13 @@ Reentrancy in Batcher.depositFundsInCurveLpToken(uint256,address,bytes) (contrac
 	- usdcReceived = _convertLpTokenIntoUSDC(lpToken) (contracts/Batcher/Batcher.sol#100)
 		- (success,returndata) = target.call{value: value}(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#137)
 	Event emitted after the call(s):
-	- DepositRequest(msg.sender,haulerAddress,amountIn) (contracts/Batcher/Batcher.sol#110)
-		- _completeDeposit(haulerAddress,usdcReceived) (contracts/Batcher/Batcher.sol#102)
+	- DepositRequest(msg.sender,vaultAddress,amountIn) (contracts/Batcher/Batcher.sol#110)
+		- _completeDeposit(vaultAddress,usdcReceived) (contracts/Batcher/Batcher.sol#102)
 Reentrancy in Batcher.withdrawFunds(uint256,address) (contracts/Batcher/Batcher.sol#114-139):
 	External calls:
-	- IERC20(haulerAddress).safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Batcher/Batcher.sol#130)
+	- IERC20(vaultAddress).safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Batcher/Batcher.sol#130)
 	Event emitted after the call(s):
-	- WithdrawRequest(msg.sender,haulerAddress,amountIn) (contracts/Batcher/Batcher.sol#138)
+	- WithdrawRequest(msg.sender,vaultAddress,amountIn) (contracts/Batcher/Batcher.sol#138)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-3
 
 Address.verifyCallResult(bool,bytes,string) (node_modules/@openzeppelin/contracts/utils/Address.sol#201-221) uses assembly
@@ -138,7 +138,7 @@ Different versions of Solidity is used:
 	- ^0.8.0 (contracts/Batcher/interfaces/IBatcher.sol#2)
 	- ^0.8.0 (contracts/ConvexExecutor/interfaces/ICurveDepositZapper.sol#2)
 	- ^0.8.0 (contracts/ConvexExecutor/interfaces/ICurvePool.sol#2)
-	- ^0.8.0 (interfaces/IHauler.sol#2)
+	- ^0.8.0 (interfaces/IVault.sol#2)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#different-pragma-directives-are-used
 
 Address.functionCall(address,bytes) (node_modules/@openzeppelin/contracts/utils/Address.sol#85-87) is never used and should be removed
@@ -164,7 +164,7 @@ Pragma version^0.8.0 (contracts/Batcher/EIP712.sol#2) allows old versions
 Pragma version^0.8.0 (contracts/Batcher/interfaces/IBatcher.sol#2) allows old versions
 Pragma version^0.8.0 (contracts/ConvexExecutor/interfaces/ICurveDepositZapper.sol#2) allows old versions
 Pragma version^0.8.0 (contracts/ConvexExecutor/interfaces/ICurvePool.sol#2) allows old versions
-Pragma version^0.8.0 (interfaces/IHauler.sol#2) allows old versions
+Pragma version^0.8.0 (interfaces/IVault.sol#2) allows old versions
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#incorrect-versions-of-solidity
 
 Low level call in Address.sendValue(address,uint256) (node_modules/@openzeppelin/contracts/utils/Address.sol#60-65):
