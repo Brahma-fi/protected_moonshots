@@ -2,7 +2,7 @@ import { ethers } from "hardhat";
 import {
   Batcher,
   ConvexTradeExecutor,
-  vault,
+  Vault,
   IERC20,
   PerpTradeExecutor
 } from "../src/types";
@@ -51,7 +51,7 @@ const main = async () => {
     "ConvexTradeExecutor",
     convexTradeExecutorAddress
   )) as ConvexTradeExecutor;
-  const vault = (await ethers.getContractAt("Vault", vaultAddress)) as vault;
+  const vault = (await ethers.getContractAt("Vault", vaultAddress)) as Vault;
 
   const batcher = (await ethers.getContractAt(
     "Batcher",
