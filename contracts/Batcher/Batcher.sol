@@ -426,7 +426,7 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
   function acceptGovernance() external {
     require(
       msg.sender == pendingGovernance,
-      "Only pending governance can accept"
+      "ONLY_PENDING_GOV"
     );
     governance = pendingGovernance;
   }
