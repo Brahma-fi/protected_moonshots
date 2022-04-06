@@ -84,7 +84,6 @@ describe("Hauler", function () {
     expect(await hauler.totalHaulerFunds()).to.equal(depositAmount);
     expect(await hauler.totalSupply()).to.equal(depositAmount);
     expect(await hauler.balanceOf(signer.address)).to.equal(depositAmount);
-    expect(await hauler.accuredFees()).to.equal(BigNumber.from(0));
 
     // move time forward
     await mineBlocks(60);
@@ -209,11 +208,11 @@ describe("Hauler", function () {
     );
     // withdraw funds from hauler.
     let amount = BigNumber.from(90e6);
-    await hauler.withdraw(amount, signer.address);
+    let balanceBefore  = await  USDC.balanceOf(governanceAddress);
     // collect fees.
-    expect((await hauler.accuredFees()).gt(BigNumber.from(0))).to.equal(true);
-    await hauler.collectFees();
-    expect(await hauler.accuredFees()).to.equal(BigNumber.from(0));
+    await hauler.withdraw(amount, signer.address);
+    let balanceAfter = await USDC.balanceOf(governanceAddress);
+    expect(balanceAfter.sub(balanceBefore).gt(BigNumber.from(0))).to.equal(true);
   });
 
   // Operation - Expected Behaviour
