@@ -6,7 +6,7 @@ import { wantTokenL1 } from "../../scripts/constants";
 import {
   ConvexTradeExecutor,
   Harvester,
-  Hauler,
+  Vault,
   IConvexRewards,
   IERC20
 } from "../../src/types";
@@ -26,7 +26,7 @@ const HarvesterConfig = {
 const DeployedAddresses = {
   convexTradeExec: "0x3167b932336b029bBFE1964E435889FA8e595738",
   harvester: "0xF1D339D9456BC1e09b548E7946A78D9C4b5f1B68",
-  hauler: "0x1C4ceb52ab54a35F9d03FcC156a7c57F965e081e"
+  vault: "0x1C4ceb52ab54a35F9d03FcC156a7c57F965e081e"
 };
 
 const MAX_INT =
@@ -40,7 +40,7 @@ const _3CRVPOOL = "0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7";
 
 let convexTradeExecutor: ConvexTradeExecutor;
 let harvester: Harvester;
-let hauler: Hauler;
+let vault: Vault;
 let baseRewardPool: IConvexRewards;
 
 let USDC: IERC20;
@@ -79,10 +79,10 @@ const deploy = async () => {
 
   USDC = await getUSDCContract();
 
-  hauler = (await ethers.getContractAt(
-    "Hauler",
-    DeployedAddresses.hauler
-  )) as Hauler;
+  vault = (await ethers.getContractAt(
+    "Vault",
+    DeployedAddresses.vault
+  )) as Vault;
 
   harvester = (await ethers.getContractAt(
     "Harvester",
@@ -103,7 +103,7 @@ describe("[MAINNET] Convex Trade Executor", function () {
     invalidSigner = (await ethers.getSigners())[1];
 
     await deploy();
-    await hauler.addExecutor(DeployedAddresses.convexTradeExec);
+    await vault.addExecutor(DeployedAddresses.convexTradeExec);
   });
 
   it("Should deploy Harvester correctly", async () => {
@@ -132,8 +132,8 @@ describe("[MAINNET] Convex Trade Executor", function () {
   });
 
   it("Should deposit correctly", async () => {
-    const usdcBal = await USDC.balanceOf(hauler.address);
-    await hauler.depositIntoExecutor(
+    const usdcBal = await USDC.balanceOf(vault.address);
+    await vault.depositIntoExecutor(
       DeployedAddresses.convexTradeExec,
       usdcBal,
       {
@@ -264,7 +264,7 @@ describe("[MAINNET] Convex Trade Executor", function () {
 
     expect(finalUsdcBal.gt(initialUsdcBal));
 
-    await hauler.withdrawFromExecutor(
+    await vault.withdrawFromExecutor(
       DeployedAddresses.convexTradeExec,
       finalUsdcBal,
       {
@@ -272,6 +272,6 @@ describe("[MAINNET] Convex Trade Executor", function () {
       }
     );
 
-    expect(await USDC.balanceOf(hauler.address)).equals(finalUsdcBal);
+    expect(await USDC.balanceOf(vault.address)).equals(finalUsdcBal);
   });
 });
