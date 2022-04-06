@@ -20,7 +20,7 @@ Unstake → the equivalent request amount from convex. Transfer the funds to vau
 
 
 ##  Protected MoonShot Smart Contract Modules
-![alt text](./images/architecture_diagram.png)
+![alt text](./images/architecture_diagram.svg)
 
 
 ## Contracts
