@@ -85,8 +85,8 @@ contract Hauler is IHauler, ERC20, ReentrancyGuard {
         onlyBatcher();
         isValidAddress(receiver);
         require(amountIn > 0, "ZERO_AMOUNT");
-        // calculate the fees
-        calculateFees();
+        // collect the fees
+        collectFees();
         // calculate the shares based on the amount.
         shares = totalSupply() > 0
             ? (totalSupply() * amountIn) / totalHaulerFunds()
@@ -110,8 +110,8 @@ contract Hauler is IHauler, ERC20, ReentrancyGuard {
         onlyBatcher();
         isValidAddress(receiver);
         require(sharesIn > 0, "ZERO_SHARES");
-        // calculate the fees
-        calculateFees();
+        // collect the fees
+        collectFees();
         // calculate the amount based on the shares.
         amountOut = (sharesIn * totalHaulerFunds()) / totalSupply();
         _burn(receiver, sharesIn);
@@ -125,8 +125,7 @@ contract Hauler is IHauler, ERC20, ReentrancyGuard {
     function totalHaulerFunds() public view returns (uint256) {
         return
             IERC20(wantToken).balanceOf(address(this)) +
-            totalExecutorFunds() -
-            accuredFees;
+            totalExecutorFunds();
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -178,8 +177,6 @@ contract Hauler is IHauler, ERC20, ReentrancyGuard {
     uint256 public prevHaulerFunds = type(uint256).max;
     /// @dev Perfomance fee for the Hauler.
     uint256 public performanceFee;
-    /// @dev accured fees for the Governance.
-    uint256 public accuredFees;
     /// @notice Emitted after fee updation.
     /// @param fee The new performance fee on Hauler.
     event UpdatePerformanceFee(uint256 fee);
@@ -194,34 +191,25 @@ contract Hauler is IHauler, ERC20, ReentrancyGuard {
         emit UpdatePerformanceFee(_fee);
     }
 
-    /// @notice Calculates the fee for the Hauler.
-    /// @dev checks the yield made since previous harvest and
-    /// calculates the fee based on it. Also note: this function
-    /// should be called before processing any new deposits/withdrawals.
-    function calculateFees() internal {
-        uint256 currentFunds = totalHaulerFunds();
-        // collect fees only when profit is made.
-        if (currentFunds > prevHaulerFunds) {
-            require(currentFunds < 2 * prevHaulerFunds, "TOO_MUCH_PROFIT");
-            uint256 yieldEarned = (currentFunds - prevHaulerFunds) *
-                performanceFee;
-            // normalization by MAX_BPS
-            accuredFees += (yieldEarned / MAX_BPS);
-        }
-    }
 
     /// @notice Emitted when a fees are collected.
     /// @param collectedFees The amount of fees collected.
     event FeesCollected(uint256 collectedFees);
 
-    /// @notice Collects the fees from the Hauler.
+    /// @notice Calculates and collects the fees from the Hauler.
     /// @dev This function sends all the accured fees to governance.
-    function collectFees() public {
-        onlyKeeper();
-        if (accuredFees > 0) {
-            IERC20(wantToken).safeTransfer(governance, accuredFees);
-            emit FeesCollected(accuredFees);
-            accuredFees = 0;
+    /// checks the yield made since previous harvest and
+    /// calculates the fee based on it. Also note: this function
+    /// should be called before processing any new deposits/withdrawals.
+    function collectFees() internal {
+        uint256 currentFunds = totalHaulerFunds();
+        // collect fees only when profit is made.
+        if (currentFunds > prevHaulerFunds) {
+            uint256 yieldEarned = (currentFunds - prevHaulerFunds) * performanceFee;
+            // normalization by MAX_BPS
+            yieldEarned = (yieldEarned / MAX_BPS);
+            IERC20(wantToken).safeTransfer(governance, yieldEarned);
+            emit FeesCollected(yieldEarned);
         }
     }
 
