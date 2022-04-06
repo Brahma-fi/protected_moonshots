@@ -15,7 +15,7 @@ import { ust3Pool } from "../scripts/constants";
 // Path: test/Batcher.ts
 // Main access modifiers owner, governor.
 
-describe("Batcher", function () {
+describe.only("Batcher", function () {
   let batcher: Batcher;
   let keeperAddress: string;
   let governanceAddress: string;
@@ -25,12 +25,13 @@ describe("Batcher", function () {
   let vault: Vault;
   before(async () => {
     [keeperAddress, governanceAddress, signer, invalidSigner] = await setup();
+    invalidSigner = (await hre.ethers.getSigners())[0];
     vault = await getVaultContract();
     await hre.network.provider.request({
       method: "hardhat_impersonateAccount",
       params: [keeperAddress]
     });
-
+    console.log('verifying address', invalidSigner.address);
     keeperSigner = await hre.ethers.getSigner(keeperAddress);
   });
 
