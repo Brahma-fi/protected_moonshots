@@ -17,62 +17,23 @@ import "./EIP712.sol";
 contract Batcher is IBatcher, EIP712, ReentrancyGuard {
   using SafeERC20 for IERC20;
 
-  /// @notice minimum amount of tokens to be processed
-  uint256 DUST_LIMIT = 10000;
+  /*///////////////////////////////////////////////////////////////
+                                CONSTANTS
+  //////////////////////////////////////////////////////////////*/
 
-  
-  struct VaultInfo {
-    address vaultAddress;
-    address tokenAddress;
-    uint256 maxAmount;
-    uint256 currentAmount;
-  }
+  /// @notice minimum amount of tokens to be processed
+  uint256 constant DUST_LIMIT = 10000;
+
+
 
   /// @notice Hauler parameters for the batcher
   VaultInfo public vaultInfo;
 
-  /// @notice Ledger to maintain addresses and their amounts to be deposited into hauler
-  mapping(address => uint256) public depositLedger;
-
-  /// @notice Ledger to maintain addresses and their amounts to be withdrawn from hauler
-  mapping(address => uint256) public withdrawLedger;
-
-  /// @notice Ledger to maintain addresses and hauler tokens which batcher owes them
-  mapping(address => uint256) public userTokens;
-
-  /// @notice Priavte mapping used to check duplicate addresses while processing batch deposits and withdrawals
-  mapping(address => bool) private processedAddresses;
-
-  /// @notice Deposit event
-  /// @param sender Address of the depositor
-  /// @param hauler Address of the hauler
-  /// @param amountIn Tokens deposited
-  event DepositRequest(
-    address indexed sender,
-    address indexed hauler,
-    uint256 amountIn
-  );
-
-  /// @notice Withdraw event
-  /// @param sender Address of the withdawer
-  /// @param hauler Address of the hauler
-  /// @param amountOut Tokens deposited
-  event WithdrawRequest(
-    address indexed sender,
-    address indexed hauler,
-    uint256 amountOut
-  );
-
-  /// @notice Address which authorises users to deposit into Batcher
-  address public verificationAuthority;
-
-  /// @notice Governance address
-  address public governance;
-
-  /// @notice Pending governance address
-  address public pendingGovernance;
-  uint256 public slippageForCurveLp = 30;
-
+  /// @notice Creates a new Batcher strictly linked to a vault
+  /// @param _verificationAuthority Address of the verification authority which allows users to deposit
+  /// @param _governance Address of governance for Batcher
+  /// @param haulerAddress Address of the hauler which will be used to deposit and withdraw want tokens
+  /// @param maxAmount Maximum amount of tokens that can be deposited in the vault
   constructor(address _verificationAuthority, address _governance, address haulerAddress, uint256 maxAmount) {
     verificationAuthority = _verificationAuthority;
     governance = _governance;
@@ -88,14 +49,27 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     IERC20(vaultInfo.tokenAddress).approve(haulerAddress, type(uint256).max);
   }
 
-  /// @notice Function to set authority address
-  /// @param authority New authority address
-  function setAuthority(address authority) public {
-    onlyGovernance();
-    verificationAuthority = authority;
-  }
 
-  /// @inheritdoc IBatcher
+
+
+  /*///////////////////////////////////////////////////////////////
+                       USER DEPOSIT/WITHDRAWAL LOGIC
+  //////////////////////////////////////////////////////////////*/
+
+  /// @notice Ledger to maintain addresses and their amounts to be deposited into hauler
+  mapping(address => uint256) public depositLedger;
+
+  /// @notice Ledger to maintain addresses and their amounts to be withdrawn from hauler
+  mapping(address => uint256) public withdrawLedger;
+
+  /// @notice Address which authorises users to deposit into Batcher
+  address public verificationAuthority;
+
+  /**
+   * @notice Stores the deposits for future batching via periphery
+   * @param amountIn Value of token to be deposited
+   * @param signature signature verifying that depositor has enough karma and is authorized to deposit by brahma
+   */
   function depositFunds(
     uint256 amountIn,
     bytes memory signature
@@ -116,7 +90,11 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     _completeDeposit(amountIn);
   }
 
-  /// @inheritdoc IBatcher
+  /**
+   * @notice Stores the deposits for future batching via periphery
+   * @param amountIn Value of Lp token to be deposited
+   * @param signature signature verifying that depositor has enough karma and is authorized to deposit by brahma
+   */
   function depositFundsInCurveLpToken(
     uint256 amountIn,
     bytes memory signature
@@ -132,17 +110,11 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     _completeDeposit(usdcReceived);
   }
 
-  /// @notice Common internal helper to process deposit requests from both wantTokena and CurveLPToken
-  /// @param amountIn Amount of want tokens deposited
-  function _completeDeposit(uint256 amountIn) internal {
-    depositLedger[msg.sender] =
-      depositLedger[msg.sender] +
-      (amountIn);
 
-    emit DepositRequest(msg.sender, vaultInfo.vaultAddress, amountIn);
-  }
-
-  /// @inheritdoc IBatcher
+  /**
+   * @notice Stores the deposits for future batching via periphery
+   * @param amountIn Value of token to be deposited
+   */
   function withdrawFunds(uint256 amountIn)
     external
     override
@@ -173,7 +145,35 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     emit WithdrawRequest(msg.sender, vaultInfo.vaultAddress, amountIn);
   }
 
-  /// @inheritdoc IBatcher
+
+
+  /**
+   * @notice Allows user to withdraw LP tokens
+   * @param amount Amount of LP tokens to withdraw
+   * @param recipient Address to receive the LP tokens
+   */
+  function claimTokens(uint256 amount, address recipient) public override nonReentrant{
+    require(userTokens[msg.sender] >= amount, "No funds available");
+    userTokens[msg.sender] = userTokens[msg.sender] - amount;
+    IERC20(vaultInfo.vaultAddress).safeTransfer(recipient, amount);
+  }
+
+
+
+  /*///////////////////////////////////////////////////////////////
+                    VAULT DEPOSIT/WITHDRAWAL LOGIC
+  //////////////////////////////////////////////////////////////*/
+
+  /// @notice Ledger to maintain addresses and hauler tokens which batcher owes them
+  mapping(address => uint256) public userTokens;
+
+  /// @notice Priavte mapping used to check duplicate addresses while processing batch deposits and withdrawals
+  mapping(address => bool) private processedAddresses;
+
+  /**
+   * @notice Performs deposits on the periphery for the supplied users in batch
+   * @param users array of users whose deposits must be resolved
+   */
   function batchDeposit(address[] memory users)
     external
     override
@@ -224,14 +224,11 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     }
   }
 
-  /// @inheritdoc IBatcher
-  function claimTokens(uint256 amount, address recipient) public override nonReentrant{
-    require(userTokens[msg.sender] >= amount, "No funds available");
-    userTokens[msg.sender] = userTokens[msg.sender] - amount;
-    IERC20(vaultInfo.vaultAddress).safeTransfer(recipient, amount);
-  }
 
-  /// @inheritdoc IBatcher
+  /**
+   * @notice Performs withdraws on the periphery for the supplied users in batch
+   * @param users array of users whose deposits must be resolved
+   */
   function batchWithdraw(address[] memory users)
     external
     override
@@ -284,37 +281,38 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     }
   }
 
-  /// @inheritdoc IBatcher
-  function setHaulerLimit(uint256 maxAmount) external override {
-    onlyKeeper();
-    vaultInfo.maxAmount = maxAmount;
-  }
 
-  /// @notice Function to sweep funds out in case of emergency, can only be called by governance
-  /// @param _token Address of token to sweep
-  function sweep(address _token) public nonReentrant{
-    onlyGovernance();
-    IERC20(_token).transfer(
-      msg.sender,
-      IERC20(_token).balanceOf(address(this))
-    );
-  }
 
-  /// @notice Function to change governance. New address will need to accept the governance role
-  /// @param _governance Address of new temporary governance
-  function setGovernance(address _governance) external {
-    onlyGovernance();
-    pendingGovernance = _governance;
-  }
+  /*///////////////////////////////////////////////////////////////
+                    INTERNAL HELPERS
+  //////////////////////////////////////////////////////////////*/
 
-  /// @notice Function to accept governance role. Only pending governance can accept this role
-  function acceptGovernance() external {
+  /// @notice Helper to verify signature against verification authority
+  /// @param signature Should be generated by verificationAuthority. Should contain msg.sender 
+  function validDeposit(bytes memory signature) internal view {
     require(
-      msg.sender == pendingGovernance,
-      "Only pending governance can accept"
+      verifySignatureAgainstAuthority(signature, verificationAuthority),
+      "Signature is not valid"
     );
-    governance = pendingGovernance;
+
+    require(
+      withdrawLedger[msg.sender] == 0,
+      "Cannot deposit funds to hauler while waiting to withdraw"
+    );
   }
+
+  /// @notice Common internal helper to process deposit requests from both wantTokena and CurveLPToken
+  /// @param amountIn Amount of want tokens deposited
+  function _completeDeposit(uint256 amountIn) internal {
+    depositLedger[msg.sender] =
+      depositLedger[msg.sender] +
+      (amountIn);
+
+    emit DepositRequest(msg.sender, vaultInfo.vaultAddress, amountIn);
+  }
+
+  /// @notice Can be changed by keeper
+  uint256 public slippageForCurveLp = 30;
 
   /// @notice Helper to convert Lp tokens into USDC
   /// @dev Burns LpTokens on UST3-Wormhole pool on curve to get USDC
@@ -353,13 +351,23 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     );
   }
 
-  /// @notice Helper to get Keeper address from Hauler contract
-  /// @return Keeper address
-  function keeper() public view returns (address) {
-    require(vaultInfo.vaultAddress != address(0), "Hauler not set");
-    return IHauler(vaultInfo.vaultAddress).keeper();
+
+  /*///////////////////////////////////////////////////////////////
+                    MAINTAINANCE ACTIONS
+  //////////////////////////////////////////////////////////////*/
+
+  /// @notice Function to set authority address
+  /// @param authority New authority address
+  function setAuthority(address authority) public {
+    onlyGovernance();
+    verificationAuthority = authority;
   }
 
+  /// @inheritdoc IBatcher
+  function setHaulerLimit(uint256 maxAmount) external override {
+    onlyKeeper();
+    vaultInfo.maxAmount = maxAmount;
+  }
 
   /// @notice Setting slippage for swaps
   /// @param _slippage Must be between 0 and 10000
@@ -369,9 +377,32 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     slippageForCurveLp = _slippage;
   }
 
-  /// @notice Helper to asset msg.sender as governance address
-  function onlyGovernance() internal view{
-    require(governance == msg.sender, "Only governance can call this");
+  /// @notice Function to sweep funds out in case of emergency, can only be called by governance
+  /// @param _token Address of token to sweep
+  function sweep(address _token) public nonReentrant{
+    onlyGovernance();
+    IERC20(_token).transfer(
+      msg.sender,
+      IERC20(_token).balanceOf(address(this))
+    );
+  }
+
+
+  /*///////////////////////////////////////////////////////////////
+                    ACCESS MODIFERS
+  //////////////////////////////////////////////////////////////*/
+
+  /// @notice Governance address
+  address public governance;
+
+  /// @notice Pending governance address
+  address public pendingGovernance;
+
+  /// @notice Helper to get Keeper address from Hauler contract
+  /// @return Keeper address
+  function keeper() public view returns (address) {
+    require(vaultInfo.vaultAddress != address(0), "Hauler not set");
+    return IHauler(vaultInfo.vaultAddress).keeper();
   }
 
   /// @notice Helper to asset msg.sender as keeper address
@@ -379,17 +410,25 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     require(msg.sender == keeper(), "Only keeper can call this function");
   }
 
-  /// @notice Helper to verify signature against verification authority
-  /// @param signature Should be generated by verificationAuthority. Should contain msg.sender 
-  function validDeposit(bytes memory signature) internal view {
-    require(
-      verifySignatureAgainstAuthority(signature, verificationAuthority),
-      "Signature is not valid"
-    );
-
-    require(
-      withdrawLedger[msg.sender] == 0,
-      "Cannot deposit funds to hauler while waiting to withdraw"
-    );
+  /// @notice Helper to asset msg.sender as governance address
+  function onlyGovernance() internal view{
+    require(governance == msg.sender, "Only governance can call this");
   }
+
+  /// @notice Function to change governance. New address will need to accept the governance role
+  /// @param _governance Address of new temporary governance
+  function setGovernance(address _governance) external {
+    onlyGovernance();
+    pendingGovernance = _governance;
+  }
+
+  /// @notice Function to accept governance role. Only pending governance can accept this role
+  function acceptGovernance() external {
+    require(
+      msg.sender == pendingGovernance,
+      "Only pending governance can accept"
+    );
+    governance = pendingGovernance;
+  }
+
 }
