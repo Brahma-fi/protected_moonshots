@@ -82,7 +82,6 @@ const deploy = async () => {
   vault = (await vaultFactory.deploy(
     "PMUSDC",
     "PMUSDC",
-    6,
     wantTokenL1,
     keeperAddress,
     governanceAddress

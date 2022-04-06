@@ -48,6 +48,8 @@ contract ConvexPositionHandler is BasePositionHandler {
   uint256 public maxSlippage = 30;
   /// @notice the latest amount of rewards claimed and harvested
   uint256 public latestHarvestedRewards;
+  /// @notice the total cummulative rewards earned so far
+  uint256 public totalCummulativeRewards;
 
   /*///////////////////////////////////////////////////////////////
                             EXTERNAL CONTRACTS
@@ -280,7 +282,7 @@ contract ConvexPositionHandler is BasePositionHandler {
     latestHarvestedRewards =
       wantToken.balanceOf(address(this)) -
       initialUSDCBalance;
-    emit Claim(latestHarvestedRewards);
+    totalCummulativeRewards += latestHarvestedRewards;
   }
 
   /*///////////////////////////////////////////////////////////////
