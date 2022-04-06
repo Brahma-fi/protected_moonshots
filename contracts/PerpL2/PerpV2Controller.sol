@@ -7,13 +7,13 @@ import "@perp/curie-contract/contracts/interface/IVault.sol";
 import "@perp/curie-contract/contracts/interface/IClearingHouse.sol";
 import "@perp/curie-contract/contracts/interface/IAccountBalance.sol";
 import "@perp/curie-contract/contracts/interface/IVirtualToken.sol";
-import "@perp/curie-contract/contracts/interface/IOrderBook.sol";
 import "@perp/curie-contract/contracts/interface/IExchange.sol";
 import "@perp/curie-contract/contracts/interface/IClearingHouseConfig.sol";
 import "@perp/curie-contract/contracts/interface/IIndexPrice.sol";
 
 import {SafeMathUpgradeable} from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import {SignedSafeMathUpgradeable} from "@openzeppelin/contracts-upgradeable/math/SignedSafeMathUpgradeable.sol";
+
 /// @title PerpV2Controller
 /// @author 0xAd1
 /// @notice Handles positions on PerpV2
@@ -21,20 +21,48 @@ contract PerpV2Controller {
     using SignedSafeMathUpgradeable for int256;
     using SafeMathUpgradeable for uint256;
 
-    IERC20 public baseToken;
-    IERC20 public quoteTokenvUSDC;
 
+    /*///////////////////////////////////////////////////////////////
+                            GLOBAL IMMUTABLES
+    //////////////////////////////////////////////////////////////*/
+    uint256 constant public MAX_BPS = 1e4;
+
+    /*///////////////////////////////////////////////////////////////
+                            STATE VARIABLES
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice referralCode to be used while opening positions on Perp
     bytes32 public referralCode;
 
-    IVault public perpVault;
-    IClearingHouse public clearingHouse;
-    IClearingHouseConfig public clearingHouseConfig;
-    IAccountBalance public accountBalance;
-    IOrderBook public orderBook;
-    IExchange public exchange;
-    uint256 public MAX_BPS = 1e4;
+    /*///////////////////////////////////////////////////////////////
+                                EXTERNAL CONTRACTS
+    //////////////////////////////////////////////////////////////*/
 
-    /// VIEW / CALL
+    /// @notice baseToken address of asset traded on Perp
+    IERC20 public baseToken;
+
+    /// @notice quoteToken address on Perp (Settlement token)
+    IERC20 public quoteTokenvUSDC;
+
+    /// @notice Address of vault contract on Perp
+    IVault public perpVault;
+
+    /// @notice Address of clearingHouse contract on Perp
+    IClearingHouse public clearingHouse;
+
+    /// @notice Address of clearingHouseConfig contract on Perp
+    IClearingHouseConfig public clearingHouseConfig;
+
+    /// @notice Address of accountBalance contract on Perp
+    IAccountBalance public accountBalance;
+
+    /// @notice Address of exchange contract on Perp
+    IExchange public exchange;
+    
+
+    /*///////////////////////////////////////////////////////////////
+                            VIEW FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /// @notice Get free collateral available on Perp V2
     /// @return Free collateral available on Perp V2 in quoteToken terms
@@ -53,6 +81,8 @@ contract PerpV2Controller {
         return twapPrice;
     }
 
+    /// @notice Gets index twap price from Perp
+    /// @return regular decimal price
     function getIndexTwapPrice() public view returns (uint256) {
         uint32 twapInterval = clearingHouseConfig.getTwapInterval();
         uint256 twapPrice = IIndexPrice(address(baseToken)).getIndexPrice(
@@ -61,16 +91,7 @@ contract PerpV2Controller {
         return twapPrice;
     }
 
-    /// @notice Formats SqrtX96 amount to regular price with MAX_BPS precision
-    /// @param sqrtPriceX96 SqrtX96 amount
-    /// @return price formatted output
-    function formatSqrtPriceX96(uint160 sqrtPriceX96)
-        public
-        view
-        returns (uint256 price)
-    {
-        return uint256(sqrtPriceX96).mul(uint256(sqrtPriceX96).mul(MAX_BPS)) >> (96 * 2);
-    }
+
 
     /// @notice Returns the size of current position in baseTokens
     /// @return amount size of position in baseTokens
@@ -80,15 +101,6 @@ contract PerpV2Controller {
                 address(this),
                 address(baseToken)
             );
-    }
-
-    /// @notice Returns the size of current position in baseTokens
-    /// @return amount size of position in baseTokens
-    function getTotalValueLocked() public view returns (uint256) {
-        return positionInUSDC() + 
-                getFreeCollateral()/(1e12) + 
-                IERC20(perpVault.getSettlementToken()).balanceOf(address(this));
-            
     }
 
     /// @notice Returns the value of current position in wantToken value
@@ -101,10 +113,10 @@ contract PerpV2Controller {
         return amountOut.div(1e12);
     }
 
-    /// SEND
-    function approveQuoteToken(IERC20 token, uint256 _value) internal {
-        token.approve(address(perpVault), _value);
-    }
+
+    /*///////////////////////////////////////////////////////////////
+                        DEPOSIT / WITHDRAW LOGIC
+    //////////////////////////////////////////////////////////////*/
 
     /// @notice Deposits wantTokens to Perp Vault
     /// @param _value amount of wantTokens to deposit
@@ -121,6 +133,9 @@ contract PerpV2Controller {
         perpVault.withdraw(settlementToken, _value);
     }
 
+    /*///////////////////////////////////////////////////////////////
+                        OPEN / CLOSE LOGIC
+    //////////////////////////////////////////////////////////////*/
     /// @notice Opens short or long position on Perp against baseToken
     /// @param short bool true for short position, false for long position
     /// @param amountIn amount of quoteToken to open position with
@@ -193,4 +208,29 @@ contract PerpV2Controller {
 
         clearingHouse.closePosition(params);
     }
+
+    /*///////////////////////////////////////////////////////////////
+                            HELPER FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Approves given token to perp vault
+    /// @param token token to approve
+    /// @param _value amount of tokens to approve
+    function approveQuoteToken(IERC20 token, uint256 _value) internal {
+        token.approve(address(perpVault), _value);
+    }
+
+    /// @notice Formats SqrtX96 amount to regular price with MAX_BPS precision
+    /// @param sqrtPriceX96 SqrtX96 amount
+    /// @return price formatted output
+    function formatSqrtPriceX96(uint160 sqrtPriceX96)
+        internal
+        view
+        returns (uint256 price)
+    {
+        return uint256(sqrtPriceX96).mul(uint256(sqrtPriceX96).mul(MAX_BPS)) >> (96 * 2);
+    }
+
+
+
 }

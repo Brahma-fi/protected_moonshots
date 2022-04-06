@@ -2,6 +2,22 @@
 pragma solidity ^0.8.0;
 
 abstract contract BasePositionHandler {
+
+  /// @notice To be emitted when a deposit is made by position handler
+  /// @param amount The amount of tokens deposited
+  /// @param blockNumber The block number of the deposit
+  event Deposit(uint256 indexed amount, uint256 indexed blockNumber);
+
+
+  /// @notice To be emitted when a withdraw is made by position handler
+  /// @param amount The amount of tokens withdrawn
+  /// @param blockNumber The block number of the withdraw
+  event Withdraw(uint256 indexed amount, uint256 indexed blockNumber);
+  
+
+  /// @notice struct to store data related to position
+  /// @param posValue The value of the position in vault wantToken
+  /// @param lastUpdatedBlock The block number of last update in position value
   struct Position {
     uint256 posValue;
     uint256 lastUpdatedBlock;

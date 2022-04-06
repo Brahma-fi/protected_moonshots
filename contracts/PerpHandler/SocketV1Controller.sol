@@ -6,18 +6,27 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /// @author 0xAd1
 /// @notice Used to bridge ERC20 tokens cross chain
 contract SocketV1Controller {
+
+    /// @notice Struct encoded in Bungee calldata
+    /// @dev Derived from socket registry contract
     struct MiddlewareRequest {
         uint256 id;
         uint256 optionalNativeAmount;
         address inputToken;
         bytes data;
     }
+
+    /// @notice Struct encoded in Bungee calldata
+    /// @dev Derived from socket registry contract
     struct BridgeRequest {
         uint256 id;
         uint256 optionalNativeAmount;
         address inputToken;
         bytes data;
     }
+
+    /// @notice Struct encoded in Bungee calldata
+    /// @dev Derived from socket registry contract
     struct UserRequest {
         address receiverAddress;
         uint256 toChainId;
@@ -39,7 +48,12 @@ contract SocketV1Controller {
         (userRequest) = abi.decode(callDataWithoutSelector, (UserRequest));
     }
 
-    function verifySocketCalldata(bytes memory _data, uint256 _chainId, address _inputToken, address _receiverAddress) internal view {
+    /// @notice Decodes and verifies socket calldata
+    /// @param _data Bungee txn calldata
+    /// @param _chainId chainId to check in bungee calldata
+    /// @param _inputToken inputWantToken to check in bungee calldata
+    /// @param _receiverAddress receiving address to check in bungee calldata
+    function verifySocketCalldata(bytes memory _data, uint256 _chainId, address _inputToken, address _receiverAddress) internal pure {
         UserRequest memory userRequest;
         (userRequest) = decodeSocketRegistryCalldata(_data);
         if (userRequest.toChainId != _chainId) {
