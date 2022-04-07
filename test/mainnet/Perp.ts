@@ -6,84 +6,49 @@ import {
   IERC20,
   PerpPositionHandlerL2,
   IClearingHouseConfig,
-  IIndexPrice,
   IAccountBalance,
   PerpTradeExecutor
 } from "../../src/types";
 import { BigNumber, ContractTransaction, Signer } from "ethers";
 import {
-  optimismRPCBlock,
-  optimismRPCPort,
   wantTokenL1,
   wantTokenL2,
   optimismL1CrossDomainMessenger,
-  perpVault,
-  clearingHouse,
-  clearingHouseConfig,
-  accountBalance,
-  orderBook,
-  exchange,
-  baseToken,
-  quoteTokenvUSDC,
   movrRegistry
 } from "../../scripts/constants";
 
 import { moverCall } from "../api";
-import { Log } from "@ethersproject/abstract-provider";
-import { Interface, LogDescription } from "ethers/lib/utils";
+import { LogDescription } from "ethers/lib/utils";
+import { getVaultContract, setup } from "../utils";
 
-const vault = "0x1C4ceb52ab54a35F9d03FcC156a7c57F965e081e";
 const USDCWhale = "0x500A746c9a44f68Fe6AA86a92e7B3AF4F322Ae66";
-
-let optimismMessengerInterface: Interface;
 
 describe("PerpTE [MAINNET]", function () {
   let keeperAddress: string;
   let governanceAddress: string;
   let signer: SignerWithAddress;
-  let signerL2: SignerWithAddress;
+  let governanceSigner: SignerWithAddress;
   let invalidSigner: SignerWithAddress;
   let vaultContract: Vault;
   let perpTE: PerpTradeExecutor;
   let USDC: IERC20;
   let keeperSigner: SignerWithAddress;
-  let clearingHouseConfigContract: IClearingHouseConfig;
-  let accountBalanceContract: IAccountBalance;
   let PerpHandlerL2Contract: PerpPositionHandlerL2;
 
   before(async () => {
-    await hre.network.provider.request({
-      method: "hardhat_impersonateAccount",
-      params: ["0x45af3Bd5A2c60B7410f33C313c247c439b633446"]
-    });
-
-    signer = await hre.ethers.getSigner(
-      "0x45af3Bd5A2c60B7410f33C313c247c439b633446"
-    );
-
-    await hre.network.provider.request({
-      method: "hardhat_setBalance",
-      params: [
-        "0x45af3Bd5A2c60B7410f33C313c247c439b633446",
-        "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
-      ]
-    });
-
-    await hre.network.provider.request({
-      method: "hardhat_impersonateAccount",
-      params: ["0xAE75B29ADe678372D77A8B41225654138a7E6ff1"]
-    });
-
-    invalidSigner = await hre.ethers.getSigner(
-      "0xAE75B29ADe678372D77A8B41225654138a7E6ff1"
-    );
+    [keeperAddress,
+    governanceAddress,
+    signer,
+    governanceSigner,
+    invalidSigner] = await setup();
+    vaultContract = await getVaultContract();
 
     const PerpTradeExecutor = await hre.ethers.getContractFactory(
       "PerpTradeExecutor",
       invalidSigner
     );
     perpTE = (await PerpTradeExecutor.deploy(
-      vault,
+      vaultContract.address,
       wantTokenL2,
       invalidSigner.address,
       optimismL1CrossDomainMessenger,
@@ -92,7 +57,6 @@ describe("PerpTE [MAINNET]", function () {
 
     await perpTE.deployed();
 
-    vaultContract = (await hre.ethers.getContractAt("Vault", vault)) as Vault;
 
     const keeperAtvault = await vaultContract.keeper();
 
@@ -122,7 +86,7 @@ describe("PerpTE [MAINNET]", function () {
   });
 
   it("Contract initialized correctly", async function () {
-    await vaultContract.connect(keeperSigner).addExecutor(perpTE.address);
+    await vaultContract.connect(governanceSigner).addExecutor(perpTE.address);
 
     equal(await vaultContract.keeper(), await perpTE.keeper());
 
@@ -193,7 +157,6 @@ describe("PerpTE [MAINNET]", function () {
   });
 
   it("TE can initate call to close position", async function () {
-    const amount = BigNumber.from(1e9).mul(1e9).mul(1e3);
     const slippage = BigNumber.from(500);
     const gasLimit = BigNumber.from(1e6).mul(5);
 

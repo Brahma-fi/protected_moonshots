@@ -31,26 +31,6 @@ contract PerpTradeExecutor is BaseTradeExecutor, PerpPositionHandler {
     );
   }
 
-  /// @notice init handler
-  /// @param _wantTokenL2 address of wantToken equivalent on L2
-  /// @param _l2HandlerAddress address of PerpHandler on L2
-  /// @param _L1CrossDomainMessenger address of optimism gateway cross domain messenger
-  /// @param _socketRegistry address of socketRegistry on L1
-  function initHandler(
-    address _wantTokenL2,
-    address _l2HandlerAddress,
-    address _L1CrossDomainMessenger,
-    address _socketRegistry
-  ) public onlyKeeper {
-    _initHandler(
-      vaultWantToken(),
-      _wantTokenL2,
-      _l2HandlerAddress,
-      _L1CrossDomainMessenger,
-      _socketRegistry
-    );
-  }
-
   /*///////////////////////////////////////////////////////////////
                             VIEW FUNCTONS
     //////////////////////////////////////////////////////////////*/
@@ -76,7 +56,7 @@ contract PerpTradeExecutor is BaseTradeExecutor, PerpPositionHandler {
     //////////////////////////////////////////////////////////////*/
 
   /// @notice L2 position value setter, called by keeper
-  /// @param _posValue new position value on L2
+  /// @param _posValue new position value retrived from L2
   function setPosValue(uint256 _posValue) public onlyKeeper {
     PerpPositionHandler._setPosValue(_posValue);
   }
