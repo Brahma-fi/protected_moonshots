@@ -2,20 +2,14 @@ import { expect } from "chai";
 import hre from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import {
-  Vault,
   IERC20,
   PerpPositionHandlerL2,
-  IClearingHouseConfig,
-  IIndexPrice,
   IAccountBalance
 } from "../../src/types";
 import { BigNumber } from "ethers";
 import {
-  optimismRPCBlock,
-  optimismRPCPort,
   wantTokenL1,
   wantTokenL2,
-  optimismL1CrossDomainMessenger,
   perpVault,
   clearingHouse,
   clearingHouseConfig,
@@ -29,17 +23,12 @@ import {
 import { moverCall } from "../api";
 
 describe("PerpHandlerL2 [OPTIMISM]", function () {
-  let keeperAddress: string;
-  let governanceAddress: string;
   let signer: SignerWithAddress;
-  let signerL2: SignerWithAddress;
   let invalidSigner: SignerWithAddress;
-  let vault: Vault;
 
   let perpL2Handler: PerpPositionHandlerL2;
   let USDC: IERC20;
 
-  let clearingHouseConfigContract: IClearingHouseConfig;
   let accountBalanceContract: IAccountBalance;
 
   before(async () => {
@@ -96,15 +85,7 @@ describe("PerpHandlerL2 [OPTIMISM]", function () {
       await USDC.balanceOf(invalidSigner.address)
     );
 
-    const baseTokenContract = (await hre.ethers.getContractAt(
-      "IIndexPrice",
-      baseToken
-    )) as IIndexPrice;
-    clearingHouseConfigContract = (await hre.ethers.getContractAt(
-      "IClearingHouseConfig",
-      clearingHouseConfig
-    )) as IClearingHouseConfig;
-    const twapInterval = await clearingHouseConfigContract.getTwapInterval();
+
     accountBalanceContract = (await hre.ethers.getContractAt(
       "IAccountBalance",
       accountBalance
@@ -187,7 +168,7 @@ describe("PerpHandlerL2 [OPTIMISM]", function () {
     usdcBal = usdcBal.mul(1e12);
     await expect(
       perpL2Handler.connect(invalidSigner).openPosition(true, usdcBal, 500)
-    ).to.be.revertedWith("Only owner can call this function");
+    ).to.be.revertedWith("ONLY_AUTHORIZED");
   });
 
   // Operation - Expected Behaviour
@@ -197,7 +178,7 @@ describe("PerpHandlerL2 [OPTIMISM]", function () {
     usdcBal = usdcBal.mul(1e12);
     await expect(
       perpL2Handler.connect(invalidSigner).closePosition(500)
-    ).to.be.revertedWith("Only owner can call this function");
+    ).to.be.revertedWith("ONLY_AUTHORIZED");
   });
 
   // Operation - Expected Behaviour
@@ -284,7 +265,7 @@ describe("PerpHandlerL2 [OPTIMISM]", function () {
           movrData.target,
           movrData.data
         )
-    ).to.be.revertedWith("Invalid socket registry");
+    ).to.be.revertedWith("INVALID_REGISTRY");
     await expect(
       perpL2Handler
         .connect(invalidSigner)
@@ -294,7 +275,7 @@ describe("PerpHandlerL2 [OPTIMISM]", function () {
           movrData.registry,
           movrData.data
         )
-    ).to.be.revertedWith("Only owner can call this function");
+    ).to.be.revertedWith("ONLY_AUTHORIZED");
 
     await perpL2Handler
       .connect(signer)
