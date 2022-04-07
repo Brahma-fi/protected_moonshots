@@ -6,8 +6,8 @@ import {
   ConvexTradeExecutor,
   ERC20,
   PerpTradeExecutor
-} from "../src/types";
-import { wantTokenL1 } from "../scripts/constants";
+} from "../../src/types";
+import { wantTokenL1 } from "../../scripts/constants";
 import { BigNumber, utils } from "ethers";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import {
@@ -15,7 +15,7 @@ import {
   getConvexExecutorContract,
   getPerpExecutorContract,
   mineBlocks
-} from "./utils";
+} from "../utils";
 
 describe("Vault [MAINNET]", function () {
   let vault: Vault;

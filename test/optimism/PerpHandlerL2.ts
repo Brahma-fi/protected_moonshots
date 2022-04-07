@@ -2,6 +2,7 @@ import { expect } from "chai";
 import hre from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import {
+  Vault,
   IERC20,
   PerpPositionHandlerL2,
   IAccountBalance

@@ -1,15 +1,15 @@
 import { expect } from "chai";
 import hre from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { Batcher, Vault, ICurveDepositZapper, ICurvePool } from "../src/types";
+import { Batcher, Vault, ICurveDepositZapper, ICurvePool } from "../../src/types";
 import {
   setup,
   getSignature,
   getVaultContract,
   getUSDCContract
-} from "./utils";
+} from "../utils";
 import { BigNumber, BigNumberish } from "ethers";
-import { ust3Pool } from "../scripts/constants";
+import { ust3Pool } from "../../scripts/constants";
 
 // Language: typescript
 // Path: test/Batcher.ts
