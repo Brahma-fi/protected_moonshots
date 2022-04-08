@@ -50,7 +50,7 @@ const config: HardhatUserConfig = {
     hardhat: {
       forking: {
         url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}`,
-        blockNumber: 14456230 // Comment line for latest block automatically
+        blockNumber: 14456030 // Comment line for latest block automatically
       }
     },
     // hardhat: {
@@ -79,7 +79,7 @@ const config: HardhatUserConfig = {
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : []
     },
     optimism: {
-      url: `https://opt-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`,
+      url: `${process.env.QUICKNODE_OPTIMISM_URL}`,
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : []
     }

@@ -23,12 +23,6 @@ const HarvesterConfig = {
   wantToken: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"
 };
 
-const DeployedAddresses = {
-  convexTradeExec: "0x3167b932336b029bBFE1964E435889FA8e595738",
-  harvester: "0xF1D339D9456BC1e09b548E7946A78D9C4b5f1B68",
-  vault: "0x1C4ceb52ab54a35F9d03FcC156a7c57F965e081e"
-};
-
 const MAX_INT =
   "115792089237316195423570985008687907853269984665640564039457584007913129639935";
 const CRV_ADDR = "0xD533a949740bb3306d119CC777fa900bA034cd52";
@@ -51,10 +45,16 @@ let _3CRV: IERC20;
 
 let keeperAddress: string,
   governanceAddress: string,
+  governance: SignerWithAddress,
   signer: SignerWithAddress,
   invalidSigner: SignerWithAddress;
 
 const deploy = async () => {
+  const convexTradeExecutorFactory = await ethers.getContractFactory(
+    "ConvexTradeExecutor"
+  );
+  const HarvesterFactory = await ethers.getContractFactory("Harvester");
+  const vaultFactory = await ethers.getContractFactory("Vault", signer);
   LP = (await ethers.getContractAt(
     "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20",
     ConvexTradeExecutorConfig.ust3Pool
@@ -79,31 +79,32 @@ const deploy = async () => {
 
   USDC = await getUSDCContract();
 
-  vault = (await ethers.getContractAt(
-    "Vault",
-    DeployedAddresses.vault
+  vault = (await vaultFactory.deploy(
+    "PMUSDC",
+    "PMUSDC",
+    wantTokenL1,
+    keeperAddress,
+    governanceAddress
   )) as Vault;
 
-  harvester = (await ethers.getContractAt(
-    "Harvester",
-    DeployedAddresses.harvester
+  harvester = (await HarvesterFactory.deploy(
+    keeperAddress,
+    ...Object.values(HarvesterConfig),
+    governanceAddress
   )) as Harvester;
 
-  convexTradeExecutor = (await ethers.getContractAt(
-    "ConvexTradeExecutor",
-    DeployedAddresses.convexTradeExec
+  convexTradeExecutor = (await convexTradeExecutorFactory.deploy(
+    ...Object.values(ConvexTradeExecutorConfig),
+    harvester.address,
+    vault.address
   )) as ConvexTradeExecutor;
 };
 
-describe("[MAINNET] Convex Trade Executor", function () {
+describe("Convex Trade Executor [MAINNET]", function () {
   before(async () => {
-    keeperAddress = "0xAE75B29ADe678372D77A8B41225654138a7E6ff1";
-    governanceAddress = "0x6b29610D6c6a9E47812bE40F1335918bd63321bf";
-    signer = (await ethers.getSigners())[0];
-    invalidSigner = (await ethers.getSigners())[1];
-
+    [keeperAddress, governanceAddress, signer, invalidSigner] = await setup();
+    governance = await ethers.getSigner(governanceAddress);
     await deploy();
-    await vault.addExecutor(DeployedAddresses.convexTradeExec);
   });
 
   it("Should deploy Harvester correctly", async () => {
@@ -132,22 +133,21 @@ describe("[MAINNET] Convex Trade Executor", function () {
   });
 
   it("Should deposit correctly", async () => {
-    const usdcBal = await USDC.balanceOf(vault.address);
-    await vault.depositIntoExecutor(
-      DeployedAddresses.convexTradeExec,
-      usdcBal,
-      {
-        gasLimit: 5e6
-      }
+    await USDC.connect(signer).approve(
+      convexTradeExecutor.address,
+      ethers.utils.parseEther("1")
     );
-
+    const usdcBal = BigNumber.from(1e12);
     const paramsInBytes = ethers.utils.AbiCoder.prototype.encode(
       ["tuple(uint256)"],
       [[usdcBal]]
     );
 
-    expect(await USDC.balanceOf(convexTradeExecutor.address)).equals(usdcBal);
+    expect(await USDC.balanceOf(convexTradeExecutor.address)).equals(0);
     expect(await LP.balanceOf(convexTradeExecutor.address)).equals(0);
+
+    await USDC.connect(signer).transfer(convexTradeExecutor.address, usdcBal);
+    expect(await USDC.balanceOf(convexTradeExecutor.address)).equals(usdcBal);
 
     await convexTradeExecutor.connect(signer).initiateDeposit(paramsInBytes, {
       gasLimit: 5e6
@@ -184,9 +184,7 @@ describe("[MAINNET] Convex Trade Executor", function () {
   });
 
   it("Should setup harvester correctly and initialize on handler", async () => {
-    await harvester.connect(signer).approve({
-      gasLimit: 5e6
-    });
+    await harvester.connect(signer).approve();
     expect((await CRV.allowance(harvester.address, CRVETH)).toString()).equals(
       MAX_INT
     );
@@ -231,9 +229,7 @@ describe("[MAINNET] Convex Trade Executor", function () {
       [[(await baseRewardPool.balanceOf(convexTradeExecutor.address)).div(2)]]
     );
 
-    await convexTradeExecutor.connect(signer).closePosition(paramsInBytes, {
-      gasLimit: 5e6
-    });
+    await convexTradeExecutor.connect(signer).closePosition(paramsInBytes);
 
     const finalLpBal = await LP.balanceOf(convexTradeExecutor.address);
     console.log("Lp after close:", finalLpBal.toString());
@@ -251,9 +247,7 @@ describe("[MAINNET] Convex Trade Executor", function () {
       [[totalFund]]
     );
 
-    await convexTradeExecutor.initateWithdraw(paramsInBytes, {
-      gasLimit: 5e6
-    });
+    await convexTradeExecutor.connect(signer).initateWithdraw(paramsInBytes);
 
     const finalUsdcBal = await USDC.balanceOf(convexTradeExecutor.address);
 
@@ -263,15 +257,5 @@ describe("[MAINNET] Convex Trade Executor", function () {
     );
 
     expect(finalUsdcBal.gt(initialUsdcBal));
-
-    await vault.withdrawFromExecutor(
-      DeployedAddresses.convexTradeExec,
-      finalUsdcBal,
-      {
-        gasLimit: 5e6
-      }
-    );
-
-    expect(await USDC.balanceOf(vault.address)).equals(finalUsdcBal);
   });
 });

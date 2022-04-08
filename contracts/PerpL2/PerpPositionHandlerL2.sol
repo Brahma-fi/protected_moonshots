@@ -95,9 +95,9 @@ contract PerpPositionHandlerL2 is
     ) public override onlyAuthorized {
         require(
             IERC20(wantTokenL2).balanceOf(address(this)) >= amountOut,
-            "Insufficient balance"
+            "NOT_ENOUGH_TOKENS"
         );
-        require(socketRegistry == _socketRegistry, "Invalid socket registry");
+        require(socketRegistry == _socketRegistry, "INVALID_REGISTRY");
         sendTokens(
             wantTokenL2,
             allowanceTarget,
@@ -124,7 +124,7 @@ contract PerpPositionHandlerL2 is
         uint256 amountIn,
         uint24 slippage
     ) public override onlyAuthorized {
-        require(perpPosition.isActive == false, "Position already open");
+        require(perpPosition.isActive == false, "ACTIVE_POSITION");
         uint256 wantTokenBalance = IERC20(wantTokenL2).balanceOf(address(this));
         _depositToPerp(wantTokenBalance);
         perpPosition = PerpPosition({
@@ -142,7 +142,7 @@ contract PerpPositionHandlerL2 is
     /// @dev Closes the position, withdraws all the funds from perp as well.
     /// @param slippage slippage while closing position, calculated out of 10000
     function closePosition(uint24 slippage) public override onlyAuthorized {
-        require(perpPosition.isActive, "No active position");
+        require(perpPosition.isActive, "NO_OPEN_POSITION");
         _closePosition(slippage);
         perpPosition.isActive = false;
         _withdrawFromPerp(getFreeCollateral());
@@ -186,7 +186,7 @@ contract PerpPositionHandlerL2 is
         require(
             ((msg.sender == L2CrossDomainMessenger &&
                 messageSender() == positionHandlerL1) || msg.sender == keeper),
-            "Only owner can call this function"
+            "ONLY_AUTHORIZED"
         );
         _;
     }

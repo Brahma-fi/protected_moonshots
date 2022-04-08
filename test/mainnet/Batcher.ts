@@ -1,15 +1,15 @@
 import { expect } from "chai";
 import hre from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { Batcher, Vault, ICurveDepositZapper, ICurvePool } from "../src/types";
+import { Batcher, Vault, ICurveDepositZapper, ICurvePool } from "../../src/types";
 import {
   setup,
   getSignature,
   getVaultContract,
   getUSDCContract
-} from "./utils";
+} from "../utils";
 import { BigNumber, BigNumberish } from "ethers";
-import { ust3Pool } from "../scripts/constants";
+import { ust3Pool } from "../../scripts/constants";
 
 // Language: typescript
 // Path: test/Batcher.ts
@@ -73,8 +73,9 @@ describe("Batcher [MAINNET]", function () {
     expect(await batcher.depositLedger(signer.address)).to.equal(amount);
     await expect(
       batcher.connect(invalidSigner).batchDeposit([signer.address])
-    ).to.be.revertedWith("Only keeper can call this function");
-    await batcher.connect(keeperSigner).batchDeposit([signer.address]);
+    ).to.be.revertedWith("ONLY_KEEPER");
+    // checking for duplicated user deposit and invalide user deposit
+    await batcher.connect(keeperSigner).batchDeposit([signer.address, signer.address, invalidSigner.address]);
     expect(await batcher.depositLedger(signer.address)).to.equal(
       BigNumber.from(0)
     );
@@ -106,13 +107,14 @@ describe("Batcher [MAINNET]", function () {
     await batcher.withdrawFunds(amount);
     await expect(
       batcher.connect(invalidSigner).batchWithdraw([signer.address])
-    ).to.be.revertedWith("Only keeper can call this function");
+    ).to.be.revertedWith("ONLY_KEEPER");
 
     expect(await batcher.withdrawLedger(signer.address)).to.equal(amount);
 
     expect(await vault.balanceOf(batcher.address)).to.equal(amount);
     let balanceBefore = await USDC.balanceOf(signer.address);
-    await batcher.connect(keeperSigner).batchWithdraw([signer.address]);
+    // checking for duplicated user withdraw and invalide user withdraw
+    await batcher.connect(keeperSigner).batchWithdraw([signer.address, signer.address, invalidSigner.address]);
     let balanceAfter = await USDC.balanceOf(signer.address);
     expect(await batcher.withdrawLedger(signer.address)).to.equal(
       BigNumber.from(0)
@@ -183,7 +185,7 @@ describe("Batcher [MAINNET]", function () {
 
     await expect(
       batcher.connect(invalidSigner).sweep(USDC.address)
-    ).to.be.revertedWith("Only governance can call this");
+    ).to.be.revertedWith("ONLY_GOV");
 
     let balanceBefore = await USDC.balanceOf(governanceAddress);
     let balanceOfBatcher = await USDC.balanceOf(batcher.address);
