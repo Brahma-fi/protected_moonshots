@@ -1,50 +1,28 @@
-# Starter Hardhat Template for advanced users
+# Brahma
 
-This project demonstrates an advanced Hardhat use case, integrating other tools commonly used alongside Hardhat in the ecosystem.
+[![MythXBadge](https://badgen.net/https/api.mythx.io/v1/projects/35f819a5-d41f-46be-b931-56d6db199881/badge/data?cache=300&icon=https://raw.githubusercontent.com/ConsenSys/mythx-github-badge/main/logo_white.svg)](https://dashboard.mythx.io/#/console/projects/35f819a5-d41f-46be-b931-56d6db199881)
 
-Some of the pre-included features: 
 
-- Preconfigured Forking
-- Gas Estimates
-- Contract size alert on compilation
-- Automatic typedef generation for contracts
-- Easy to use `.env` file for configuration
+This repository contains the smart contracts source code and configuration for Brahma Vaults. The repository uses Hardhat as development environment for compilation, testing and deployment tasks. The repository mainly hosts the source file for protected moonshot vault. 
 
-```shell
-npx hardhat accounts
-npx hardhat compile
-npx hardhat clean
-npx hardhat test
-npx hardhat node
-npx hardhat help
-REPORT_GAS=true npx hardhat test
-npx hardhat coverage
-npx hardhat run scripts/deploy.ts
-TS_NODE_FILES=true npx ts-node scripts/deploy.ts
-npx eslint '**/*.{js,ts}'
-npx eslint '**/*.{js,ts}' --fix
-npx prettier '**/*.{json,sol,md}' --check
-npx prettier '**/*.{json,sol,md}' --write
-npx solhint 'contracts/**/*.sol'
-npx solhint 'contracts/**/*.sol' --fix
+## What is Protected MoonShot Vault?
+The Protected Moonshot DegenVault aims to achieve to hold stables but still take leveraged positions to maximise the base yield.
+
+
+## Structure
+[contracts](./contracts): Contains all the source code of contracts used for protected moonshot vault. <br>
+[docs](./docs): Contains all the documentation related core contracts.
+
+## Connect with the community
+
+You can join at the [Discord](https://discord.gg/brahma) channel for asking questions about the protocol or talk about new defi strategies.
+
+## Setup
+
+You can install `hardhat` as an NPM package to get started with contracts. Setup an `.env` as shown in [.env_example](./env_example). 
+You can run the full test suite with the following commands:
+
 ```
-
-# Etherscan verification
-
-To try out Etherscan verification, you first need to deploy a contract to an Ethereum network that's supported by Etherscan, such as Ropsten.
-
-In this project, copy the .env.example file to a file named .env, and then edit it to fill in the details. Enter your Etherscan API key, your Ropsten node URL (eg from Alchemy), and the private key of the account which will send the deployment transaction. With a valid .env file in place, first deploy your contract:
-
-```shell
-hardhat run --network ropsten scripts/sample-script.ts
+# In one terminal
+npx hardhat test 
 ```
-
-Then, copy the deployment address and paste it in to replace `DEPLOYED_CONTRACT_ADDRESS` in this command:
-
-```shell
-npx hardhat verify --network ropsten DEPLOYED_CONTRACT_ADDRESS "Hello, Hardhat!"
-```
-
-# Performance optimizations
-
-For faster runs of your tests and scripts, consider skipping ts-node's type checking by setting the environment variable `TS_NODE_TRANSPILE_ONLY` to `1` in hardhat's environment. For more details see [the documentation](https://hardhat.org/guides/typescript.html#performance-optimizations).
