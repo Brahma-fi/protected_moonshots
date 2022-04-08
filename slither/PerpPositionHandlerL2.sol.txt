@@ -1,0 +1,339 @@
+8 Apr, 2022
+-----------
+
+PerpPositionHandlerL2.sweep(address) (contracts/PerpL2/PerpPositionHandlerL2.sol#158-163) ignores return value by IERC20(_token).transfer(msg.sender,IERC20(_token).balanceOf(address(this))) (contracts/PerpL2/PerpPositionHandlerL2.sol#159-162)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#unchecked-transfer
+
+---
+
+FullMath.mulDiv(uint256,uint256,uint256) (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#14-106) performs a multiplication on the result of a division:
+	-denominator = denominator / twos (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#67)
+	-inv = (3 * denominator) ^ 2 (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#87)
+FullMath.mulDiv(uint256,uint256,uint256) (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#14-106) performs a multiplication on the result of a division:
+	-denominator = denominator / twos (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#67)
+	-inv *= 2 - denominator * inv (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#91)
+FullMath.mulDiv(uint256,uint256,uint256) (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#14-106) performs a multiplication on the result of a division:
+	-denominator = denominator / twos (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#67)
+	-inv *= 2 - denominator * inv (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#92)
+FullMath.mulDiv(uint256,uint256,uint256) (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#14-106) performs a multiplication on the result of a division:
+	-denominator = denominator / twos (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#67)
+	-inv *= 2 - denominator * inv (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#93)
+FullMath.mulDiv(uint256,uint256,uint256) (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#14-106) performs a multiplication on the result of a division:
+	-denominator = denominator / twos (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#67)
+	-inv *= 2 - denominator * inv (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#94)
+FullMath.mulDiv(uint256,uint256,uint256) (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#14-106) performs a multiplication on the result of a division:
+	-denominator = denominator / twos (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#67)
+	-inv *= 2 - denominator * inv (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#95)
+FullMath.mulDiv(uint256,uint256,uint256) (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#14-106) performs a multiplication on the result of a division:
+	-denominator = denominator / twos (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#67)
+	-inv *= 2 - denominator * inv (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#96)
+FullMath.mulDiv(uint256,uint256,uint256) (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#14-106) performs a multiplication on the result of a division:
+	-prod0 = prod0 / twos (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#72)
+	-result = prod0 * inv (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#104)
+PerpV2Controller._openPositionByAmount(bool,uint256,uint24) (contracts/PerpL2/PerpV2Controller.sol#146-184) performs a multiplication on the result of a division:
+	-amountOut = amountOut.mul(MAX_BPS).div(price) (contracts/PerpL2/PerpV2Controller.sol#163)
+	-amountOut = amountIn.mul(MAX_BPS + slippage).div(MAX_BPS) (contracts/PerpL2/PerpV2Controller.sol#158-160)
+PerpV2Controller._closePosition(uint256) (contracts/PerpL2/PerpV2Controller.sol#188-213) performs a multiplication on the result of a division:
+	-amountOut = amountOut.mul(price).div(MAX_BPS) (contracts/PerpL2/PerpV2Controller.sol#200)
+	-amountOut = amountOut.mul(MAX_BPS + slippage).div(MAX_BPS) (contracts/PerpL2/PerpV2Controller.sol#197-199)
+PerpV2Controller._closePosition(uint256) (contracts/PerpL2/PerpV2Controller.sol#188-213) performs a multiplication on the result of a division:
+	-amountOut = amountOut.mul(price).div(MAX_BPS) (contracts/PerpL2/PerpV2Controller.sol#200)
+	-amountOut = amountOut.mul(MAX_BPS - slippage).div(MAX_BPS) (contracts/PerpL2/PerpV2Controller.sol#197-199)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#divide-before-multiply
+
+Reentrancy in PerpPositionHandlerL2.closePosition(uint24) (contracts/PerpL2/PerpPositionHandlerL2.sol#144-149):
+	External calls:
+	- _closePosition(slippage) (contracts/PerpL2/PerpPositionHandlerL2.sol#146)
+		- clearingHouse.closePosition(params) (contracts/PerpL2/PerpV2Controller.sol#212)
+	State variables written after the call(s):
+	- perpPosition.isActive = false (contracts/PerpL2/PerpPositionHandlerL2.sol#147)
+Reentrancy in PerpPositionHandlerL2.openPosition(bool,uint256,uint24) (contracts/PerpL2/PerpPositionHandlerL2.sol#122-139):
+	External calls:
+	- _depositToPerp(wantTokenBalance) (contracts/PerpL2/PerpPositionHandlerL2.sol#129)
+		- token.approve(address(perpVault),_value) (contracts/PerpL2/PerpV2Controller.sol#223)
+		- perpVault.deposit(settlementToken,_value) (contracts/PerpL2/PerpV2Controller.sol#129)
+	State variables written after the call(s):
+	- perpPosition = PerpPosition(formatSqrtPriceX96(getMarkTwapPrice()),getIndexTwapPrice(),amountIn,isShort,true) (contracts/PerpL2/PerpPositionHandlerL2.sol#130-137)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-1
+
+Tick.getAllFundingGrowth(mapping(int24 => Tick.GrowthInfo),int24,int24,int24,int256,int256).fundingGrowthRangeInfo (node_modules/@perp/curie-contract/contracts/lib/Tick.sol#86) is a local variable never initialized
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#uninitialized-local-variables
+
+PerpV2Controller._openPositionByAmount(bool,uint256,uint24) (contracts/PerpL2/PerpV2Controller.sol#146-184) ignores return value by clearingHouse.openPosition(params) (contracts/PerpL2/PerpV2Controller.sol#178)
+PerpV2Controller._closePosition(uint256) (contracts/PerpL2/PerpV2Controller.sol#188-213) ignores return value by clearingHouse.closePosition(params) (contracts/PerpL2/PerpV2Controller.sol#212)
+PerpV2Controller.approveQuoteToken(IERC20,uint256) (contracts/PerpL2/PerpV2Controller.sol#222-224) ignores return value by token.approve(address(perpVault),_value) (contracts/PerpL2/PerpV2Controller.sol#223)
+SocketV1Controller.sendTokens(address,address,address,address,uint256,uint256,bytes) (contracts/PerpL2/SocketV1Controller.sol#66-79) ignores return value by IERC20(token).approve(allowanceTarget,amount) (contracts/PerpL2/SocketV1Controller.sol#76)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#unused-return
+
+---
+
+PerpPositionHandlerL2.setKeeper(address) (contracts/PerpL2/PerpPositionHandlerL2.sol#179-181) should emit an event for:
+	- keeper = _keeper (contracts/PerpL2/PerpPositionHandlerL2.sol#180)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#missing-events-access-control
+
+PerpPositionHandlerL2.constructor(address,address,address,address,address,address,address,address,address,address,address,address)._wantTokenL1 (contracts/PerpL2/PerpPositionHandlerL2.sol#52) lacks a zero-check on :
+		- wantTokenL1 = _wantTokenL1 (contracts/PerpL2/PerpPositionHandlerL2.sol#65)
+PerpPositionHandlerL2.constructor(address,address,address,address,address,address,address,address,address,address,address,address)._wantTokenL2 (contracts/PerpL2/PerpPositionHandlerL2.sol#53) lacks a zero-check on :
+		- wantTokenL2 = _wantTokenL2 (contracts/PerpL2/PerpPositionHandlerL2.sol#66)
+PerpPositionHandlerL2.constructor(address,address,address,address,address,address,address,address,address,address,address,address)._positionHandlerL1 (contracts/PerpL2/PerpPositionHandlerL2.sol#54) lacks a zero-check on :
+		- positionHandlerL1 = _positionHandlerL1 (contracts/PerpL2/PerpPositionHandlerL2.sol#67)
+PerpPositionHandlerL2.constructor(address,address,address,address,address,address,address,address,address,address,address,address)._keeper (contracts/PerpL2/PerpPositionHandlerL2.sol#62) lacks a zero-check on :
+		- keeper = _keeper (contracts/PerpL2/PerpPositionHandlerL2.sol#75)
+PerpPositionHandlerL2.constructor(address,address,address,address,address,address,address,address,address,address,address,address)._socketRegistry (contracts/PerpL2/PerpPositionHandlerL2.sol#63) lacks a zero-check on :
+		- socketRegistry = _socketRegistry (contracts/PerpL2/PerpPositionHandlerL2.sol#76)
+PerpPositionHandlerL2.setSocketRegistry(address)._socketRegistry (contracts/PerpL2/PerpPositionHandlerL2.sol#173) lacks a zero-check on :
+		- socketRegistry = _socketRegistry (contracts/PerpL2/PerpPositionHandlerL2.sol#174)
+PerpPositionHandlerL2.setKeeper(address)._keeper (contracts/PerpL2/PerpPositionHandlerL2.sol#179) lacks a zero-check on :
+		- keeper = _keeper (contracts/PerpL2/PerpPositionHandlerL2.sol#180)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#missing-zero-address-validation
+
+FullMath.mulDiv(uint256,uint256,uint256) (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#14-106) uses assembly
+	- INLINE ASM (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#26-30)
+	- INLINE ASM (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#35-37)
+	- INLINE ASM (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#52-54)
+	- INLINE ASM (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#56-59)
+	- INLINE ASM (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#66-68)
+	- INLINE ASM (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#71-73)
+	- INLINE ASM (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#77-79)
+TickMath.getTickAtSqrtRatio(uint160) (node_modules/@uniswap/v3-core/contracts/libraries/TickMath.sol#61-204) uses assembly
+	- INLINE ASM (node_modules/@uniswap/v3-core/contracts/libraries/TickMath.sol#69-73)
+	- INLINE ASM (node_modules/@uniswap/v3-core/contracts/libraries/TickMath.sol#74-78)
+	- INLINE ASM (node_modules/@uniswap/v3-core/contracts/libraries/TickMath.sol#79-83)
+	- INLINE ASM (node_modules/@uniswap/v3-core/contracts/libraries/TickMath.sol#84-88)
+	- INLINE ASM (node_modules/@uniswap/v3-core/contracts/libraries/TickMath.sol#89-93)
+	- INLINE ASM (node_modules/@uniswap/v3-core/contracts/libraries/TickMath.sol#94-98)
+	- INLINE ASM (node_modules/@uniswap/v3-core/contracts/libraries/TickMath.sol#99-103)
+	- INLINE ASM (node_modules/@uniswap/v3-core/contracts/libraries/TickMath.sol#104-107)
+	- INLINE ASM (node_modules/@uniswap/v3-core/contracts/libraries/TickMath.sol#114-119)
+	- INLINE ASM (node_modules/@uniswap/v3-core/contracts/libraries/TickMath.sol#120-125)
+	- INLINE ASM (node_modules/@uniswap/v3-core/contracts/libraries/TickMath.sol#126-131)
+	- INLINE ASM (node_modules/@uniswap/v3-core/contracts/libraries/TickMath.sol#132-137)
+	- INLINE ASM (node_modules/@uniswap/v3-core/contracts/libraries/TickMath.sol#138-143)
+	- INLINE ASM (node_modules/@uniswap/v3-core/contracts/libraries/TickMath.sol#144-149)
+	- INLINE ASM (node_modules/@uniswap/v3-core/contracts/libraries/TickMath.sol#150-155)
+	- INLINE ASM (node_modules/@uniswap/v3-core/contracts/libraries/TickMath.sol#156-161)
+	- INLINE ASM (node_modules/@uniswap/v3-core/contracts/libraries/TickMath.sol#162-167)
+	- INLINE ASM (node_modules/@uniswap/v3-core/contracts/libraries/TickMath.sol#168-173)
+	- INLINE ASM (node_modules/@uniswap/v3-core/contracts/libraries/TickMath.sol#174-179)
+	- INLINE ASM (node_modules/@uniswap/v3-core/contracts/libraries/TickMath.sol#180-185)
+	- INLINE ASM (node_modules/@uniswap/v3-core/contracts/libraries/TickMath.sol#186-191)
+	- INLINE ASM (node_modules/@uniswap/v3-core/contracts/libraries/TickMath.sol#192-196)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#assembly-usage
+
+PerpPositionHandlerL2.openPosition(bool,uint256,uint24) (contracts/PerpL2/PerpPositionHandlerL2.sol#122-139) compares to a boolean constant:
+	-require(bool,string)(perpPosition.isActive == false,Position already open) (contracts/PerpL2/PerpPositionHandlerL2.sol#127)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#boolean-equality
+
+Different versions of Solidity is used:
+	- Version used: ['0.7.6', '>=0.4.0', '>=0.4.0<0.8.0', '>=0.5.0', '>=0.5.0<0.8.0', '>=0.6.0<0.8.0', '>=0.7.6<0.9.0', '^0.7.6']
+	- >=0.6.0<0.8.0 (node_modules/@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol#3)
+	- >=0.6.0<0.8.0 (node_modules/@openzeppelin/contracts-upgradeable/math/SignedSafeMathUpgradeable.sol#3)
+	- 0.7.6 (node_modules/@perp/curie-contract/contracts/interface/IAccountBalance.sol#2)
+	- v2 (node_modules/@perp/curie-contract/contracts/interface/IAccountBalance.sol#3)
+	- 0.7.6 (node_modules/@perp/curie-contract/contracts/interface/IClearingHouse.sol#2)
+	- v2 (node_modules/@perp/curie-contract/contracts/interface/IClearingHouse.sol#3)
+	- 0.7.6 (node_modules/@perp/curie-contract/contracts/interface/IClearingHouseConfig.sol#2)
+	- 0.7.6 (node_modules/@perp/curie-contract/contracts/interface/IExchange.sol#2)
+	- v2 (node_modules/@perp/curie-contract/contracts/interface/IExchange.sol#3)
+	- 0.7.6 (node_modules/@perp/curie-contract/contracts/interface/IIndexPrice.sol#2)
+	- 0.7.6 (node_modules/@perp/curie-contract/contracts/interface/IVault.sol#2)
+	- 0.7.6 (node_modules/@perp/curie-contract/contracts/interface/IVirtualToken.sol#2)
+	- 0.7.6 (node_modules/@perp/curie-contract/contracts/lib/AccountMarket.sol#2)
+	- 0.7.6 (node_modules/@perp/curie-contract/contracts/lib/Funding.sol#2)
+	- 0.7.6 (node_modules/@perp/curie-contract/contracts/lib/OpenOrder.sol#2)
+	- 0.7.6 (node_modules/@perp/curie-contract/contracts/lib/PerpFixedPoint96.sol#2)
+	- 0.7.6 (node_modules/@perp/curie-contract/contracts/lib/PerpMath.sol#2)
+	- v2 (node_modules/@perp/curie-contract/contracts/lib/PerpMath.sol#3)
+	- 0.7.6 (node_modules/@perp/curie-contract/contracts/lib/PerpSafeCast.sol#2)
+	- 0.7.6 (node_modules/@perp/curie-contract/contracts/lib/Tick.sol#2)
+	- >=0.4.0 (node_modules/@uniswap/v3-core/contracts/libraries/FixedPoint96.sol#2)
+	- >=0.4.0<0.8.0 (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#2)
+	- >=0.5.0<0.8.0 (node_modules/@uniswap/v3-core/contracts/libraries/TickMath.sol#2)
+	- >=0.5.0 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#2)
+	- ^0.7.6 (contracts/PerpL2/OptimismL2Wrapper.sol#2)
+	- ^0.7.6 (contracts/PerpL2/PerpPositionHandlerL2.sol#2)
+	- ^0.7.6 (contracts/PerpL2/PerpV2Controller.sol#2)
+	- v2 (contracts/PerpL2/PerpV2Controller.sol#3)
+	- ^0.7.6 (contracts/PerpL2/SocketV1Controller.sol#2)
+	- ABIEncoderV2 (contracts/PerpL2/SocketV1Controller.sol#3)
+	- ^0.7.6 (contracts/PerpL2/interfaces/CrossDomainMessenger.interface.sol#2)
+	- ABIEncoderV2 (contracts/PerpL2/interfaces/CrossDomainMessenger.interface.sol#3)
+	- ^0.7.6 (contracts/PerpL2/interfaces/IERC20.sol#4)
+	- >=0.7.6<0.9.0 (contracts/PerpL2/interfaces/IPositionHandler.sol#2)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#different-pragma-directives-are-used
+
+FullMath.mulDiv(uint256,uint256,uint256) (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#14-106) is never used and should be removed
+FullMath.mulDivRoundingUp(uint256,uint256,uint256) (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#113-123) is never used and should be removed
+Funding.calcLiquidityCoefficientInFundingPaymentByOrder(OpenOrder.Info,Tick.FundingGrowthRangeInfo) (node_modules/@perp/curie-contract/contracts/lib/Funding.sol#63-101) is never used and should be removed
+Funding.calcPendingFundingPaymentWithLiquidityCoefficient(int256,int256,Funding.Growth,int256) (node_modules/@perp/curie-contract/contracts/lib/Funding.sol#42-57) is never used and should be removed
+LiquidityAmounts.getAmount0ForLiquidity(uint160,uint160,uint128) (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#82-95) is never used and should be removed
+LiquidityAmounts.getAmount1ForLiquidity(uint160,uint160,uint128) (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#102-110) is never used and should be removed
+LiquidityAmounts.getAmountsForLiquidity(uint160,uint160,uint160,uint128) (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#120-136) is never used and should be removed
+LiquidityAmounts.getLiquidityForAmount0(uint160,uint160,uint256) (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#23-31) is never used and should be removed
+LiquidityAmounts.getLiquidityForAmount1(uint160,uint160,uint256) (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#39-46) is never used and should be removed
+LiquidityAmounts.getLiquidityForAmounts(uint160,uint160,uint160,uint256,uint256) (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#56-75) is never used and should be removed
+LiquidityAmounts.toUint128(uint256) (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#13-15) is never used and should be removed
+OpenOrder.calcOrderKey(address,address,int24,int24) (node_modules/@perp/curie-contract/contracts/lib/OpenOrder.sol#19-26) is never used and should be removed
+PerpMath.abs(int256) (node_modules/@perp/curie-contract/contracts/lib/PerpMath.sol#36-38) is never used and should be removed
+PerpMath.divBy10_18(int256) (node_modules/@perp/curie-contract/contracts/lib/PerpMath.sol#58-61) is never used and should be removed
+PerpMath.divBy10_18(uint256) (node_modules/@perp/curie-contract/contracts/lib/PerpMath.sol#63-66) is never used and should be removed
+PerpMath.formatSqrtPriceX96ToPriceX96(uint160) (node_modules/@perp/curie-contract/contracts/lib/PerpMath.sol#16-18) is never used and should be removed
+PerpMath.formatX10_18ToX96(uint256) (node_modules/@perp/curie-contract/contracts/lib/PerpMath.sol#20-22) is never used and should be removed
+PerpMath.formatX96ToX10_18(uint256) (node_modules/@perp/curie-contract/contracts/lib/PerpMath.sol#24-26) is never used and should be removed
+PerpMath.max(int256,int256) (node_modules/@perp/curie-contract/contracts/lib/PerpMath.sol#28-30) is never used and should be removed
+PerpMath.min(int256,int256) (node_modules/@perp/curie-contract/contracts/lib/PerpMath.sol#32-34) is never used and should be removed
+PerpMath.mulDiv(int256,int256,uint256) (node_modules/@perp/curie-contract/contracts/lib/PerpMath.sol#73-87) is never used and should be removed
+PerpMath.mulRatio(uint256,uint24) (node_modules/@perp/curie-contract/contracts/lib/PerpMath.sol#68-70) is never used and should be removed
+PerpMath.neg128(int128) (node_modules/@perp/curie-contract/contracts/lib/PerpMath.sol#49-52) is never used and should be removed
+PerpMath.neg128(uint128) (node_modules/@perp/curie-contract/contracts/lib/PerpMath.sol#54-56) is never used and should be removed
+PerpMath.neg256(int256) (node_modules/@perp/curie-contract/contracts/lib/PerpMath.sol#40-43) is never used and should be removed
+PerpMath.neg256(uint256) (node_modules/@perp/curie-contract/contracts/lib/PerpMath.sol#45-47) is never used and should be removed
+PerpSafeCast.toInt128(int256) (node_modules/@perp/curie-contract/contracts/lib/PerpSafeCast.sol#104-106) is never used and should be removed
+PerpSafeCast.toInt16(int256) (node_modules/@perp/curie-contract/contracts/lib/PerpSafeCast.sol#155-157) is never used and should be removed
+PerpSafeCast.toInt24(int256) (node_modules/@perp/curie-contract/contracts/lib/PerpSafeCast.sol#215-217) is never used and should be removed
+PerpSafeCast.toInt256(uint256) (node_modules/@perp/curie-contract/contracts/lib/PerpSafeCast.sol#183-186) is never used and should be removed
+PerpSafeCast.toInt32(int256) (node_modules/@perp/curie-contract/contracts/lib/PerpSafeCast.sol#138-140) is never used and should be removed
+PerpSafeCast.toInt64(int256) (node_modules/@perp/curie-contract/contracts/lib/PerpSafeCast.sol#121-123) is never used and should be removed
+PerpSafeCast.toInt8(int256) (node_modules/@perp/curie-contract/contracts/lib/PerpSafeCast.sol#172-174) is never used and should be removed
+PerpSafeCast.toUint128(uint256) (node_modules/@perp/curie-contract/contracts/lib/PerpSafeCast.sol#19-21) is never used and should be removed
+PerpSafeCast.toUint16(uint256) (node_modules/@perp/curie-contract/contracts/lib/PerpSafeCast.sol#61-63) is never used and should be removed
+PerpSafeCast.toUint24(int256) (node_modules/@perp/curie-contract/contracts/lib/PerpSafeCast.sol#198-203) is never used and should be removed
+PerpSafeCast.toUint256(int256) (node_modules/@perp/curie-contract/contracts/lib/PerpSafeCast.sol#86-89) is never used and should be removed
+PerpSafeCast.toUint32(uint256) (node_modules/@perp/curie-contract/contracts/lib/PerpSafeCast.sol#47-49) is never used and should be removed
+PerpSafeCast.toUint64(uint256) (node_modules/@perp/curie-contract/contracts/lib/PerpSafeCast.sol#33-35) is never used and should be removed
+PerpSafeCast.toUint8(uint256) (node_modules/@perp/curie-contract/contracts/lib/PerpSafeCast.sol#75-77) is never used and should be removed
+SafeMathUpgradeable.add(uint256,uint256) (node_modules/@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol#85-89) is never used and should be removed
+SafeMathUpgradeable.div(uint256,uint256,string) (node_modules/@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol#190-193) is never used and should be removed
+SafeMathUpgradeable.mod(uint256,uint256) (node_modules/@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol#152-155) is never used and should be removed
+SafeMathUpgradeable.mod(uint256,uint256,string) (node_modules/@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol#210-213) is never used and should be removed
+SafeMathUpgradeable.sub(uint256,uint256) (node_modules/@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol#101-104) is never used and should be removed
+SafeMathUpgradeable.sub(uint256,uint256,string) (node_modules/@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol#170-173) is never used and should be removed
+SafeMathUpgradeable.tryAdd(uint256,uint256) (node_modules/@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol#24-28) is never used and should be removed
+SafeMathUpgradeable.tryDiv(uint256,uint256) (node_modules/@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol#60-63) is never used and should be removed
+SafeMathUpgradeable.tryMod(uint256,uint256) (node_modules/@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol#70-73) is never used and should be removed
+SafeMathUpgradeable.tryMul(uint256,uint256) (node_modules/@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol#45-53) is never used and should be removed
+SafeMathUpgradeable.trySub(uint256,uint256) (node_modules/@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol#35-38) is never used and should be removed
+SignedSafeMathUpgradeable.add(int256,int256) (node_modules/@openzeppelin/contracts-upgradeable/math/SignedSafeMathUpgradeable.sol#86-91) is never used and should be removed
+SignedSafeMathUpgradeable.div(int256,int256) (node_modules/@openzeppelin/contracts-upgradeable/math/SignedSafeMathUpgradeable.sol#50-57) is never used and should be removed
+SignedSafeMathUpgradeable.mul(int256,int256) (node_modules/@openzeppelin/contracts-upgradeable/math/SignedSafeMathUpgradeable.sol#22-36) is never used and should be removed
+SignedSafeMathUpgradeable.sub(int256,int256) (node_modules/@openzeppelin/contracts-upgradeable/math/SignedSafeMathUpgradeable.sol#69-74) is never used and should be removed
+Tick.clear(mapping(int24 => Tick.GrowthInfo),int24) (node_modules/@perp/curie-contract/contracts/lib/Tick.sol#46-48) is never used and should be removed
+Tick.cross(mapping(int24 => Tick.GrowthInfo),int24,Tick.GrowthInfo) (node_modules/@perp/curie-contract/contracts/lib/Tick.sol#33-44) is never used and should be removed
+Tick.getAllFundingGrowth(mapping(int24 => Tick.GrowthInfo),int24,int24,int24,int256,int256) (node_modules/@perp/curie-contract/contracts/lib/Tick.sol#72-117) is never used and should be removed
+Tick.getFeeGrowthInsideX128(mapping(int24 => Tick.GrowthInfo),int24,int24,int24,uint256) (node_modules/@perp/curie-contract/contracts/lib/Tick.sol#52-68) is never used and should be removed
+Tick.initialize(mapping(int24 => Tick.GrowthInfo),int24,int24,Tick.GrowthInfo) (node_modules/@perp/curie-contract/contracts/lib/Tick.sol#19-31) is never used and should be removed
+TickMath.getSqrtRatioAtTick(int24) (node_modules/@uniswap/v3-core/contracts/libraries/TickMath.sol#23-54) is never used and should be removed
+TickMath.getTickAtSqrtRatio(uint160) (node_modules/@uniswap/v3-core/contracts/libraries/TickMath.sol#61-204) is never used and should be removed
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#dead-code
+
+OptimismL2Wrapper.optimismMessenger (contracts/PerpL2/OptimismL2Wrapper.sol#11) is set pre-construction with a non-constant function or state variable:
+	- ICrossDomainMessenger(L2CrossDomainMessenger)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#function-initializing-state
+
+Pragma version>=0.6.0<0.8.0 (node_modules/@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol#3) is too complex
+Pragma version>=0.6.0<0.8.0 (node_modules/@openzeppelin/contracts-upgradeable/math/SignedSafeMathUpgradeable.sol#3) is too complex
+Pragma version>=0.4.0 (node_modules/@uniswap/v3-core/contracts/libraries/FixedPoint96.sol#2) allows old versions
+Pragma version>=0.4.0<0.8.0 (node_modules/@uniswap/v3-core/contracts/libraries/FullMath.sol#2) is too complex
+Pragma version>=0.5.0<0.8.0 (node_modules/@uniswap/v3-core/contracts/libraries/TickMath.sol#2) is too complex
+Pragma version>=0.5.0 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#2) allows old versions
+Pragma version>=0.7.6<0.9.0 (contracts/PerpL2/interfaces/IPositionHandler.sol#2) is too complex
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#incorrect-versions-of-solidity
+
+Low level call in SocketV1Controller.sendTokens(address,address,address,address,uint256,uint256,bytes) (contracts/PerpL2/SocketV1Controller.sol#66-79):
+	- (success) = socketRegistry.call(data) (contracts/PerpL2/SocketV1Controller.sol#77)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#low-level-calls
+
+Parameter IVault.deposit(address,uint256).amountX10_D (node_modules/@perp/curie-contract/contracts/interface/IVault.sol#12) is not in mixedCase
+Parameter IVault.withdraw(address,uint256).amountX10_D (node_modules/@perp/curie-contract/contracts/interface/IVault.sol#17) is not in mixedCase
+Function PerpMath.formatX10_18ToX96(uint256) (node_modules/@perp/curie-contract/contracts/lib/PerpMath.sol#20-22) is not in mixedCase
+Parameter PerpMath.formatX10_18ToX96(uint256).valueX10_18 (node_modules/@perp/curie-contract/contracts/lib/PerpMath.sol#20) is not in mixedCase
+Function PerpMath.formatX96ToX10_18(uint256) (node_modules/@perp/curie-contract/contracts/lib/PerpMath.sol#24-26) is not in mixedCase
+Function PerpMath.divBy10_18(int256) (node_modules/@perp/curie-contract/contracts/lib/PerpMath.sol#58-61) is not in mixedCase
+Function PerpMath.divBy10_18(uint256) (node_modules/@perp/curie-contract/contracts/lib/PerpMath.sol#63-66) is not in mixedCase
+Variable OptimismL2Wrapper.L2CrossDomainMessenger (contracts/PerpL2/OptimismL2Wrapper.sol#9) is not in mixedCase
+Parameter PerpPositionHandlerL2.withdraw(uint256,address,address,bytes)._socketRegistry (contracts/PerpL2/PerpPositionHandlerL2.sol#93) is not in mixedCase
+Parameter PerpPositionHandlerL2.sweep(address)._token (contracts/PerpL2/PerpPositionHandlerL2.sol#158) is not in mixedCase
+Parameter PerpPositionHandlerL2.setReferralCode(bytes32)._referralCode (contracts/PerpL2/PerpPositionHandlerL2.sol#167) is not in mixedCase
+Parameter PerpPositionHandlerL2.setSocketRegistry(address)._socketRegistry (contracts/PerpL2/PerpPositionHandlerL2.sol#173) is not in mixedCase
+Parameter PerpPositionHandlerL2.setKeeper(address)._keeper (contracts/PerpL2/PerpPositionHandlerL2.sol#179) is not in mixedCase
+Parameter PerpV2Controller.approveQuoteToken(IERC20,uint256)._value (contracts/PerpL2/PerpV2Controller.sol#222) is not in mixedCase
+Parameter SocketV1Controller.decodeSocketRegistryCalldata(bytes)._data (contracts/PerpL2/SocketV1Controller.sol#35) is not in mixedCase
+Parameter SocketV1Controller.verifySocketCalldata(bytes,uint256,address,address)._data (contracts/PerpL2/SocketV1Controller.sol#43) is not in mixedCase
+Parameter SocketV1Controller.verifySocketCalldata(bytes,uint256,address,address)._chainId (contracts/PerpL2/SocketV1Controller.sol#43) is not in mixedCase
+Parameter SocketV1Controller.verifySocketCalldata(bytes,uint256,address,address)._inputToken (contracts/PerpL2/SocketV1Controller.sol#43) is not in mixedCase
+Parameter SocketV1Controller.verifySocketCalldata(bytes,uint256,address,address)._receiverAddress (contracts/PerpL2/SocketV1Controller.sol#43) is not in mixedCase
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#conformance-to-solidity-naming-conventions
+
+Variable Tick.getAllFundingGrowth(mapping(int24 => Tick.GrowthInfo),int24,int24,int24,int256,int256).twPremiumDivBySqrtPriceGrowthAboveX96 (node_modules/@perp/curie-contract/contracts/lib/Tick.sol#102-105) is too similar to Tick.getAllFundingGrowth(mapping(int24 => Tick.GrowthInfo),int24,int24,int24,int256,int256).twPremiumDivBySqrtPriceGrowthBelowX96 (node_modules/@perp/curie-contract/contracts/lib/Tick.sol#98-101)
+Variable Tick.getAllFundingGrowth(mapping(int24 => Tick.GrowthInfo),int24,int24,int24,int256,int256).lowerTwPremiumDivBySqrtPriceGrowthOutsideX96 (node_modules/@perp/curie-contract/contracts/lib/Tick.sol#95) is too similar to Tick.getAllFundingGrowth(mapping(int24 => Tick.GrowthInfo),int24,int24,int24,int256,int256).upperTwPremiumDivBySqrtPriceGrowthOutsideX96 (node_modules/@perp/curie-contract/contracts/lib/Tick.sol#96)
+Variable LiquidityAmounts.getLiquidityForAmounts(uint160,uint160,uint160,uint256,uint256).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#58) is too similar to LiquidityAmounts.getAmount0ForLiquidity(uint160,uint160,uint128).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#84)
+Variable LiquidityAmounts.getLiquidityForAmount0(uint160,uint160,uint256).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#24) is too similar to LiquidityAmounts.getLiquidityForAmounts(uint160,uint160,uint160,uint256,uint256).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#59)
+Variable LiquidityAmounts.getAmount1ForLiquidity(uint160,uint160,uint128).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#103) is too similar to LiquidityAmounts.getLiquidityForAmount0(uint160,uint160,uint256).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#25)
+Variable LiquidityAmounts.getAmountsForLiquidity(uint160,uint160,uint160,uint128).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#122) is too similar to LiquidityAmounts.getAmountsForLiquidity(uint160,uint160,uint160,uint128).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#123)
+Variable LiquidityAmounts.getAmountsForLiquidity(uint160,uint160,uint160,uint128).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#122) is too similar to LiquidityAmounts.getLiquidityForAmount0(uint160,uint160,uint256).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#25)
+Variable LiquidityAmounts.getLiquidityForAmount1(uint160,uint160,uint256).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#40) is too similar to LiquidityAmounts.getLiquidityForAmount0(uint160,uint160,uint256).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#25)
+Variable LiquidityAmounts.getLiquidityForAmount0(uint160,uint160,uint256).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#24) is too similar to LiquidityAmounts.getLiquidityForAmount0(uint160,uint160,uint256).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#25)
+Variable LiquidityAmounts.getLiquidityForAmounts(uint160,uint160,uint160,uint256,uint256).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#58) is too similar to LiquidityAmounts.getAmount1ForLiquidity(uint160,uint160,uint128).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#104)
+Variable LiquidityAmounts.getAmount1ForLiquidity(uint160,uint160,uint128).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#103) is too similar to LiquidityAmounts.getAmount0ForLiquidity(uint160,uint160,uint128).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#84)
+Variable LiquidityAmounts.getLiquidityForAmounts(uint160,uint160,uint160,uint256,uint256).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#58) is too similar to LiquidityAmounts.getLiquidityForAmount1(uint160,uint160,uint256).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#41)
+Variable LiquidityAmounts.getAmount0ForLiquidity(uint160,uint160,uint128).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#83) is too similar to LiquidityAmounts.getLiquidityForAmount0(uint160,uint160,uint256).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#25)
+Variable LiquidityAmounts.getAmountsForLiquidity(uint160,uint160,uint160,uint128).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#122) is too similar to LiquidityAmounts.getAmount0ForLiquidity(uint160,uint160,uint128).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#84)
+Variable LiquidityAmounts.getLiquidityForAmount1(uint160,uint160,uint256).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#40) is too similar to LiquidityAmounts.getAmount0ForLiquidity(uint160,uint160,uint128).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#84)
+Variable LiquidityAmounts.getLiquidityForAmount0(uint160,uint160,uint256).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#24) is too similar to LiquidityAmounts.getAmount0ForLiquidity(uint160,uint160,uint128).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#84)
+Variable LiquidityAmounts.getAmount0ForLiquidity(uint160,uint160,uint128).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#83) is too similar to LiquidityAmounts.getAmount0ForLiquidity(uint160,uint160,uint128).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#84)
+Variable LiquidityAmounts.getAmount1ForLiquidity(uint160,uint160,uint128).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#103) is too similar to LiquidityAmounts.getAmount1ForLiquidity(uint160,uint160,uint128).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#104)
+Variable LiquidityAmounts.getLiquidityForAmounts(uint160,uint160,uint160,uint256,uint256).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#58) is too similar to LiquidityAmounts.getAmountsForLiquidity(uint160,uint160,uint160,uint128).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#123)
+Variable LiquidityAmounts.getLiquidityForAmount0(uint160,uint160,uint256).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#24) is too similar to LiquidityAmounts.getAmount1ForLiquidity(uint160,uint160,uint128).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#104)
+Variable LiquidityAmounts.getLiquidityForAmounts(uint160,uint160,uint160,uint256,uint256).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#58) is too similar to LiquidityAmounts.getLiquidityForAmounts(uint160,uint160,uint160,uint256,uint256).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#59)
+Variable LiquidityAmounts.getAmount1ForLiquidity(uint160,uint160,uint128).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#103) is too similar to LiquidityAmounts.getLiquidityForAmount1(uint160,uint160,uint256).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#41)
+Variable LiquidityAmounts.getAmountsForLiquidity(uint160,uint160,uint160,uint128).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#122) is too similar to LiquidityAmounts.getLiquidityForAmount1(uint160,uint160,uint256).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#41)
+Variable LiquidityAmounts.getLiquidityForAmount1(uint160,uint160,uint256).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#40) is too similar to LiquidityAmounts.getLiquidityForAmount1(uint160,uint160,uint256).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#41)
+Variable LiquidityAmounts.getLiquidityForAmount0(uint160,uint160,uint256).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#24) is too similar to LiquidityAmounts.getLiquidityForAmount1(uint160,uint160,uint256).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#41)
+Variable LiquidityAmounts.getLiquidityForAmounts(uint160,uint160,uint160,uint256,uint256).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#58) is too similar to LiquidityAmounts.getLiquidityForAmount0(uint160,uint160,uint256).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#25)
+Variable LiquidityAmounts.getAmount0ForLiquidity(uint160,uint160,uint128).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#83) is too similar to LiquidityAmounts.getLiquidityForAmount1(uint160,uint160,uint256).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#41)
+Variable LiquidityAmounts.getAmount1ForLiquidity(uint160,uint160,uint128).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#103) is too similar to LiquidityAmounts.getAmountsForLiquidity(uint160,uint160,uint160,uint128).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#123)
+Variable LiquidityAmounts.getAmount1ForLiquidity(uint160,uint160,uint128).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#103) is too similar to LiquidityAmounts.getLiquidityForAmounts(uint160,uint160,uint160,uint256,uint256).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#59)
+Variable LiquidityAmounts.getLiquidityForAmount0(uint160,uint160,uint256).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#24) is too similar to LiquidityAmounts.getAmountsForLiquidity(uint160,uint160,uint160,uint128).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#123)
+Variable LiquidityAmounts.getAmountsForLiquidity(uint160,uint160,uint160,uint128).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#122) is too similar to LiquidityAmounts.getLiquidityForAmounts(uint160,uint160,uint160,uint256,uint256).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#59)
+Variable LiquidityAmounts.getLiquidityForAmount1(uint160,uint160,uint256).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#40) is too similar to LiquidityAmounts.getAmountsForLiquidity(uint160,uint160,uint160,uint128).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#123)
+Variable LiquidityAmounts.getAmount0ForLiquidity(uint160,uint160,uint128).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#83) is too similar to LiquidityAmounts.getAmount1ForLiquidity(uint160,uint160,uint128).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#104)
+Variable LiquidityAmounts.getAmount0ForLiquidity(uint160,uint160,uint128).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#83) is too similar to LiquidityAmounts.getLiquidityForAmounts(uint160,uint160,uint160,uint256,uint256).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#59)
+Variable LiquidityAmounts.getLiquidityForAmount1(uint160,uint160,uint256).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#40) is too similar to LiquidityAmounts.getAmount1ForLiquidity(uint160,uint160,uint128).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#104)
+Variable LiquidityAmounts.getLiquidityForAmount1(uint160,uint160,uint256).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#40) is too similar to LiquidityAmounts.getLiquidityForAmounts(uint160,uint160,uint160,uint256,uint256).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#59)
+Variable LiquidityAmounts.getAmount0ForLiquidity(uint160,uint160,uint128).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#83) is too similar to LiquidityAmounts.getAmountsForLiquidity(uint160,uint160,uint160,uint128).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#123)
+Variable LiquidityAmounts.getAmountsForLiquidity(uint160,uint160,uint160,uint128).sqrtRatioAX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#122) is too similar to LiquidityAmounts.getAmount1ForLiquidity(uint160,uint160,uint128).sqrtRatioBX96 (node_modules/@uniswap/v3-periphery/contracts/libraries/LiquidityAmounts.sol#104)
+Variable PerpPositionHandlerL2.constructor(address,address,address,address,address,address,address,address,address,address,address,address)._wantTokenL1 (contracts/PerpL2/PerpPositionHandlerL2.sol#52) is too similar to PerpPositionHandlerL2.constructor(address,address,address,address,address,address,address,address,address,address,address,address)._wantTokenL2 (contracts/PerpL2/PerpPositionHandlerL2.sol#53)
+Variable PerpPositionHandlerL2.wantTokenL1 (contracts/PerpL2/PerpPositionHandlerL2.sol#30) is too similar to PerpPositionHandlerL2.wantTokenL2 (contracts/PerpL2/PerpPositionHandlerL2.sol#33)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#variable-names-are-too-similar
+
+PerpFixedPoint96.slitherConstructorConstantVariables() (node_modules/@perp/curie-contract/contracts/lib/PerpFixedPoint96.sol#4-6) uses literals with too many digits:
+	- _IQ96 = 0x1000000000000000000000000 (node_modules/@perp/curie-contract/contracts/lib/PerpFixedPoint96.sol#5)
+FixedPoint96.slitherConstructorConstantVariables() (node_modules/@uniswap/v3-core/contracts/libraries/FixedPoint96.sol#7-10) uses literals with too many digits:
+	- Q96 = 0x1000000000000000000000000 (node_modules/@uniswap/v3-core/contracts/libraries/FixedPoint96.sol#9)
+TickMath.getSqrtRatioAtTick(int24) (node_modules/@uniswap/v3-core/contracts/libraries/TickMath.sol#23-54) uses literals with too many digits:
+	- ratio = 0x100000000000000000000000000000000 (node_modules/@uniswap/v3-core/contracts/libraries/TickMath.sol#27)
+PerpPositionHandlerL2.slitherConstructorVariables() (contracts/PerpL2/PerpPositionHandlerL2.sol#16-193) uses literals with too many digits:
+	- L2CrossDomainMessenger = 0x4200000000000000000000000000000000000007 (contracts/PerpL2/OptimismL2Wrapper.sol#9)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#too-many-digits
+
+OptimismL2Wrapper.L2CrossDomainMessenger (contracts/PerpL2/OptimismL2Wrapper.sol#9) should be constant
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#state-variables-that-could-be-declared-constant
+
+withdraw(uint256,address,address,bytes) should be declared external:
+	- PerpPositionHandlerL2.withdraw(uint256,address,address,bytes) (contracts/PerpL2/PerpPositionHandlerL2.sol#90-110)
+openPosition(bool,uint256,uint24) should be declared external:
+	- PerpPositionHandlerL2.openPosition(bool,uint256,uint24) (contracts/PerpL2/PerpPositionHandlerL2.sol#122-139)
+closePosition(uint24) should be declared external:
+	- PerpPositionHandlerL2.closePosition(uint24) (contracts/PerpL2/PerpPositionHandlerL2.sol#144-149)
+sweep(address) should be declared external:
+	- PerpPositionHandlerL2.sweep(address) (contracts/PerpL2/PerpPositionHandlerL2.sol#158-163)
+setReferralCode(bytes32) should be declared external:
+	- PerpPositionHandlerL2.setReferralCode(bytes32) (contracts/PerpL2/PerpPositionHandlerL2.sol#167-169)
+setSocketRegistry(address) should be declared external:
+	- PerpPositionHandlerL2.setSocketRegistry(address) (contracts/PerpL2/PerpPositionHandlerL2.sol#173-175)
+setKeeper(address) should be declared external:
+	- PerpPositionHandlerL2.setKeeper(address) (contracts/PerpL2/PerpPositionHandlerL2.sol#179-181)
+positionInUSDC() should be declared external:
+	- PerpV2Controller.positionInUSDC() (contracts/PerpL2/PerpV2Controller.sol#111-117)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#public-function-that-could-be-declared-external
+contracts/PerpL2/PerpPositionHandlerL2.sol analyzed (27 contracts with 77 detectors), 174 result(s) found
