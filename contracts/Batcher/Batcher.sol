@@ -17,13 +17,6 @@ import "./EIP712.sol";
 contract Batcher is IBatcher, EIP712, ReentrancyGuard {
   using SafeERC20 for IERC20;
 
-  /*///////////////////////////////////////////////////////////////
-                                CONSTANTS
-  //////////////////////////////////////////////////////////////*/
-
-  /// @notice minimum amount of tokens to be processed
-  uint256 constant DUST_LIMIT = 10000;
-
   /// @notice Vault parameters for the batcher
   VaultInfo public vaultInfo;
 
@@ -41,7 +34,7 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     verificationAuthority = _verificationAuthority;
     governance = _governance;
 
-    require(vaultAddress != address(0), "Invalid vault address");
+    require(vaultAddress != address(0), "NULL_ADDRESS");
     vaultInfo = VaultInfo({
       vaultAddress: vaultAddress,
       tokenAddress: IVault(vaultAddress).wantToken(),
@@ -85,7 +78,7 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     vaultInfo.currentAmount += amountIn;
     require(
       vaultInfo.currentAmount <= vaultInfo.maxAmount,
-      "Exceeded deposit limit"
+      "MAX_LIMIT_EXCEEDED"
     );
 
     _completeDeposit(amountIn);
@@ -119,7 +112,7 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
   function withdrawFunds(uint256 amountIn) external override nonReentrant {
     require(
       depositLedger[msg.sender] == 0,
-      "Cannot withdraw funds from vault while waiting to deposit"
+      "DEPOSIT_PENDING"
     );
 
     if (amountIn > userTokens[msg.sender]) {
@@ -150,7 +143,7 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     override
     nonReentrant
   {
-    require(userTokens[msg.sender] >= amount, "No funds available");
+    require(userTokens[msg.sender] >= amount, "NO_FUNDS");
     userTokens[msg.sender] = userTokens[msg.sender] - amount;
     IERC20(vaultInfo.vaultAddress).safeTransfer(recipient, amount);
   }
@@ -183,7 +176,7 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
       }
     }
 
-    require(amountToDeposit > 0, "no deposits to make");
+    require(amountToDeposit > 0, "NO_DEPOSITS");
 
     uint256 lpTokensReportedByVault = vault.deposit(
       amountToDeposit,
@@ -195,7 +188,7 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
 
     require(
       lpTokensReceived == lpTokensReportedByVault,
-      "LP tokens received by vault does not match"
+      "LP_TOKENS_MISMATCH"
     );
 
     for (uint256 i = 0; i < users.length; i++) {
@@ -236,7 +229,7 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
       }
     }
 
-    require(amountToWithdraw > 0, "no deposits to make");
+    require(amountToWithdraw > 0, "NO_WITHDRAWS");
 
     uint256 wantTokensReportedByVault = vault.withdraw(
       amountToWithdraw,
@@ -248,7 +241,7 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
 
     require(
       wantTokensReceived == wantTokensReportedByVault,
-      "Want tokens received by vault does not match"
+      "WANT_TOKENS_MISMATCH"
     );
 
     for (uint256 i = 0; i < users.length; i++) {
@@ -275,12 +268,12 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
   function validDeposit(bytes memory signature) internal view {
     require(
       verifySignatureAgainstAuthority(signature, verificationAuthority),
-      "Signature is not valid"
+      "INVALID_SIGNATURE"
     );
 
     require(
       withdrawLedger[msg.sender] == 0,
-      "Cannot deposit funds to vault while waiting to withdraw"
+      "WITHDRAW_PENDING"
     );
   }
 
@@ -353,7 +346,7 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
   /// @param _slippage Must be between 0 and 10000
   function setSlippage(uint256 _slippage) external override {
     onlyKeeper();
-    require(_slippage <= 10000, "Slippage must be between 0 and 10000");
+    require(_slippage <= 10000, "HIGH_SLIPPAGE");
     slippageForCurveLp = _slippage;
   }
 
@@ -380,18 +373,18 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
   /// @notice Helper to get Keeper address from Vault contract
   /// @return Keeper address
   function keeper() public view returns (address) {
-    require(vaultInfo.vaultAddress != address(0), "Vault not set");
+    require(vaultInfo.vaultAddress != address(0), "NULL_ADDRESS");
     return IVault(vaultInfo.vaultAddress).keeper();
   }
 
   /// @notice Helper to asset msg.sender as keeper address
   function onlyKeeper() internal view {
-    require(msg.sender == keeper(), "Only keeper can call this function");
+    require(msg.sender == keeper(), "ONLY_KEEPER");
   }
 
   /// @notice Helper to asset msg.sender as governance address
   function onlyGovernance() internal view {
-    require(governance == msg.sender, "Only governance can call this");
+    require(governance == msg.sender, "ONLY_GOV");
   }
 
   /// @notice Function to change governance. New address will need to accept the governance role

@@ -139,7 +139,7 @@ contract PerpPositionHandler is
   /// @param data Encoded DepositParams as data
   function _deposit(bytes calldata data) internal override {
     DepositParams memory depositParams = abi.decode(data, (DepositParams));
-    require (depositParams._socketRegistry == socketRegistry, "socketRegistry is not set correctly");
+    require (depositParams._socketRegistry == socketRegistry, "INVALID_SOCKET_REGISTRY");
     depositStats.lastDeposit = depositParams._amount;
     depositStats.totalDeposit += depositParams._amount;
     sendTokens(

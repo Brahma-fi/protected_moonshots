@@ -13,15 +13,12 @@ import "@perp/curie-contract/contracts/interface/IIndexPrice.sol";
 
 
 import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
-import { SignedSafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SignedSafeMathUpgradeable.sol";
 
 
 /// @title PerpV2Controller
-/// @author 0xAd1
+/// @author 0xAd1 and Bapireddy
 /// @notice Handles positions on PerpV2
 contract PerpV2Controller {
-
-    using SignedSafeMathUpgradeable for int256;
     using SafeMathUpgradeable for uint256;
 
 
@@ -62,61 +59,6 @@ contract PerpV2Controller {
     /// @notice Address of exchange contract on Perp
     IExchange public exchange;
     
-
-    /*///////////////////////////////////////////////////////////////
-                            VIEW FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice Get free collateral available on Perp V2
-    /// @return Free collateral available on Perp V2 in quoteToken terms
-    function getFreeCollateral() public view returns (uint256) {
-        return perpVault.getFreeCollateral(address(this));
-    }
-
-    /// @notice Gets mark twap price of Perp's uniswap pool (quoteToken/baseToken)
-    /// @return uint160 gets SqrtX96 price
-    function getMarkTwapPrice() public view returns (uint160) {
-        uint32 twapInterval = clearingHouseConfig.getTwapInterval();
-        uint160 twapPrice = exchange.getSqrtMarkTwapX96(
-            address(baseToken),
-            twapInterval
-        );
-        return twapPrice;
-    }
-
-    /// @notice Gets index twap price from Perp
-    /// @return regular decimal price
-    function getIndexTwapPrice() public view returns (uint256) {
-        uint32 twapInterval = clearingHouseConfig.getTwapInterval();
-        uint256 twapPrice = IIndexPrice(address(baseToken)).getIndexPrice(
-            twapInterval
-        );
-        return twapPrice;
-    }
-
-
-
-    /// @notice Returns the size of current position in baseTokens
-    /// @return amount size of position in baseTokens
-    function getTotalPerpPositionSize() public view returns (int256) {
-        return
-            accountBalance.getTotalPositionSize(
-                address(this),
-                address(baseToken)
-            );
-    }
-
-    /// @notice Returns the value of current position in wantToken value
-    /// @return amount value of position in wantToken (USDC)
-    function positionInUSDC() public view returns (uint256) {
-        int256 posValue = clearingHouse.getAccountValue(address(this));
-        uint256 amountOut = (posValue < 0)
-            ? uint256(-1 * posValue)
-            : uint256(posValue);
-        return amountOut.div(1e12);
-    }
-
-
     /*///////////////////////////////////////////////////////////////
                         DEPOSIT / WITHDRAW LOGIC
     //////////////////////////////////////////////////////////////*/
@@ -234,4 +176,54 @@ contract PerpV2Controller {
         return uint256(sqrtPriceX96).mul(uint256(sqrtPriceX96).mul(MAX_BPS)) >> (96 * 2);
     }
 
+    /*///////////////////////////////////////////////////////////////
+                            VIEW FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Get free collateral available on Perp V2
+    /// @return Free collateral available on Perp V2 in quoteToken terms
+    function getFreeCollateral() public view returns (uint256) {
+        return perpVault.getFreeCollateral(address(this));
+    }
+
+    /// @notice Gets mark twap price of Perp's uniswap pool (quoteToken/baseToken)
+    /// @return uint160 gets SqrtX96 price
+    function getMarkTwapPrice() public view returns (uint160) {
+        uint160 twapPrice = exchange.getSqrtMarkTwapX96(
+            address(baseToken),
+            clearingHouseConfig.getTwapInterval()
+        );
+        return twapPrice;
+    }
+
+    /// @notice Gets index twap price from Perp
+    /// @return regular decimal price
+    function getIndexTwapPrice() public view returns (uint256) {
+        uint256 twapPrice = IIndexPrice(address(baseToken)).getIndexPrice(
+             clearingHouseConfig.getTwapInterval()
+        );
+        return twapPrice;
+    }
+
+
+
+    /// @notice Returns the size of current position in baseTokens
+    /// @return amount size of position in baseTokens
+    function getTotalPerpPositionSize() public view returns (int256) {
+        return
+            accountBalance.getTotalPositionSize(
+                address(this),
+                address(baseToken)
+            );
+    }
+
+    /// @notice Returns the value of current position in wantToken value
+    /// @return amount value of position in wantToken (USDC)
+    function positionInUSDC() public view returns (uint256) {
+        int256 posValue = clearingHouse.getAccountValue(address(this));
+        uint256 amountOut = (posValue < 0)
+            ? uint256(-1 * posValue)
+            : uint256(posValue);
+        return amountOut.div(1e12);
+    }
 }
