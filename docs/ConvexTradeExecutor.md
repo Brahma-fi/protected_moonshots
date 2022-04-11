@@ -12,7 +12,7 @@ description: The ConvexTradeExecutor Contract
 
 ## 1. Introduction
 
-THe `ConvexTradeExecutor` is the long position handler. The `Vault` deposits to and withdraws funds in USDC, which is then converted to Curve LP tokens which are converted and staked on convex, to accrue rewards and earn yield.
+The `ConvexTradeExecutor` is a contract to execute strategy's trade, on Convex. The `Vault` deposits to and withdraws funds in USDC, which is then converted to Curve LP tokens which are converted and staked on convex, to accrue rewards and earn yield.
 
 ## 2. Contract Details
 
