@@ -37,7 +37,7 @@ The `ConvexTradeExecutor` is a contract to execute strategy's trade, on Convex. 
 
 ## 4. Mechanisms & Concepts
 
-The `ConvexTradeExecutor` is responsible for handling the long position of the strategy. It accepts deposits from `Vault` in `wantToken` and converts this into Curve LP (UST3 Metapool) Tokens, which are converted to Convex Curve LP Tokens and staked on Convex. It also claims rewards from the Convex staked position, and harvests these into `wantToken`s. At the final stage, it prepares enough `wantToken`s, by either unstaking from position or converting LP Tokens, for the `Vault` to pull.
+The `ConvexTradeExecutor` is responsible for executing the strategy's trade, on Convex. It accepts deposits from `Vault` in `wantToken` and converts this into Curve LP (UST3 Metapool) Tokens, which are converted to Convex Curve LP Tokens and staked on Convex. It also claims rewards from the Convex staked position, and harvests these into `wantToken`s. At the final stage, it prepares enough `wantToken`s, by either unstaking from position or converting LP Tokens, for the `Vault` to pull.
 
 ## 5. Gotchas
 
