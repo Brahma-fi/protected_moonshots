@@ -22,7 +22,7 @@ The `ConvexTradeExecutor` is a contract to execute strategy's trade, on Convex. 
 
 - `initiateWithdraw` - Prepares enough want token balance in the contract by unstaking/converting LP Tokens if needed, for the vault to pull.
 
-- `openPosition` - Opens a long position on Convex by staking Curve LP (UST3 Metapool) tokens.
+- `openPosition` - Opens a staking position on Convex with Curve LP (UST3 Metapool) tokens.
 
 - `closePosition` - Unstakes and withdraws from the current Convex staked position.
 
