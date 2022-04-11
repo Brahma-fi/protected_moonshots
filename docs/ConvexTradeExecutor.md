@@ -12,7 +12,7 @@ description: The ConvexTradeExecutor Contract
 
 ## 1. Introduction
 
-THe `ConvexTradeExecutor` is the long position handler. The `Vault` deposits to and withdraws funds in USDC, which is then converted to Curve LP tokens which are converted and staked on convex, to accrue rewards and earn yield.
+The `ConvexTradeExecutor` is a contract to execute strategy's trade, on Convex. The `Vault` deposits to and withdraws funds in USDC, which is then converted to Curve LP tokens which are converted and staked on convex, to accrue rewards and earn yield.
 
 ## 2. Contract Details
 
@@ -22,7 +22,7 @@ THe `ConvexTradeExecutor` is the long position handler. The `Vault` deposits to 
 
 - `initiateWithdraw` - Prepares enough want token balance in the contract by unstaking/converting LP Tokens if needed, for the vault to pull.
 
-- `openPosition` - Opens a long position on Convex by staking Curve LP (UST3 Metapool) tokens.
+- `openPosition` - Opens a staking position on Convex with Curve LP (UST3 Metapool) tokens.
 
 - `closePosition` - Unstakes and withdraws from the current Convex staked position.
 
@@ -37,7 +37,7 @@ THe `ConvexTradeExecutor` is the long position handler. The `Vault` deposits to 
 
 ## 4. Mechanisms & Concepts
 
-The `ConvexTradeExecutor` is responsible for handling the long position of the strategy. It accepts deposits from `Vault` in `wantToken` and converts this into Curve LP (UST3 Metapool) Tokens, which are converted to Convex Curve LP Tokens and staked on Convex. It also claims rewards from the Convex staked position, and harvests these into `wantToken`s. At the final stage, it prepares enough `wantToken`s, by either unstaking from position or converting LP Tokens, for the `Vault` to pull.
+The `ConvexTradeExecutor` is responsible for executing the strategy's trade, on Convex. It accepts deposits from `Vault` in `wantToken` and converts this into Curve LP (UST3 Metapool) Tokens, which are converted to Convex Curve LP Tokens and staked on Convex. It also claims rewards from the Convex staked position, and harvests these into `wantToken`s. At the final stage, it prepares enough `wantToken`s, by either unstaking from position or converting LP Tokens, for the `Vault` to pull.
 
 ## 5. Gotchas
 

@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title Harvester
 /// @author PradeepSelva
-/// @notice A contract to harvest rewards from Convex long position into Want TOken
+/// @notice A contract to harvest rewards from Convex staking position into Want TOken
 contract Harvester is IHarvester {
   using SafeERC20 for IERC20;
   using SafeERC20 for IERC20Metadata;
