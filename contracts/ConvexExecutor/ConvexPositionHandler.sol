@@ -283,6 +283,8 @@ contract ConvexPositionHandler is BasePositionHandler {
       wantToken.balanceOf(address(this)) -
       initialUSDCBalance;
     totalCummulativeRewards += latestHarvestedRewards;
+
+    // TODO: Add claim event
   }
 
   /*///////////////////////////////////////////////////////////////
