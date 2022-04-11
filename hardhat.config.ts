@@ -1,5 +1,5 @@
 import * as dotenv from "dotenv";
-
+import { HardhatNetworkForkingUserConfig } from 'hardhat/types';
 import { HardhatUserConfig, task } from "hardhat/config";
 import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-waffle";
@@ -22,6 +22,24 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
+
+const FORK_OPTIMISM = process.env.FORK_OPTIMISM || "0";
+
+const buildForkConfig = (): HardhatNetworkForkingUserConfig  => {
+  let forkMode: HardhatNetworkForkingUserConfig;
+  if (FORK_OPTIMISM == "0") {
+    forkMode = {
+      url: process.env.QUICKNODE_OPTIMISM_URL,
+      blockNumber: Number(process.env.OPTIMISM_BLOCK_NUMBER)
+    }
+    } else {
+      forkMode = {
+        url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}`,
+        blockNumber: Number(process.env.BLOCK_NUMBER)
+      }
+  }
+  return forkMode;
+};
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -48,19 +66,9 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
-      forking: {
-        url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}`,
-        blockNumber: 14456030 // Comment line for latest block automatically
-      }
+      forking: buildForkConfig(),
     },
-    // hardhat: {
-    //   forking: {
-    //     url: `${process.env.QUICKNODE_OPTIMISM_URL}`,
-    //     blockNumber: 4935006 // Comment line for latest block automatically
-    //   },
-    // },
     tenderly: {
-
         url: `https://rpc.tenderly.co/fork/aed83930-a6b8-4d7e-989f-5960c20aeb1e`,
         accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],

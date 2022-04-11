@@ -1,3 +1,4 @@
+import { BigNumber } from "ethers";
 import hre from "hardhat";
 import { PerpPositionHandlerL2, ERC20 } from "../src/types";
 import { perpPositionHandlerL2Address, wantTokenL2 } from "./constants";
@@ -19,9 +20,9 @@ async function main() {
         "ERC20",
         wantTokenL2
     ) as ERC20;
-    console.log("usdc balance before", await usdc_contract.balanceOf(perpHandler.address));
-
-    await perpHandler.connect(signer).closePosition(100);
+    const beforeBalance = await usdc_contract.balanceOf(perpHandler.address);
+    console.log("beforeBalance", beforeBalance.mul(1e12).toString());
+    await perpHandler.connect(signer).openPosition(true, beforeBalance.mul(8).mul(1e12), BigNumber.from(1000));
     console.log("usdc balance after", await usdc_contract.balanceOf(perpHandler.address));
 }
 // We recommend this pattern to be able to use async/await everywhere
