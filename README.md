@@ -24,5 +24,7 @@ You can run the full test suite with the following commands:
 
 ```
 # In one terminal
-npx hardhat test 
+npx hardhat test test/mainnet/* 
+export FORK_OPTIMISM = 1
+npx hardhat test test/optimism/* 
 ```
