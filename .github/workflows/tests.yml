@@ -16,9 +16,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Echo env
-        run: echo $FORK_OPTIMISM
-
       - name: Checkout
         uses: actions/checkout@v2
         with:
