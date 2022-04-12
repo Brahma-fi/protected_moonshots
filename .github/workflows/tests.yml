@@ -1,0 +1,17 @@
+name: Run Tests on Push
+
+on: push
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install
+        run: npm install
+
+      - name: Compile
+        run: npx hardhat compile
+
+      - name: Test 🚨
+        run: npx hardhat test
