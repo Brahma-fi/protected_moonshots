@@ -10,6 +10,10 @@ abstract contract BasePositionHandler {
   /// @param amount The amount of tokens withdrawn
   event Withdraw(uint256 indexed amount);
 
+  /// @notice To be emitted with rewards are claimed by position handler
+  /// @param amount The amount that was withdrawn
+  event Claim(uint256 indexed amount);
+
   /// @notice struct to store data related to position
   /// @param posValue The value of the position in vault wantToken
   /// @param lastUpdatedBlock The block number of last update in position value
