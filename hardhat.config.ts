@@ -27,7 +27,7 @@ const FORK_OPTIMISM = process.env.FORK_OPTIMISM || "0";
 
 const buildForkConfig = (): HardhatNetworkForkingUserConfig  => {
   let forkMode: HardhatNetworkForkingUserConfig;
-  if (FORK_OPTIMISM == "0") {
+  if (FORK_OPTIMISM == "1") {
     forkMode = {
       url: process.env.QUICKNODE_OPTIMISM_URL,
       blockNumber: Number(process.env.OPTIMISM_BLOCK_NUMBER)

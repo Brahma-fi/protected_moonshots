@@ -9,7 +9,6 @@ env:
   QUICKNODE_OPTIMISM_URL: ${{ secrets.QUICKNODE_OPTIMISM_URL }}
   OPTIMISM_BLOCK_NUMBER: ${{ secrets.OPTIMISM_BLOCK_NUMBER }}
   BLOCK_NUMBER: ${{ secrets.BLOCK_NUMBER }}
-  FORK_OPTIMISM: ${{ secrets.FORK_OPTIMISM }}
 
 jobs:
   test:
@@ -27,5 +26,12 @@ jobs:
       - name: Compile
         run: npx hardhat compile
 
-      - name: Test 🚨
+      - name: Test Mainnet 🚨
+        env:
+          FORK_OPTIMISM: ${{ secrets.FORK_OPTIMISM_MAINET }}
         run: npx hardhat test test/mainnet/*
+
+      - name: Test Optimism 🚨
+        env:
+          FORK_OPTIMISM: ${{ secrets.FORK_OPTIMISM }}
+        run: npx hardhat test test/optimism/*
