@@ -31,4 +31,4 @@ jobs:
         run: npx hardhat compile
 
       - name: Test 🚨
-        run: npx hardhat test
+        run: npx hardhat test test/mainnet/*
