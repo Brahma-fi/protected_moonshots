@@ -28,7 +28,7 @@ jobs:
 
       - name: Test Mainnet 🚨
         env:
-          FORK_OPTIMISM: ${{ secrets.FORK_OPTIMISM_MAINET }}
+          FORK_OPTIMISM: ${{ secrets.FORK_OPTIMISM_MAINNET }}
         run: npx hardhat test test/mainnet/*
 
       - name: Test Optimism 🚨
