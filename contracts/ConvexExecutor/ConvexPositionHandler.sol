@@ -284,7 +284,7 @@ contract ConvexPositionHandler is BasePositionHandler {
       initialUSDCBalance;
     totalCummulativeRewards += latestHarvestedRewards;
 
-    // TODO: Add claim event
+    emit Claim(latestHarvestedRewards);
   }
 
   /*///////////////////////////////////////////////////////////////
