@@ -1,0 +1,37 @@
+name: Run Tests on Push
+
+on: push
+
+env:
+  ALCHEMY_KEY: ${{ secrets.ALCHEMY_KEY }}
+  ETHERSCAN_API_KEY: ${{ secrets.ETHERSCAN_API_KEY }}
+  TENDERLY_FORK_ID: ${{ secrets.TENDERLY_FORK_ID }}
+  QUICKNODE_OPTIMISM_URL: ${{ secrets.QUICKNODE_OPTIMISM_URL }}
+  OPTIMISM_BLOCK_NUMBER: ${{ secrets.OPTIMISM_BLOCK_NUMBER }}
+  BLOCK_NUMBER: ${{ secrets.BLOCK_NUMBER }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+
+      - name: Install
+        run: npm install
+
+      - name: Compile
+        run: npx hardhat compile
+
+      - name: Test Mainnet 🚨
+        env:
+          FORK_OPTIMISM: ${{ secrets.FORK_OPTIMISM_MAINNET }}
+        run: npx hardhat test test/mainnet/*
+
+      - name: Test Optimism 🚨
+        env:
+          FORK_OPTIMISM: ${{ secrets.FORK_OPTIMISM }}
+        run: npx hardhat test test/optimism/*
