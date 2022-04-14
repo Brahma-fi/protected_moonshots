@@ -13,7 +13,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title ConvexPositionHandler
-/// @author PradeepSelva
+/// @author PradeepSelva & BapireddyK;
 /// @notice A Position handler to handle Convex
 contract ConvexPositionHandler is BasePositionHandler {
   using SafeERC20 for IERC20;
@@ -328,12 +328,9 @@ contract ConvexPositionHandler is BasePositionHandler {
 
     int128 usdcIndexInPool = int128(int256(uint256(UST3PoolCoinIndexes.USDC)));
 
-    // estimate amount of USDC received on burning Lp tokens
-    uint256 expectedWantTokensOut = curve3PoolZap.calc_withdraw_one_coin(
-      address(ust3Pool),
-      _amount,
-      usdcIndexInPool
-    );
+    // estimate amount of USDC received based on stable peg i.e., 1UST = 1 3Pool LP Token
+    uint256 expectedWantTokensOut = (_amount * ust3Pool.get_virtual_price()) /
+      1e30; // 30 = normalizing 18 decimals for virutal price + 18 decimals for LP token - 6 decimals for want token
     // burn Lp tokens to receive USDC with a slippage of `maxSlippage`
     receivedWantTokens = curve3PoolZap.remove_liquidity_one_coin(
       address(ust3Pool),
@@ -357,12 +354,8 @@ contract ConvexPositionHandler is BasePositionHandler {
 
     wantToken.safeApprove(address(curve3PoolZap), _amount);
 
-    // estimate amount of Lp Tokens received on depositing USDC
-    uint256 expectedLpOut = curve3PoolZap.calc_token_amount(
-      address(ust3Pool),
-      liquidityAmounts,
-      true
-    );
+    // estimate amount of Lp Tokens based on stable peg i.e., 1UST = 1 3Pool LP Token
+    uint256 expectedLpOut = (_amount * 1e30) / ust3Pool.get_virtual_price(); // 30 = normalizing 18 decimals for virutal price + 18 decimals for LP token - 6 decimals for want token
     // Provide USDC liquidity to receive Lp tokens with a slippage of `maxSlippage`
     receivedLpTokens = curve3PoolZap.add_liquidity(
       address(ust3Pool),
