@@ -98,6 +98,8 @@ const deploy = async () => {
     harvester.address,
     vault.address
   )) as ConvexTradeExecutor;
+  // set slippage as 0.1%
+  await convexTradeExecutor.connect(signer).setSlippage(BigNumber.from(10));
 };
 
 describe("Convex Trade Executor [MAINNET]", function () {
