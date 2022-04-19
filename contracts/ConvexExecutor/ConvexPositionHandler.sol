@@ -129,7 +129,7 @@ contract ConvexPositionHandler is BasePositionHandler {
       uint256 stakedLpBalance,
       uint256 lpTokenBalance,
       uint256 usdcBalance
-    ) = _getTotalBalancesInWantToken();
+    ) = _getTotalBalancesInWantToken(true);
 
     return (stakedLpBalance + lpTokenBalance + usdcBalance, block.number);
   }
@@ -168,7 +168,7 @@ contract ConvexPositionHandler is BasePositionHandler {
       uint256 stakedLpBalance,
       uint256 lpTokenBalance,
       uint256 usdcBalance
-    ) = _getTotalBalancesInWantToken();
+    ) = _getTotalBalancesInWantToken(false);
 
     require(
       withdrawParams._amount <=
@@ -300,7 +300,7 @@ contract ConvexPositionHandler is BasePositionHandler {
    @return lpTokenBalance balance of LP tokens in contract
    @return usdcBalance usdc balance in contract
    */
-  function _getTotalBalancesInWantToken()
+  function _getTotalBalancesInWantToken(bool useVirtualPrice)
     internal
     view
     returns (
@@ -309,10 +309,14 @@ contract ConvexPositionHandler is BasePositionHandler {
       uint256 usdcBalance
     )
   {
-    stakedLpBalance = _lpTokenValueInUSDC(
-      baseRewardPool.balanceOf(address(this))
-    );
-    lpTokenBalance = _lpTokenValueInUSDC(lpToken.balanceOf(address(this)));
+    stakedLpBalance = useVirtualPrice
+      ? _lpTokenValueInUSDCFromVirtualPrice(
+        baseRewardPool.balanceOf(address(this))
+      )
+      : _lpTokenValueInUSDC(baseRewardPool.balanceOf(address(this)));
+    lpTokenBalance = useVirtualPrice
+      ? _lpTokenValueInUSDCFromVirtualPrice(lpToken.balanceOf(address(this)))
+      : _lpTokenValueInUSDC(lpToken.balanceOf(address(this)));
     usdcBalance = wantToken.balanceOf(address(this));
   }
 
@@ -364,6 +368,21 @@ contract ConvexPositionHandler is BasePositionHandler {
       liquidityAmounts,
       (expectedLpOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)
     );
+  }
+
+  /**
+   @notice to get value of an amount in USDC based on virtual price
+   @param _value value to be converted
+   @return estimatedLpTokenAmount lp tokens value in usdc based on its virtual price 
+   */
+  function _lpTokenValueInUSDCFromVirtualPrice(uint256 _value)
+    internal
+    view
+    returns (uint256)
+  {
+    if (_value == 0) return 0;
+
+    return (ust3Pool.get_virtual_price() * _value) / 1e12;
   }
 
   /**
