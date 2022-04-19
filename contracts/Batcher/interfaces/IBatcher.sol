@@ -16,7 +16,6 @@ interface IBatcher {
     address vaultAddress;
     address tokenAddress;
     uint256 maxAmount;
-    uint256 currentAmount;
   }
 
   /// @notice Deposit event

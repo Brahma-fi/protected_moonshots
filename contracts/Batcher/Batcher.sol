@@ -38,8 +38,7 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     vaultInfo = VaultInfo({
       vaultAddress: vaultAddress,
       tokenAddress: IVault(vaultAddress).wantToken(),
-      maxAmount: maxAmount,
-      currentAmount: 0
+      maxAmount: maxAmount
     });
 
     IERC20(vaultInfo.tokenAddress).approve(vaultAddress, type(uint256).max);
@@ -58,6 +57,12 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
   /// @notice Address which authorises users to deposit into Batcher
   address public verificationAuthority;
 
+  /// @notice Amount of want tokens pending to be deposited
+  uint256 public pendingDeposit;
+
+  /// @notice Amount of LP tokens pending to be exchanged back to want token
+  uint256 public pendingWithdrawal;
+
   /**
    * @notice Stores the deposits for future batching via periphery
    * @param amountIn Value of token to be deposited
@@ -75,9 +80,8 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
       amountIn
     );
 
-    vaultInfo.currentAmount += amountIn;
     require(
-      vaultInfo.currentAmount <= vaultInfo.maxAmount,
+      IERC20(vaultInfo.vaultAddress).totalSupply() + pendingDeposit - pendingWithdrawal + amountIn <= vaultInfo.maxAmount,
       "MAX_LIMIT_EXCEEDED"
     );
 
@@ -128,7 +132,7 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
 
     withdrawLedger[msg.sender] = withdrawLedger[msg.sender] + (amountIn);
 
-    vaultInfo.currentAmount -= amountIn;
+    pendingWithdrawal = pendingWithdrawal + amountIn;
 
     emit WithdrawRequest(msg.sender, vaultInfo.vaultAddress, amountIn);
   }
@@ -203,6 +207,8 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
         processedAddresses[users[i]] = false;
       }
     }
+
+    pendingDeposit = pendingDeposit - amountToDeposit;
   }
 
   /**
@@ -257,6 +263,8 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
         processedAddresses[users[i]] = false;
       }
     }
+
+    pendingWithdrawal = pendingWithdrawal - amountToWithdraw;
   }
 
   /*///////////////////////////////////////////////////////////////
@@ -281,6 +289,7 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
   /// @param amountIn Amount of want tokens deposited
   function _completeDeposit(uint256 amountIn) internal {
     depositLedger[msg.sender] = depositLedger[msg.sender] + (amountIn);
+    pendingDeposit = pendingDeposit + amountIn;
 
     emit DepositRequest(msg.sender, vaultInfo.vaultAddress, amountIn);
   }
