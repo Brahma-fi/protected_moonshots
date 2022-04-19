@@ -382,7 +382,7 @@ contract ConvexPositionHandler is BasePositionHandler {
   {
     if (_value == 0) return 0;
 
-    return (ust3Pool.get_virtual_price() * _value) / 1e12;
+    return (ust3Pool.get_virtual_price() * _value * 1e6) / (1e18 * 1e18);
   }
 
   /**
