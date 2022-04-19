@@ -124,6 +124,7 @@ contract ConvexPositionHandler is BasePositionHandler {
     override
     returns (uint256, uint256)
   {
+    // get the total balance in USDC which is 1:1 peg so get_virtual_price to be used here.
     (
       uint256 stakedLpBalance,
       uint256 lpTokenBalance,
@@ -162,6 +163,7 @@ contract ConvexPositionHandler is BasePositionHandler {
   function _withdraw(bytes calldata _data) internal override {
     // _amount here is the maxWithdraw
     AmountParams memory withdrawParams = abi.decode(_data, (AmountParams));
+    // need `_getTotalBalancesInWantToken` to return amount we receive while performing the swap.
     (
       uint256 stakedLpBalance,
       uint256 lpTokenBalance,
