@@ -43,7 +43,7 @@ library AddrArrayLib {
      * @param index the index in the array
      */
     function getAddressAtIndex(Addresses memory self, uint256 index) internal view returns (address) {
-        require(index < size(self), "the index is out of bounds");
+        require(index < size(self), "INVALID_INDEX");
         return self._items[index];
     }
 

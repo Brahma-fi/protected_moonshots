@@ -73,6 +73,8 @@ describe("Vault [MAINNET]", function () {
   it("Depositing funds into vault", async function () {
     depositAmount = BigNumber.from(10000e6);
     await USDC.connect(signer).approve(vault.address, utils.parseEther("1"));
+    // disable batcher onlyDeposit
+    await vault.connect(governanceSigner).setBatcherOnlyDeposit(false);
     await vault.deposit(depositAmount, keeperAddress);
 
     perpTradeExecutor = await getPerpExecutorContract(vault.address, signer);
@@ -166,9 +168,9 @@ describe("Vault [MAINNET]", function () {
       .removeExecutor(convexTradeExecutor.address);
     expect(await vault.totalExecutors()).to.equal(BigNumber.from(2));
 
-    await vault
+    await expect(vault
       .connect(governanceSigner)
-      .removeExecutor(convexTradeExecutor.address);
+      .removeExecutor(convexTradeExecutor.address)).to.be.revertedWith("INVALID_EXECUTOR");
     expect(await vault.totalExecutors()).to.equal(BigNumber.from(2));
   });
 
