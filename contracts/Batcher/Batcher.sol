@@ -88,26 +88,6 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     _completeDeposit(amountIn);
   }
 
-  /**
-   * @notice Stores the deposits for future batching via periphery
-   * @param amountIn Value of Lp token to be deposited
-   * @param signature signature verifying that depositor has enough karma and is authorized to deposit by brahma
-   */
-  function depositFundsInCurveLpToken(uint256 amountIn, bytes memory signature)
-    external
-    override
-    nonReentrant
-  {
-    validDeposit(signature);
-    /// Curve Lp Token - UST_Wormhole
-    IERC20 lpToken = IERC20(0xCEAF7747579696A2F0bb206a14210e3c9e6fB269);
-
-    lpToken.safeTransferFrom(msg.sender, address(this), amountIn);
-
-    uint256 usdcReceived = _convertLpTokenIntoUSDC(lpToken);
-
-    _completeDeposit(usdcReceived);
-  }
 
   /**
    * @notice Stores the deposits for future batching via periphery
@@ -294,45 +274,7 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     emit DepositRequest(msg.sender, vaultInfo.vaultAddress, amountIn);
   }
 
-  /// @notice Can be changed by keeper
-  uint256 public slippageForCurveLp = 30;
 
-  /// @notice Helper to convert Lp tokens into USDC
-  /// @dev Burns LpTokens on UST3-Wormhole pool on curve to get USDC
-  /// @param lpToken Curve Lp Token
-  function _convertLpTokenIntoUSDC(IERC20 lpToken)
-    internal
-    returns (uint256 receivedWantTokens)
-  {
-    uint256 MAX_BPS = 10000;
-
-    ICurvePool ust3Pool = ICurvePool(
-      0xCEAF7747579696A2F0bb206a14210e3c9e6fB269
-    );
-    ICurveDepositZapper curve3PoolZap = ICurveDepositZapper(
-      0xA79828DF1850E8a3A3064576f380D90aECDD3359
-    );
-
-    uint256 _amount = lpToken.balanceOf(address(this));
-
-    lpToken.safeApprove(address(curve3PoolZap), _amount);
-
-    int128 usdcIndexInPool = int128(int256(uint256(2)));
-
-    // estimate amount of USDC received on burning Lp tokens
-    uint256 expectedWantTokensOut = curve3PoolZap.calc_withdraw_one_coin(
-      address(ust3Pool),
-      _amount,
-      usdcIndexInPool
-    );
-    // burn Lp tokens to receive USDC with a slippage of 0.3%
-    receivedWantTokens = curve3PoolZap.remove_liquidity_one_coin(
-      address(ust3Pool),
-      _amount,
-      usdcIndexInPool,
-      (expectedWantTokensOut * (MAX_BPS - slippageForCurveLp)) / (MAX_BPS)
-    );
-  }
 
   /*///////////////////////////////////////////////////////////////
                     MAINTAINANCE ACTIONS
@@ -351,13 +293,6 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     vaultInfo.maxAmount = maxAmount;
   }
 
-  /// @notice Setting slippage for swaps
-  /// @param _slippage Must be between 0 and 10000
-  function setSlippage(uint256 _slippage) external override {
-    onlyKeeper();
-    require(_slippage <= 10000, "HIGH_SLIPPAGE");
-    slippageForCurveLp = _slippage;
-  }
 
   /// @notice Function to sweep funds out in case of emergency, can only be called by governance
   /// @param _token Address of token to sweep
