@@ -40,9 +40,6 @@ interface IBatcher {
 
   function depositFunds(uint256 amountIn, bytes memory signature) external;
 
-  function depositFundsInCurveLpToken(uint256 amountIn, bytes memory signature)
-    external;
-
   function claimTokens(uint256 amount, address recipient) external;
 
   function withdrawFunds(uint256 amountOut) external;
@@ -52,6 +49,4 @@ interface IBatcher {
   function batchWithdraw(address[] memory users) external;
 
   function setVaultLimit(uint256 maxLimit) external;
-
-  function setSlippage(uint256 slippage) external;
 }
