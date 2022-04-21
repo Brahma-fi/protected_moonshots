@@ -99,15 +99,15 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
       "DEPOSIT_PENDING"
     );
 
-    if (amountIn > userTokens[msg.sender]) {
+    if (amountIn > userLPTokens[msg.sender]) {
       IERC20(vaultInfo.vaultAddress).safeTransferFrom(
         msg.sender,
         address(this),
-        amountIn - userTokens[msg.sender]
+        amountIn - userLPTokens[msg.sender]
       );
-      userTokens[msg.sender] = 0;
+      userLPTokens[msg.sender] = 0;
     } else {
-      userTokens[msg.sender] = userTokens[msg.sender] - amountIn;
+      userLPTokens[msg.sender] = userLPTokens[msg.sender] - amountIn;
     }
 
     withdrawLedger[msg.sender] = withdrawLedger[msg.sender] + (amountIn);
@@ -127,8 +127,8 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     override
     nonReentrant
   {
-    require(userTokens[msg.sender] >= amount, "NO_FUNDS");
-    userTokens[msg.sender] = userTokens[msg.sender] - amount;
+    require(userLPTokens[msg.sender] >= amount, "NO_FUNDS");
+    userLPTokens[msg.sender] = userLPTokens[msg.sender] - amount;
     IERC20(vaultInfo.vaultAddress).safeTransfer(recipient, amount);
   }
 
@@ -137,7 +137,10 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
   //////////////////////////////////////////////////////////////*/
 
   /// @notice Ledger to maintain addresses and vault tokens which batcher owes them
-  mapping(address => uint256) public userTokens;
+  mapping(address => uint256) public userLPTokens;
+
+  // /// @notice Ledger to maintain addresses and vault tokens which batcher owes them
+  // mapping(address => uint256) public userLPTokens;
 
   /// @notice Priavte mapping used to check duplicate addresses while processing batch deposits and withdrawals
   mapping(address => bool) private processedAddresses;
@@ -181,7 +184,7 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
         if (userAmount > 0) {
           uint256 userShare = (userAmount * (lpTokensReceived)) /
             (amountToDeposit);
-          userTokens[users[i]] = userTokens[users[i]] + userShare;
+          userLPTokens[users[i]] = userLPTokens[users[i]] + userShare;
           depositLedger[users[i]] = 0;
         }
         processedAddresses[users[i]] = false;

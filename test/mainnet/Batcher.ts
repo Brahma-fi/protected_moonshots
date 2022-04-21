@@ -79,16 +79,16 @@ describe("Batcher [MAINNET]", function () {
     expect(await batcher.depositLedger(signer.address)).to.equal(
       BigNumber.from(0)
     );
-    expect(await batcher.userTokens(signer.address)).to.equal(amount);
+    expect(await batcher.userLPTokens(signer.address)).to.equal(amount);
   });
 
   it("Claim tokens", async function () {
-    const tokenBalance = await batcher.userTokens(signer.address);
+    const tokenBalance = await batcher.userLPTokens(signer.address);
     await batcher
       .connect(signer)
       .claimTokens(tokenBalance.div(2), signer.address);
     expect(await vault.balanceOf(signer.address)).to.equal(tokenBalance.div(2));
-    expect(await batcher.userTokens(signer.address)).to.equal(
+    expect(await batcher.userLPTokens(signer.address)).to.equal(
       tokenBalance.div(2)
     );
   });
@@ -122,51 +122,6 @@ describe("Batcher [MAINNET]", function () {
     expect(balanceAfter.sub(balanceBefore)).to.equal(amount);
   });
 
-  // Operation - Expected Behaviour
-  // depositFundsInCurveLpToken - increament in depositLedger mapping, batcher balance increament in usdc.
-  it("Deposit verification for curve lp tokens", async function () {
-    // get curve lp tokens
-    const curve3PoolZap = (await hre.ethers.getContractAt(
-      "ICurveDepositZapper",
-      "0xA79828DF1850E8a3A3064576f380D90aECDD3359"
-    )) as ICurveDepositZapper;
-    const curvePool = (await hre.ethers.getContractAt(
-      "ICurvePool",
-      ust3Pool
-    )) as ICurvePool;
-    let usdc_amount = BigNumber.from(100e6).mul(BigNumber.from(1e6));
-    let liquidityAmounts: [
-      BigNumberish,
-      BigNumberish,
-      BigNumberish,
-      BigNumberish
-    ] = [BigNumber.from(0), BigNumber.from(0), usdc_amount, BigNumber.from(0)];
-    const USDC = await getUSDCContract();
-    await USDC.connect(signer).approve(curve3PoolZap.address, usdc_amount);
-    console.log("before deposit", await USDC.balanceOf(signer.address));
-    await curve3PoolZap
-      .connect(signer)
-      .add_liquidity(ust3Pool, liquidityAmounts, BigNumber.from(0));
-    console.log("after deposit");
-    let lpTokenBalance = await curvePool.balanceOf(signer.address);
-    console.log("Curve lp token balance:", lpTokenBalance);
-    expect(lpTokenBalance.gt(BigNumber.from(0))).to.equal(true);
-    await curvePool.connect(signer).approve(batcher.address, lpTokenBalance);
-    let signature = await getSignature(
-      signer.address,
-      invalidSigner,
-      batcher.address
-    );
-
-    await batcher.setVaultLimit(usdc_amount);
-    await batcher.setSlippage(BigNumber.from(10000));
-    await batcher.depositFundsInCurveLpToken(lpTokenBalance, signature);
-    let ledgerBalance = await batcher.depositLedger(signer.address);
-    console.log("ledger balance", ledgerBalance.toString());
-    console.log("batcher balance", await USDC.balanceOf(batcher.address));
-    expect(ledgerBalance.gt(BigNumber.from(0))).to.equal(true);
-    expect(ledgerBalance.lt(lpTokenBalance)).to.equal(true);
-  });
 
   // Operation - Expected Behaviour
   // sweep - sweeps erc20 from batcher to governance.
