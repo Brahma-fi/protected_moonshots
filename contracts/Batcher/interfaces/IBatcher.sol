@@ -28,7 +28,7 @@ interface IBatcher {
     uint256 amountIn
   );
 
-  /// @notice Withdraw event
+  /// @notice Withdraw initiate event
   /// @param sender Address of the withdawer
   /// @param vault Address of the vault
   /// @param amountOut Tokens deposited
@@ -38,11 +38,23 @@ interface IBatcher {
     uint256 amountOut
   );
 
+  /// @notice Withdraw complete event
+  /// @param sender Address of the withdawer
+  /// @param vault Address of the vault
+  /// @param amountOut Tokens deposited
+  event WithdrawComplete(
+    address indexed sender,
+    address indexed vault,
+    uint256 amountOut
+  );
+
   function depositFunds(uint256 amountIn, bytes memory signature) external;
 
   function claimTokens(uint256 amount, address recipient) external;
 
-  function withdrawFunds(uint256 amountOut) external;
+  function initiateWithdrawal(uint256 amountIn) external;
+
+  function completeWithdrawal(uint256 amountOut) external;
 
   function batchDeposit(address[] memory users) external;
 

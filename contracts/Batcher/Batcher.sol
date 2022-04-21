@@ -20,6 +20,9 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
   /// @notice Vault parameters for the batcher
   VaultInfo public vaultInfo;
 
+  /// @notice Enforces signature checking on deposits
+  bool public checkValidDepositSignature = true;
+
   /// @notice Creates a new Batcher strictly linked to a vault
   /// @param _verificationAuthority Address of the verification authority which allows users to deposit
   /// @param _governance Address of governance for Batcher
@@ -90,14 +93,16 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
 
 
   /**
-   * @notice Stores the deposits for future batching via periphery
+   * @notice User deposits vault LP tokens to be withdrawn. Stores the deposits for future batching via periphery
    * @param amountIn Value of token to be deposited
    */
-  function withdrawFunds(uint256 amountIn) external override nonReentrant {
+  function initiateWithdrawal(uint256 amountIn) external override nonReentrant {
     require(
       depositLedger[msg.sender] == 0,
       "DEPOSIT_PENDING"
     );
+
+    require(amountIn > 0, "AMOUNT_IN_ZERO");
 
     if (amountIn > userLPTokens[msg.sender]) {
       IERC20(vaultInfo.vaultAddress).safeTransferFrom(
@@ -115,6 +120,20 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     pendingWithdrawal = pendingWithdrawal + amountIn;
 
     emit WithdrawRequest(msg.sender, vaultInfo.vaultAddress, amountIn);
+  }
+
+  /**
+   * @notice Allows user to collect want token back after successfull batch withdrawal
+   * @param amountOut Amount of token to be withdrawn
+   */
+  function completeWithdrawal(uint256 amountOut) external override nonReentrant {
+    require (amountOut != 0, "INVALID_AMOUNTOUT");
+
+    // Will revert if not enough balance
+    userWantTokens[msg.sender] = userWantTokens[msg.sender] - amountOut;
+    IERC20(vaultInfo.tokenAddress).safeTransfer(msg.sender, amountOut);
+
+    emit WithdrawComplete(msg.sender, vaultInfo.vaultAddress, amountOut);
   }
 
   /**
@@ -139,11 +158,8 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
   /// @notice Ledger to maintain addresses and vault tokens which batcher owes them
   mapping(address => uint256) public userLPTokens;
 
-  // /// @notice Ledger to maintain addresses and vault tokens which batcher owes them
-  // mapping(address => uint256) public userLPTokens;
-
-  /// @notice Priavte mapping used to check duplicate addresses while processing batch deposits and withdrawals
-  mapping(address => bool) private processedAddresses;
+  /// @notice Ledger to maintain addresses and vault tokens which batcher owes them
+  mapping(address => uint256) public userWantTokens;
 
   /**
    * @notice Performs deposits on the periphery for the supplied users in batch
@@ -156,11 +172,15 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     uint256 amountToDeposit = 0;
     uint256 oldLPBalance = IERC20(address(vault)).balanceOf(address(this));
 
+    uint256[] memory depositValues = new uint256[](users.length);
+
     for (uint256 i = 0; i < users.length; i++) {
-      if (!processedAddresses[users[i]]) {
-        amountToDeposit = amountToDeposit + (depositLedger[users[i]]);
-        processedAddresses[users[i]] = true;
-      }
+
+      uint256 userDeposit = depositLedger[users[i]];
+      amountToDeposit = amountToDeposit + userDeposit;
+      depositValues[i] = userDeposit;
+      depositLedger[users[i]] = 0;
+      
     }
 
     require(amountToDeposit > 0, "NO_DEPOSITS");
@@ -179,15 +199,13 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     );
 
     for (uint256 i = 0; i < users.length; i++) {
-      uint256 userAmount = depositLedger[users[i]];
-      if (processedAddresses[users[i]]) {
-        if (userAmount > 0) {
-          uint256 userShare = (userAmount * (lpTokensReceived)) /
-            (amountToDeposit);
-          userLPTokens[users[i]] = userLPTokens[users[i]] + userShare;
-          depositLedger[users[i]] = 0;
-        }
-        processedAddresses[users[i]] = false;
+      uint256 userAmount = depositValues[i];
+      
+      if (userAmount > 0) {
+        uint256 userShare = (userAmount * (lpTokensReceived)) /
+          (amountToDeposit);
+        userLPTokens[users[i]] = userLPTokens[users[i]] + userShare;
+        
       }
     }
 
@@ -211,11 +229,15 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     uint256 amountToWithdraw = 0;
     uint256 oldWantBalance = token.balanceOf(address(this));
 
+    uint256[] memory withdrawValues = new uint256[](users.length);
+
     for (uint256 i = 0; i < users.length; i++) {
-      if (!processedAddresses[users[i]]) {
-        amountToWithdraw = amountToWithdraw + (withdrawLedger[users[i]]);
-        processedAddresses[users[i]] = true;
-      }
+
+      uint256 userWithdraw = withdrawLedger[users[i]];
+      amountToWithdraw = amountToWithdraw + userWithdraw;
+      withdrawValues[i] = userWithdraw;
+      withdrawLedger[users[i]] = 0;
+        
     }
 
     require(amountToWithdraw > 0, "NO_WITHDRAWS");
@@ -234,16 +256,13 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     );
 
     for (uint256 i = 0; i < users.length; i++) {
-      uint256 userAmount = withdrawLedger[users[i]];
-      if (processedAddresses[users[i]]) {
-        if (userAmount > 0) {
-          uint256 userShare = (userAmount * wantTokensReceived) /
-            amountToWithdraw;
-          token.safeTransfer(users[i], userShare);
+      uint256 userAmount = withdrawValues[i];
+      
+      if (userAmount > 0) {
+        uint256 userShare = (userAmount * wantTokensReceived) /
+          amountToWithdraw;
+        userWantTokens[users[i]] = userWantTokens[users[i]] + userShare;
 
-          withdrawLedger[users[i]] = 0;
-        }
-        processedAddresses[users[i]] = false;
       }
     }
 
@@ -257,10 +276,13 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
   /// @notice Helper to verify signature against verification authority
   /// @param signature Should be generated by verificationAuthority. Should contain msg.sender
   function validDeposit(bytes memory signature) internal view {
-    require(
-      verifySignatureAgainstAuthority(signature, verificationAuthority),
-      "INVALID_SIGNATURE"
-    );
+
+    if (checkValidDepositSignature) {
+      require(
+        verifySignatureAgainstAuthority(signature, verificationAuthority),
+        "INVALID_SIGNATURE"
+      );
+    }
 
     require(
       withdrawLedger[msg.sender] == 0,
@@ -296,6 +318,11 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     vaultInfo.maxAmount = maxAmount;
   }
 
+  /// @notice Function to enable/disable deposit signature check
+  function setDpositSignatureCheck(bool enabled) public {
+    onlyGovernance();
+    checkValidDepositSignature = enabled;
+  }
 
   /// @notice Function to sweep funds out in case of emergency, can only be called by governance
   /// @param _token Address of token to sweep
@@ -324,7 +351,7 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     return IVault(vaultInfo.vaultAddress).keeper();
   }
 
-  /// @notice Helper to asset msg.sender as keeper address
+  /// @notice Helper to assert msg.sender as keeper address
   function onlyKeeper() internal view {
     require(msg.sender == keeper(), "ONLY_KEEPER");
   }

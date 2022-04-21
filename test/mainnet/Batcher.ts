@@ -94,9 +94,10 @@ describe("Batcher [MAINNET]", function () {
   });
 
   // Operation - Expected Behaviour
-  // withdrawFunds -  increament in withdrawLedger mapping, batcher balance increament in vault tokens.
+  // initiateWithdrawal -  increament in withdrawLedger mapping, batcher balance increament in vault tokens.
   //              -  increase of USDC funds of user.
   // batchWithdraw - onlyOwner should call this function, with decrease in vault tokens.
+  // completeWithdrawal - user should finally call this to claim want tokens back
 
   it("Withdraw verification", async function () {
     let amount = BigNumber.from(100e6);
@@ -104,7 +105,7 @@ describe("Batcher [MAINNET]", function () {
     await USDC.connect(signer).approve(vault.address, amount);
     await vault.deposit(amount, signer.address);
     await vault.connect(signer).approve(batcher.address, amount);
-    await batcher.withdrawFunds(amount);
+    await batcher.initiateWithdrawal(amount);
     await expect(
       batcher.connect(invalidSigner).batchWithdraw([signer.address])
     ).to.be.revertedWith("ONLY_KEEPER");
@@ -115,11 +116,37 @@ describe("Batcher [MAINNET]", function () {
     let balanceBefore = await USDC.balanceOf(signer.address);
     // checking for duplicated user withdraw and invalide user withdraw
     await batcher.connect(keeperSigner).batchWithdraw([signer.address, signer.address, invalidSigner.address]);
+
+    let withdrawnAmountAvailable = await batcher.userWantTokens(signer.address);
+    expect(withdrawnAmountAvailable).to.equal(amount);
+
+    await batcher.connect(signer).completeWithdrawal(withdrawnAmountAvailable);
     let balanceAfter = await USDC.balanceOf(signer.address);
     expect(await batcher.withdrawLedger(signer.address)).to.equal(
       BigNumber.from(0)
     );
     expect(balanceAfter.sub(balanceBefore)).to.equal(amount);
+  });
+
+  
+  // Operation - Expected Behaviour
+  // setDpositSignatureCheck - checks if 
+  it("User can deposit without signature when checks are disabled", async function() {
+    let governanceSigner = await hre.ethers.getSigner(governanceAddress);
+    await batcher.connect(governanceSigner).setDpositSignatureCheck(false);
+    let amount = BigNumber.from(100e6);
+    const USDC = await getUSDCContract();
+    await USDC.connect(signer).approve(batcher.address, amount);
+
+    // definitely invalid signature
+    await batcher.connect(signer).depositFunds(amount, "0xabcdef");
+
+    let USDCDeposited = await batcher.depositLedger(signer.address);
+
+    expect(USDCDeposited).to.equal(amount);
+    await batcher.connect(governanceSigner).setDpositSignatureCheck(true);
+
+    await expect(batcher.connect(signer).depositFunds(amount, "0xabcdef")).to.be.revertedWith("ECDSA: invalid signature length");
   });
 
 
@@ -149,4 +176,6 @@ describe("Batcher [MAINNET]", function () {
 
     expect(balanceAfter.sub(balanceBefore)).to.equal(balanceOfBatcher);
   });
+
+
 });
