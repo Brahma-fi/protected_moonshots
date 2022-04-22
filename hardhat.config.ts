@@ -1,5 +1,5 @@
 import * as dotenv from "dotenv";
-import { HardhatNetworkForkingUserConfig } from 'hardhat/types';
+import { HardhatNetworkForkingUserConfig } from "hardhat/types";
 import { HardhatUserConfig, task } from "hardhat/config";
 import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-waffle";
@@ -25,18 +25,18 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 
 const FORK_OPTIMISM = process.env.FORK_OPTIMISM || "0";
 
-const buildForkConfig = (): HardhatNetworkForkingUserConfig  => {
+const buildForkConfig = (): HardhatNetworkForkingUserConfig => {
   let forkMode: HardhatNetworkForkingUserConfig;
   if (FORK_OPTIMISM == "1") {
     forkMode = {
       url: process.env.QUICKNODE_OPTIMISM_URL,
-      blockNumber: Number(process.env.OPTIMISM_BLOCK_NUMBER)
-    }
-    } else {
-      forkMode = {
-        url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}`,
-        blockNumber: Number(process.env.BLOCK_NUMBER)
-      }
+      blockNumber: Number(process.env.OPTIMISM_BLOCK_NUMBER),
+    };
+  } else {
+    forkMode = {
+      url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}`,
+      blockNumber: Number(process.env.BLOCK_NUMBER),
+    };
   }
   return forkMode;
 };
@@ -49,28 +49,28 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 100
-          }
-        }
+            runs: 100,
+          },
+        },
       },
       {
         version: "0.7.6",
         settings: {
           optimizer: {
             enabled: true,
-            runs: 100
-          }
-        }
-      }
-    ]
+            runs: 100,
+          },
+        },
+      },
+    ],
   },
   networks: {
     hardhat: {
       forking: buildForkConfig(),
     },
     tenderly: {
-        url: `https://rpc.tenderly.co/fork/aed83930-a6b8-4d7e-989f-5960c20aeb1e`,
-        accounts:
+      url: `https://rpc.tenderly.co/fork/aed83930-a6b8-4d7e-989f-5960c20aeb1e`,
+      accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     mainnet: {
@@ -78,39 +78,39 @@ const config: HardhatUserConfig = {
       url:
         `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}` || "",
       accounts:
-        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : []
+        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     rinkeby: {
       url:
         `https://eth-rinkeby.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}` || "",
       accounts:
-        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : []
+        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     optimism: {
       url: `${process.env.QUICKNODE_OPTIMISM_URL}`,
       accounts:
-        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : []
-    }
+        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    },
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS !== undefined,
-    currency: "USD"
+    currency: "USD",
   },
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY
+    apiKey: process.env.ETHERSCAN_API_KEY,
   },
   typechain: {
     outDir: "src/types",
     target: "ethers-v5",
     alwaysGenerateOverloads: false,
-    externalArtifacts: ["externalArtifacts/*.json"]
+    externalArtifacts: ["externalArtifacts/*.json"],
   },
   contractSizer: {
     alphaSort: true,
     disambiguatePaths: false,
     runOnCompile: true,
-    strict: true
-  }
+    strict: true,
+  },
 };
 
 export default config;

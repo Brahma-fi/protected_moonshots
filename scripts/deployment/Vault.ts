@@ -21,7 +21,7 @@ async function main() {
     governance,
     {
       maxPriorityFeePerGas: feeData["maxPriorityFeePerGas"], // Recommended maxPriorityFeePerGas
-      maxFeePerGas: feeData["maxFeePerGas"] // Recommended maxFeePerGas
+      maxFeePerGas: feeData["maxFeePerGas"], // Recommended maxFeePerGas
     }
   )) as Vault;
 
@@ -38,8 +38,8 @@ async function main() {
       tokenDecimals,
       wantToken,
       keeper,
-      governance
-    ]
+      governance,
+    ],
   });
 }
 
