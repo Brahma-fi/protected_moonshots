@@ -4,14 +4,14 @@ import {
   ConvexTradeExecutor,
   Vault,
   IERC20,
-  PerpTradeExecutor
+  PerpTradeExecutor,
 } from "../src/types";
 import {
   convexTradeExecutorAddress,
   vaultAddress,
   wantTokenL1,
   perpTradeExecutorAddress,
-  batcherAddress
+  batcherAddress,
 } from "./constants";
 
 let depositers = [
@@ -26,7 +26,7 @@ let depositers = [
   "0x5a756d9C7cAA740E0342f755fa8Ad32e6F83726b",
   "0x1684C382352FA8992E2d12264b08CBFd8E06b7b1",
   "0xb6C86DF56D0a5C574658BF2831D8dda94E6Fee58",
-  "0x059B254553BB97Ca61a99C2bBDBEfB594aa94365"
+  "0x059B254553BB97Ca61a99C2bBDBEfB594aa94365",
 ];
 let withdrawers = [
   "0x7D8a7aA46C3FfdAca562fb03fA58Df4B5D16Cd99",
@@ -36,7 +36,7 @@ let withdrawers = [
   "0x77D4D7ed546b19077720EDA2Be8C847A1C358125",
   "0xD270B09eCAc678943d96bA3198A733ba3E11e926",
   "0x4FA4167b3C94A80416bBc768fB919BF3AcE9F8C2",
-  "0x540Cb04ebAB67E05a620B97Bb367AC5E4Ed68F09"
+  "0x540Cb04ebAB67E05a620B97Bb367AC5E4Ed68F09",
 ];
 
 const main = async () => {

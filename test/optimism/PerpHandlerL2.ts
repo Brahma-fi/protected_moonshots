@@ -5,7 +5,7 @@ import {
   Vault,
   IERC20,
   PerpPositionHandlerL2,
-  IAccountBalance
+  IAccountBalance,
 } from "../../src/types";
 import { BigNumber } from "ethers";
 import {
@@ -18,7 +18,7 @@ import {
   exchange,
   baseToken,
   quoteTokenvUSDC,
-  movrRegistry
+  movrRegistry,
 } from "../../scripts/constants";
 
 import { moverCall } from "../api";
@@ -35,7 +35,7 @@ describe("PerpHandlerL2 [OPTIMISM]", function () {
   before(async () => {
     await hre.network.provider.request({
       method: "hardhat_impersonateAccount",
-      params: ["0x45af3Bd5A2c60B7410f33C313c247c439b633446"]
+      params: ["0x45af3Bd5A2c60B7410f33C313c247c439b633446"],
     });
 
     signer = await hre.ethers.getSigner(
@@ -46,13 +46,13 @@ describe("PerpHandlerL2 [OPTIMISM]", function () {
       method: "hardhat_setBalance",
       params: [
         "0x45af3Bd5A2c60B7410f33C313c247c439b633446",
-        "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
-      ]
+        "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+      ],
     });
 
     await hre.network.provider.request({
       method: "hardhat_impersonateAccount",
-      params: ["0xAE75B29ADe678372D77A8B41225654138a7E6ff1"]
+      params: ["0xAE75B29ADe678372D77A8B41225654138a7E6ff1"],
     });
 
     invalidSigner = await hre.ethers.getSigner(
@@ -85,7 +85,6 @@ describe("PerpHandlerL2 [OPTIMISM]", function () {
       perpL2Handler.address,
       await USDC.balanceOf(invalidSigner.address)
     );
-
 
     accountBalanceContract = (await hre.ethers.getContractAt(
       "IAccountBalance",

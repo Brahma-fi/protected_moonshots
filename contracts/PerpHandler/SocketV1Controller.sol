@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /// @author 0xAd1
 /// @notice Used to bridge ERC20 tokens cross chain
 contract SocketV1Controller {
-
     /// @notice Struct encoded in Bungee calldata
     /// @dev Derived from socket registry contract
     struct MiddlewareRequest {
@@ -35,7 +34,7 @@ contract SocketV1Controller {
         BridgeRequest bridgeRequest;
     }
 
-    /// @notice Decode the socket request calldata 
+    /// @notice Decode the socket request calldata
     /// @dev Currently not in use due to undertainity in bungee api response
     /// @param _data Bungee txn calldata
     /// @return userRequest parsed calldata
@@ -44,7 +43,11 @@ contract SocketV1Controller {
         pure
         returns (UserRequest memory userRequest)
     {
-        bytes memory callDataWithoutSelector = slice(_data, 4, _data.length-4);
+        bytes memory callDataWithoutSelector = slice(
+            _data,
+            4,
+            _data.length - 4
+        );
         (userRequest) = abi.decode(callDataWithoutSelector, (UserRequest));
     }
 
@@ -53,7 +56,12 @@ contract SocketV1Controller {
     /// @param _chainId chainId to check in bungee calldata
     /// @param _inputToken inputWantToken to check in bungee calldata
     /// @param _receiverAddress receiving address to check in bungee calldata
-    function verifySocketCalldata(bytes memory _data, uint256 _chainId, address _inputToken, address _receiverAddress) internal pure {
+    function verifySocketCalldata(
+        bytes memory _data,
+        uint256 _chainId,
+        address _inputToken,
+        address _receiverAddress
+    ) internal pure {
         UserRequest memory userRequest;
         (userRequest) = decodeSocketRegistryCalldata(_data);
         if (userRequest.toChainId != _chainId) {
@@ -85,28 +93,28 @@ contract SocketV1Controller {
         uint256 destinationChainId,
         bytes memory data
     ) internal {
-        verifySocketCalldata(data, destinationChainId, token, destinationAddress);
+        verifySocketCalldata(
+            data,
+            destinationChainId,
+            token,
+            destinationAddress
+        );
         IERC20(token).approve(allowanceTarget, amount);
-        (bool success,) = socketRegistry.call(data);
+        (bool success, ) = socketRegistry.call(data);
         require(success, "Failed to call socketRegistry");
     }
 
-
     /*
-    * @notice Helper to slice memory bytes
-    * @author Gonçalo Sá <goncalo.sa@consensys.net>
-    *
-    * @dev refer https://github.com/GNSPS/solidity-bytes-utils/blob/master/contracts/BytesLib.sol
-    */
+     * @notice Helper to slice memory bytes
+     * @author Gonçalo Sá <goncalo.sa@consensys.net>
+     *
+     * @dev refer https://github.com/GNSPS/solidity-bytes-utils/blob/master/contracts/BytesLib.sol
+     */
     function slice(
         bytes memory _bytes,
         uint256 _start,
         uint256 _length
-    )
-        internal
-        pure
-        returns (bytes memory)
-    {
+    ) internal pure returns (bytes memory) {
         require(_length + 31 >= _length, "slice_overflow");
         require(_bytes.length >= _start + _length, "slice_outOfBounds");
 
@@ -133,13 +141,22 @@ contract SocketV1Controller {
                 // because when slicing multiples of 32 bytes (lengthmod == 0)
                 // the following copy loop was copying the origin's length
                 // and then ending prematurely not copying everything it should.
-                let mc := add(add(tempBytes, lengthmod), mul(0x20, iszero(lengthmod)))
+                let mc := add(
+                    add(tempBytes, lengthmod),
+                    mul(0x20, iszero(lengthmod))
+                )
                 let end := add(mc, _length)
 
                 for {
                     // The multiplication in the next line has the same exact purpose
                     // as the one above.
-                    let cc := add(add(add(_bytes, lengthmod), mul(0x20, iszero(lengthmod))), _start)
+                    let cc := add(
+                        add(
+                            add(_bytes, lengthmod),
+                            mul(0x20, iszero(lengthmod))
+                        ),
+                        _start
+                    )
                 } lt(mc, end) {
                     mc := add(mc, 0x20)
                     cc := add(cc, 0x20)
