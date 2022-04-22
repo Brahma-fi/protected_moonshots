@@ -1,12 +1,17 @@
 import { expect } from "chai";
 import hre from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { Batcher, Vault, ICurveDepositZapper, ICurvePool } from "../../src/types";
+import {
+  Batcher,
+  Vault,
+  ICurveDepositZapper,
+  ICurvePool,
+} from "../../src/types";
 import {
   setup,
   getSignature,
   getVaultContract,
-  getUSDCContract
+  getUSDCContract,
 } from "../utils";
 import { BigNumber, BigNumberish } from "ethers";
 import { ust3Pool } from "../../scripts/constants";
@@ -29,9 +34,9 @@ describe("Batcher [MAINNET]", function () {
     vault = await getVaultContract();
     await hre.network.provider.request({
       method: "hardhat_impersonateAccount",
-      params: [keeperAddress]
+      params: [keeperAddress],
     });
-    console.log('verifying address', invalidSigner.address);
+    console.log("verifying address", invalidSigner.address);
     keeperSigner = await hre.ethers.getSigner(keeperAddress);
   });
 
@@ -74,7 +79,9 @@ describe("Batcher [MAINNET]", function () {
       batcher.connect(invalidSigner).batchDeposit([signer.address])
     ).to.be.revertedWith("ONLY_KEEPER");
     // checking for duplicated user deposit and invalide user deposit
-    await batcher.connect(keeperSigner).batchDeposit([signer.address, signer.address, invalidSigner.address]);
+    await batcher
+      .connect(keeperSigner)
+      .batchDeposit([signer.address, signer.address, invalidSigner.address]);
     expect(await batcher.depositLedger(signer.address)).to.equal(
       BigNumber.from(0)
     );
@@ -114,7 +121,9 @@ describe("Batcher [MAINNET]", function () {
     expect(await vault.balanceOf(batcher.address)).to.equal(amount);
     let balanceBefore = await USDC.balanceOf(signer.address);
     // checking for duplicated user withdraw and invalide user withdraw
-    await batcher.connect(keeperSigner).batchWithdraw([signer.address, signer.address, invalidSigner.address]);
+    await batcher
+      .connect(keeperSigner)
+      .batchWithdraw([signer.address, signer.address, invalidSigner.address]);
 
     let withdrawnAmountAvailable = await batcher.userWantTokens(signer.address);
     expect(withdrawnAmountAvailable).to.equal(amount);
@@ -127,10 +136,9 @@ describe("Batcher [MAINNET]", function () {
     expect(balanceAfter.sub(balanceBefore)).to.equal(amount);
   });
 
-  
   // Operation - Expected Behaviour
-  // setDpositSignatureCheck - checks if 
-  it("User can deposit without signature when checks are disabled", async function() {
+  // setDpositSignatureCheck - checks if
+  it("User can deposit without signature when checks are disabled", async function () {
     let governanceSigner = await hre.ethers.getSigner(governanceAddress);
     await batcher.connect(governanceSigner).setDepositSignatureCheck(false);
     let amount = BigNumber.from(100e6);
@@ -145,9 +153,10 @@ describe("Batcher [MAINNET]", function () {
     expect(USDCDeposited).to.equal(amount);
     await batcher.connect(governanceSigner).setDepositSignatureCheck(true);
 
-    await expect(batcher.connect(signer).depositFunds(amount, "0xabcdef")).to.be.revertedWith("ECDSA: invalid signature length");
+    await expect(
+      batcher.connect(signer).depositFunds(amount, "0xabcdef")
+    ).to.be.revertedWith("ECDSA: invalid signature length");
   });
-
 
   // Operation - Expected Behaviour
   // sweep - sweeps erc20 from batcher to governance.
@@ -175,6 +184,4 @@ describe("Batcher [MAINNET]", function () {
 
     expect(balanceAfter.sub(balanceBefore)).to.equal(balanceOfBatcher);
   });
-
-
 });

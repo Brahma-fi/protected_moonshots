@@ -5,7 +5,7 @@ import {
   Vault,
   ConvexTradeExecutor,
   ERC20,
-  PerpTradeExecutor
+  PerpTradeExecutor,
 } from "../../src/types";
 import { wantTokenL1 } from "../../scripts/constants";
 import { BigNumber, utils } from "ethers";
@@ -14,7 +14,7 @@ import {
   setup,
   getConvexExecutorContract,
   getPerpExecutorContract,
-  mineBlocks
+  mineBlocks,
 } from "../utils";
 
 describe("Vault [MAINNET]", function () {
@@ -36,7 +36,7 @@ describe("Vault [MAINNET]", function () {
       governanceAddress,
       signer,
       governanceSigner,
-      invalidSigner
+      invalidSigner,
     ] = await setup();
     USDC = (await hre.ethers.getContractAt("ERC20", wantTokenL1)) as ERC20;
   });

@@ -74,7 +74,7 @@ export async function moverCall(
   return {
     target: route.allowanceTarget,
     registry: resTxn.result.tx.to,
-    data: resTxn.result.tx.data
+    data: resTxn.result.tx.data,
   };
 }
 
