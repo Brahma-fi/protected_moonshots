@@ -11,9 +11,7 @@ import "@perp/curie-contract/contracts/interface/IExchange.sol";
 import "@perp/curie-contract/contracts/interface/IClearingHouseConfig.sol";
 import "@perp/curie-contract/contracts/interface/IIndexPrice.sol";
 
-
-import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
-
+import {SafeMathUpgradeable} from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 
 /// @title PerpV2Controller
 /// @author 0xAd1 and Bapireddy
@@ -21,11 +19,10 @@ import { SafeMathUpgradeable } from "@openzeppelin/contracts-upgradeable/math/Sa
 contract PerpV2Controller {
     using SafeMathUpgradeable for uint256;
 
-
     /*///////////////////////////////////////////////////////////////
                             GLOBAL IMMUTABLES
     //////////////////////////////////////////////////////////////*/
-    uint256 constant public MAX_BPS = 1e4;
+    uint256 public constant MAX_BPS = 1e4;
 
     /*///////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -58,7 +55,7 @@ contract PerpV2Controller {
 
     /// @notice Address of exchange contract on Perp
     IExchange public exchange;
-    
+
     /*///////////////////////////////////////////////////////////////
                         DEPOSIT / WITHDRAW LOGIC
     //////////////////////////////////////////////////////////////*/
@@ -100,7 +97,7 @@ contract PerpV2Controller {
             amountOut = short
                 ? amountIn.mul(MAX_BPS + slippage).div(MAX_BPS)
                 : amountIn.mul(MAX_BPS - slippage).div(MAX_BPS);
-            
+
             // As deposit is USDC, amountOut will always be in baseToken terms so division by price.
             amountOut = amountOut.mul(MAX_BPS).div(price);
         }
@@ -173,7 +170,9 @@ contract PerpV2Controller {
         view
         returns (uint256 price)
     {
-        return uint256(sqrtPriceX96).mul(uint256(sqrtPriceX96).mul(MAX_BPS)) >> (96 * 2);
+        return
+            uint256(sqrtPriceX96).mul(uint256(sqrtPriceX96).mul(MAX_BPS)) >>
+            (96 * 2);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -200,12 +199,10 @@ contract PerpV2Controller {
     /// @return regular decimal price
     function getIndexTwapPrice() public view returns (uint256) {
         uint256 twapPrice = IIndexPrice(address(baseToken)).getIndexPrice(
-             clearingHouseConfig.getTwapInterval()
+            clearingHouseConfig.getTwapInterval()
         );
         return twapPrice;
     }
-
-
 
     /// @notice Returns the size of current position in baseTokens
     /// @return amount size of position in baseTokens

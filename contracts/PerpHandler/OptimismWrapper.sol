@@ -13,7 +13,9 @@ contract OptimismWrapper {
     /// @notice Returns the true sender of transaction sent from Optimism L2CrossDomainMessenger
     /// @return address of sender
     function messageSender() internal view returns (address) {
-        ICrossDomainMessenger optimismMessenger = ICrossDomainMessenger(L1CrossDomainMessenger);
+        ICrossDomainMessenger optimismMessenger = ICrossDomainMessenger(
+            L1CrossDomainMessenger
+        );
         return optimismMessenger.xDomainMessageSender();
     }
 
@@ -21,9 +23,14 @@ contract OptimismWrapper {
     /// @param _target address of recipient contract
     /// @param _message calldata of the txn
     /// @param _gasLimit gasLimit of the txn
-    function sendMessageToL2(address _target, bytes memory _message, uint32 _gasLimit) internal {
-        ICrossDomainMessenger optimismMessenger = ICrossDomainMessenger(L1CrossDomainMessenger);
+    function sendMessageToL2(
+        address _target,
+        bytes memory _message,
+        uint32 _gasLimit
+    ) internal {
+        ICrossDomainMessenger optimismMessenger = ICrossDomainMessenger(
+            L1CrossDomainMessenger
+        );
         optimismMessenger.sendMessage(_target, _message, _gasLimit);
     }
-
 }

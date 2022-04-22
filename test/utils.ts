@@ -4,7 +4,7 @@ import {
   Vault,
   ERC20,
   ConvexTradeExecutor,
-  PerpTradeExecutor
+  PerpTradeExecutor,
 } from "../src/types";
 import {
   wantTokenL1,
@@ -16,7 +16,7 @@ import {
   keeper,
   perpPositionHandlerL2Address,
   optimismL1CrossDomainMessenger,
-  convexBooster
+  convexBooster,
 } from "../scripts/constants";
 
 export async function getUSDCContract(): Promise<ERC20> {
@@ -32,11 +32,11 @@ export async function setup(): Promise<
 
   await hre.network.provider.request({
     method: "hardhat_impersonateAccount",
-    params: [keeperAddress]
+    params: [keeperAddress],
   });
   await hre.network.provider.request({
     method: "hardhat_impersonateAccount",
-    params: [governanceAddress]
+    params: [governanceAddress],
   });
   let signer = await hre.ethers.getSigner(keeperAddress);
   let invalidSigner = (await hre.ethers.getSigners())[0];
@@ -46,7 +46,7 @@ export async function setup(): Promise<
     governanceAddress,
     signer,
     governanceSigner,
-    invalidSigner
+    invalidSigner,
   ];
 }
 
@@ -59,17 +59,17 @@ export async function getSignature(
     name: "Batcher",
     version: "1",
     chainId: 1,
-    verifyingContract: verifyingContract
+    verifyingContract: verifyingContract,
   };
 
   // The named list of all type definitions
   const types = {
-    deposit: [{ name: "owner", type: "address" }]
+    deposit: [{ name: "owner", type: "address" }],
   };
 
   // The data to sign
   const value = {
-    owner: addressToAuthorize
+    owner: addressToAuthorize,
   };
   // console.log('signer:', signer.address);
   let signature = await signer._signTypedData(domain, types, value);
@@ -78,7 +78,7 @@ export async function getSignature(
 }
 
 export async function getVaultContract(): Promise<Vault> {
-  console.log('here1')
+  console.log("here1");
   let token_name: string = "BUSDC";
   let token_symbol: string = "BUSDC";
   let token_decimals: number = 6;
@@ -93,7 +93,7 @@ export async function getVaultContract(): Promise<Vault> {
   )) as Vault;
   await vault.deployed();
   console.log("Vault deployed at: ", vault.address);
-  console.log('here2')
+  console.log("here2");
   return vault;
 }
 

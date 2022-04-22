@@ -7,7 +7,7 @@ const ConvexTradeExecutorConfig = {
   ust3Pool: "0xCEAF7747579696A2F0bb206a14210e3c9e6fB269",
   curve3PoolZap: "0xA79828DF1850E8a3A3064576f380D90aECDD3359",
   harvester: "0xF1D339D9456BC1e09b548E7946A78D9C4b5f1B68",
-  vault: "0x1C4ceb52ab54a35F9d03FcC156a7c57F965e081e"
+  vault: "0x1C4ceb52ab54a35F9d03FcC156a7c57F965e081e",
 };
 
 async function main() {
@@ -21,7 +21,7 @@ async function main() {
     ...Object.values(ConvexTradeExecutorConfig),
     {
       maxPriorityFeePerGas: feeData["maxPriorityFeePerGas"], // Recommended maxPriorityFeePerGas
-      maxFeePerGas: feeData["maxFeePerGas"] // Recommended maxFeePerGas
+      maxFeePerGas: feeData["maxFeePerGas"], // Recommended maxFeePerGas
     }
   )) as Vault;
 
