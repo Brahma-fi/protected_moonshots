@@ -39,7 +39,6 @@ describe("Batcher [MAINNET]", function () {
     const Batcher = await hre.ethers.getContractFactory("Batcher", signer);
     batcher = (await Batcher.deploy(
       invalidSigner.address,
-      governanceAddress,
       vault.address,
       BigNumber.from(1000e6)
     )) as Batcher;

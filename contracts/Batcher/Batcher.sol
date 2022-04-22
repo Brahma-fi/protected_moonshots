@@ -21,21 +21,19 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
   VaultInfo public vaultInfo;
 
   /// @notice Enforces signature checking on deposits
-  bool public checkValidDepositSignature = true;
+  bool public checkValidDepositSignature;
 
   /// @notice Creates a new Batcher strictly linked to a vault
   /// @param _verificationAuthority Address of the verification authority which allows users to deposit
-  /// @param _governance Address of governance for Batcher
   /// @param vaultAddress Address of the vault which will be used to deposit and withdraw want tokens
   /// @param maxAmount Maximum amount of tokens that can be deposited in the vault
   constructor(
     address _verificationAuthority,
-    address _governance,
     address vaultAddress,
     uint256 maxAmount
   ) {
     verificationAuthority = _verificationAuthority;
-    governance = _governance;
+    checkValidDepositSignature = true;
 
     require(vaultAddress != address(0), "NULL_ADDRESS");
     vaultInfo = VaultInfo({
@@ -88,7 +86,10 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
       "MAX_LIMIT_EXCEEDED"
     );
 
-    _completeDeposit(amountIn);
+    depositLedger[msg.sender] = depositLedger[msg.sender] + (amountIn);
+    pendingDeposit = pendingDeposit + amountIn;
+
+    emit DepositRequest(msg.sender, vaultInfo.vaultAddress, amountIn);
   }
 
 
@@ -155,10 +156,10 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
                     VAULT DEPOSIT/WITHDRAWAL LOGIC
   //////////////////////////////////////////////////////////////*/
 
-  /// @notice Ledger to maintain addresses and vault tokens which batcher owes them
+  /// @notice Ledger to maintain addresses and vault LP tokens which batcher owes them
   mapping(address => uint256) public userLPTokens;
 
-  /// @notice Ledger to maintain addresses and vault tokens which batcher owes them
+  /// @notice Ledger to maintain addresses and vault want tokens which batcher owes them
   mapping(address => uint256) public userWantTokens;
 
   /**
@@ -172,13 +173,18 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     uint256 amountToDeposit = 0;
     uint256 oldLPBalance = IERC20(address(vault)).balanceOf(address(this));
 
+    // Temprorary array to hold user deposit info and check for duplicate addresses
     uint256[] memory depositValues = new uint256[](users.length);
 
     for (uint256 i = 0; i < users.length; i++) {
 
+      // Copies deposit value from ledger to temporary array
       uint256 userDeposit = depositLedger[users[i]];
       amountToDeposit = amountToDeposit + userDeposit;
       depositValues[i] = userDeposit;
+
+      // deposit ledger for that address is set to zero
+      // Incase of duplicate address sent, new deposit amount used for same user will be 0
       depositLedger[users[i]] = 0;
       
     }
@@ -198,18 +204,25 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
       "LP_TOKENS_MISMATCH"
     );
 
+    uint256 totalUsersProcessed = 0;
+
     for (uint256 i = 0; i < users.length; i++) {
       uint256 userAmount = depositValues[i];
       
+      // Checks if userAmount is not 0, only then proceed to allocate LP tokens
       if (userAmount > 0) {
         uint256 userShare = (userAmount * (lpTokensReceived)) /
           (amountToDeposit);
-        userLPTokens[users[i]] = userLPTokens[users[i]] + userShare;
         
+        // Allocating LP tokens to user, can be calimed by the user later by calling claimTokens
+        userLPTokens[users[i]] = userLPTokens[users[i]] + userShare;
+        ++totalUsersProcessed;
       }
     }
 
     pendingDeposit = pendingDeposit - amountToDeposit;
+
+    emit BatchDepositSuccessful(lpTokensReceived, totalUsersProcessed);
   }
 
   /**
@@ -229,6 +242,7 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     uint256 amountToWithdraw = 0;
     uint256 oldWantBalance = token.balanceOf(address(this));
 
+    // Temprorary array to hold user withdrawal info and check for duplicate addresses
     uint256[] memory withdrawValues = new uint256[](users.length);
 
     for (uint256 i = 0; i < users.length; i++) {
@@ -236,6 +250,9 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
       uint256 userWithdraw = withdrawLedger[users[i]];
       amountToWithdraw = amountToWithdraw + userWithdraw;
       withdrawValues[i] = userWithdraw;
+
+      // Withdrawal ledger for that address is set to zero
+      // Incase of duplicate address sent, new withdrawal amount used for same user will be 0
       withdrawLedger[users[i]] = 0;
         
     }
@@ -255,18 +272,25 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
       "WANT_TOKENS_MISMATCH"
     );
 
+    uint256 totalUsersProcessed = 0;
+
     for (uint256 i = 0; i < users.length; i++) {
       uint256 userAmount = withdrawValues[i];
-      
+
+      // Checks if userAmount is not 0, only then proceed to allocate want tokens
       if (userAmount > 0) {
         uint256 userShare = (userAmount * wantTokensReceived) /
           amountToWithdraw;
-        userWantTokens[users[i]] = userWantTokens[users[i]] + userShare;
 
+        // Allocating want tokens to user. Can be claimed by the user by calling completeWithdrawal
+        userWantTokens[users[i]] = userWantTokens[users[i]] + userShare;
+        ++totalUsersProcessed;
       }
     }
 
     pendingWithdrawal = pendingWithdrawal - amountToWithdraw;
+
+    emit BatchWithdrawSuccessful(wantTokensReceived, totalUsersProcessed);
   }
 
   /*///////////////////////////////////////////////////////////////
@@ -290,16 +314,6 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     );
   }
 
-  /// @notice Common internal helper to process deposit requests from both wantTokena and CurveLPToken
-  /// @param amountIn Amount of want tokens deposited
-  function _completeDeposit(uint256 amountIn) internal {
-    depositLedger[msg.sender] = depositLedger[msg.sender] + (amountIn);
-    pendingDeposit = pendingDeposit + amountIn;
-
-    emit DepositRequest(msg.sender, vaultInfo.vaultAddress, amountIn);
-  }
-
-
 
   /*///////////////////////////////////////////////////////////////
                     MAINTAINANCE ACTIONS
@@ -309,12 +323,15 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
   /// @param authority New authority address
   function setAuthority(address authority) public {
     onlyGovernance();
+
+    // Logging old and new verification authority
+    emit VerificationAuthorityUpdated(verificationAuthority, authority);
     verificationAuthority = authority;
   }
 
   /// @inheritdoc IBatcher
   function setVaultLimit(uint256 maxAmount) external override {
-    onlyKeeper();
+    onlyGovernance();
     vaultInfo.maxAmount = maxAmount;
   }
 
@@ -338,11 +355,12 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
                     ACCESS MODIFERS
   //////////////////////////////////////////////////////////////*/
 
-  /// @notice Governance address
-  address public governance;
-
-  /// @notice Pending governance address
-  address public pendingGovernance;
+  /// @notice Helper to get Governance address from Vault contract
+  /// @return Governance address
+  function governance() public view returns (address){
+    require(vaultInfo.vaultAddress != address(0), "NULL_ADDRESS");
+    return IVault(vaultInfo.vaultAddress).governance();
+  }
 
   /// @notice Helper to get Keeper address from Vault contract
   /// @return Keeper address
@@ -358,19 +376,7 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
 
   /// @notice Helper to asset msg.sender as governance address
   function onlyGovernance() internal view {
-    require(governance == msg.sender, "ONLY_GOV");
+    require(governance() == msg.sender, "ONLY_GOV");
   }
 
-  /// @notice Function to change governance. New address will need to accept the governance role
-  /// @param _governance Address of new temporary governance
-  function setGovernance(address _governance) external {
-    onlyGovernance();
-    pendingGovernance = _governance;
-  }
-
-  /// @notice Function to accept governance role. Only pending governance can accept this role
-  function acceptGovernance() external {
-    require(msg.sender == pendingGovernance, "ONLY_PENDING_GOV");
-    governance = pendingGovernance;
-  }
 }
