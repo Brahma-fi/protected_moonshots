@@ -7,14 +7,14 @@ import {
   PerpPositionHandlerL2,
   IClearingHouseConfig,
   IAccountBalance,
-  PerpTradeExecutor
+  PerpTradeExecutor,
 } from "../../src/types";
 import { BigNumber, ContractTransaction, Signer } from "ethers";
 import {
   wantTokenL1,
   wantTokenL2,
   optimismL1CrossDomainMessenger,
-  movrRegistry
+  movrRegistry,
 } from "../../scripts/constants";
 
 import { moverCall } from "../api";
@@ -36,11 +36,13 @@ describe("PerpTE [MAINNET]", function () {
   let PerpHandlerL2Contract: PerpPositionHandlerL2;
 
   before(async () => {
-    [keeperAddress,
-    governanceAddress,
-    signer,
-    governanceSigner,
-    invalidSigner] = await setup();
+    [
+      keeperAddress,
+      governanceAddress,
+      signer,
+      governanceSigner,
+      invalidSigner,
+    ] = await setup();
     vaultContract = await getVaultContract();
 
     const PerpTradeExecutor = await hre.ethers.getContractFactory(
@@ -57,19 +59,18 @@ describe("PerpTE [MAINNET]", function () {
 
     await perpTE.deployed();
 
-
     const keeperAtvault = await vaultContract.keeper();
 
     await hre.network.provider.request({
       method: "hardhat_impersonateAccount",
-      params: [keeperAtvault]
+      params: [keeperAtvault],
     });
 
     keeperSigner = await hre.ethers.getSigner(keeperAtvault);
 
     await hre.network.provider.request({
       method: "hardhat_impersonateAccount",
-      params: [USDCWhale]
+      params: [USDCWhale],
     });
 
     const usdcWhaleSigner = await hre.ethers.getSigner(USDCWhale);
@@ -147,7 +148,7 @@ describe("PerpTE [MAINNET]", function () {
     );
 
     const txnDescription = PerpHandlerL2Contract.interface.parseTransaction({
-      data: paramsGenerated.calldata
+      data: paramsGenerated.calldata,
     });
 
     expect(txnDescription.args.isShort).equal(isShort);
@@ -174,7 +175,7 @@ describe("PerpTE [MAINNET]", function () {
     );
 
     const txnDescription = PerpHandlerL2Contract.interface.parseTransaction({
-      data: paramsGenerated.calldata
+      data: paramsGenerated.calldata,
     });
 
     expect(txnDescription.args.slippage).equal(slippage);
@@ -203,7 +204,7 @@ describe("PerpTE [MAINNET]", function () {
     const paramsGenerated = await decodeOptimismChainRelayerLogs(withdrawTxn);
 
     const txnDescription = PerpHandlerL2Contract.interface.parseTransaction({
-      data: paramsGenerated.calldata
+      data: paramsGenerated.calldata,
     });
 
     expect(txnDescription.args.amountOut.eq(amount));
@@ -233,7 +234,7 @@ const decodeOptimismChainRelayerLogs = async function (
     if (log.address === optiChainRelayerAddress) {
       const thisLog = optimismMessengerInterface.parseLog({
         topics: log.topics,
-        data: log.data
+        data: log.data,
       }) as LogDescription;
       calldata = thisLog.args[3];
     }
@@ -249,7 +250,7 @@ const decodeOptimismChainRelayerLogs = async function (
     target: params[0],
     sender: params[1],
     calldata: params[2],
-    nonce: params[3]
+    nonce: params[3],
   };
 };
 
