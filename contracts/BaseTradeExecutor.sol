@@ -7,78 +7,78 @@ import "../interfaces/ITradeExecutor.sol";
 import "../interfaces/IVault.sol";
 
 abstract contract BaseTradeExecutor is ITradeExecutor {
-  uint256 constant MAX_INT = 2**256 - 1;
+    uint256 constant MAX_INT = 2**256 - 1;
 
-  ActionStatus public override depositStatus;
-  ActionStatus public override withdrawalStatus;
+    ActionStatus public override depositStatus;
+    ActionStatus public override withdrawalStatus;
 
-  address public override vault;
+    address public override vault;
 
-  constructor(address _vault) {
-    vault = _vault;
-    IERC20(vaultWantToken()).approve(vault, MAX_INT);
-  }
+    constructor(address _vault) {
+        vault = _vault;
+        IERC20(vaultWantToken()).approve(vault, MAX_INT);
+    }
 
-  function vaultWantToken() public view returns (address) {
-    return IVault(vault).wantToken();
-  }
+    function vaultWantToken() public view returns (address) {
+        return IVault(vault).wantToken();
+    }
 
-  function governance() public view returns (address) {
-    return IVault(vault).governance();
-  }
+    function governance() public view returns (address) {
+        return IVault(vault).governance();
+    }
 
-  function keeper() public view returns (address) {
-    return IVault(vault).keeper();
-  }
+    function keeper() public view returns (address) {
+        return IVault(vault).keeper();
+    }
 
-  modifier onlyGovernance() {
-    require(msg.sender == governance(), "access :: Governance");
-    _;
-  }
+    modifier onlyGovernance() {
+        require(msg.sender == governance(), "access :: Governance");
+        _;
+    }
 
-  modifier onlyKeeper() {
-    require(msg.sender == keeper(), "access :: Keeper");
-    _;
-  }
+    modifier onlyKeeper() {
+        require(msg.sender == keeper(), "access :: Keeper");
+        _;
+    }
 
-  function sweep(address _token) public onlyGovernance {
-    IERC20(_token).transfer(
-      governance(),
-      IERC20(_token).balanceOf(address(this))
-    );
-  }
+    function sweep(address _token) public onlyGovernance {
+        IERC20(_token).transfer(
+            governance(),
+            IERC20(_token).balanceOf(address(this))
+        );
+    }
 
-  function initiateDeposit(bytes calldata _data) public override onlyKeeper {
-    require(!depositStatus.inProcess, "Deposit already in process");
-    depositStatus.inProcess = true;
-    _initateDeposit(_data);
-  }
+    function initiateDeposit(bytes calldata _data) public override onlyKeeper {
+        require(!depositStatus.inProcess, "Deposit already in process");
+        depositStatus.inProcess = true;
+        _initateDeposit(_data);
+    }
 
-  function confirmDeposit() public override onlyKeeper {
-    require(depositStatus.inProcess, "No Deposit Pending");
-    _confirmDeposit();
-    depositStatus.inProcess = false;
-  }
+    function confirmDeposit() public override onlyKeeper {
+        require(depositStatus.inProcess, "No Deposit Pending");
+        _confirmDeposit();
+        depositStatus.inProcess = false;
+    }
 
-  function initateWithdraw(bytes calldata _data) public override onlyKeeper {
-    require(!withdrawalStatus.inProcess, "Withdraw already in process");
-    withdrawalStatus.inProcess = true;
-    _initiateWithdraw(_data);
-  }
+    function initateWithdraw(bytes calldata _data) public override onlyKeeper {
+        require(!withdrawalStatus.inProcess, "Withdraw already in process");
+        withdrawalStatus.inProcess = true;
+        _initiateWithdraw(_data);
+    }
 
-  function confirmWithdraw() public override onlyKeeper {
-    require(withdrawalStatus.inProcess, "No Withdraw Pending");
-    _confirmWithdraw();
-    withdrawalStatus.inProcess = false;
-  }
+    function confirmWithdraw() public override onlyKeeper {
+        require(withdrawalStatus.inProcess, "No Withdraw Pending");
+        _confirmWithdraw();
+        withdrawalStatus.inProcess = false;
+    }
 
-  /// Internal Funcs
+    /// Internal Funcs
 
-  function _initateDeposit(bytes calldata _data) internal virtual;
+    function _initateDeposit(bytes calldata _data) internal virtual;
 
-  function _confirmDeposit() internal virtual;
+    function _confirmDeposit() internal virtual;
 
-  function _initiateWithdraw(bytes calldata _data) internal virtual;
+    function _initiateWithdraw(bytes calldata _data) internal virtual;
 
-  function _confirmWithdraw() internal virtual;
+    function _confirmWithdraw() internal virtual;
 }

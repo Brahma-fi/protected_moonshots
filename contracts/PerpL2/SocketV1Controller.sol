@@ -3,7 +3,6 @@ pragma solidity ^0.7.6;
 pragma experimental ABIEncoderV2;
 import "./interfaces/IERC20.sol";
 
-
 /// @title SocketV1Controller
 /// @author 0xAd1
 /// @notice Used to bridge ERC20 tokens cross chain
@@ -28,7 +27,7 @@ contract SocketV1Controller {
         BridgeRequest bridgeRequest;
     }
 
-    /// @notice Decode the Bungee request calldata 
+    /// @notice Decode the Bungee request calldata
     /// @dev Currently not in use due to undertainity in Bungee api response
     /// @param _data Bungee txn calldata
     /// @return userRequest parsed calldata
@@ -40,7 +39,12 @@ contract SocketV1Controller {
         (userRequest) = abi.decode(_data[4:], (UserRequest));
     }
 
-    function verifySocketCalldata(bytes calldata _data, uint256 _chainId, address _inputToken, address _receiverAddress) internal pure {
+    function verifySocketCalldata(
+        bytes calldata _data,
+        uint256 _chainId,
+        address _inputToken,
+        address _receiverAddress
+    ) internal pure {
         UserRequest memory userRequest;
         (userRequest) = decodeSocketRegistryCalldata(_data);
         if (userRequest.toChainId != _chainId) {
@@ -72,9 +76,14 @@ contract SocketV1Controller {
         uint256 destinationChainId,
         bytes calldata data
     ) internal {
-        verifySocketCalldata(data, destinationChainId, token, destinationAddress);
+        verifySocketCalldata(
+            data,
+            destinationChainId,
+            token,
+            destinationAddress
+        );
         IERC20(token).approve(allowanceTarget, amount);
-        (bool success,) = socketRegistry.call(data);
+        (bool success, ) = socketRegistry.call(data);
         require(success, "Failed to call socketRegistry");
     }
 }

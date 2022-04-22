@@ -6,7 +6,6 @@ pragma experimental ABIEncoderV2;
  * @title ICrossDomainMessenger
  */
 interface ICrossDomainMessenger {
-
     /**********
      * Events *
      **********/
@@ -14,7 +13,6 @@ interface ICrossDomainMessenger {
     event SentMessage(bytes message);
     event RelayedMessage(bytes32 msgHash);
     event FailedRelayedMessage(bytes32 msgHash);
-
 
     event TransactionEnqueued(
         address indexed _l1TxOrigin,
@@ -50,25 +48,27 @@ interface ICrossDomainMessenger {
      ********************/
 
     function receivedMessages(bytes32 messageHash) external view returns (bool);
+
     function sentMessages(bytes32 messageHash) external view returns (bool);
+
     function targetMessengerAddress() external view returns (address);
+
     function messageNonce() external view returns (uint256);
+
     function xDomainMessageSender() external view returns (address);
 
     /********************
      * Public Functions *
      ********************/
 
-
     /**
      * Sets the target messenger address.
      * @param _targetMessengerAddress New messenger address.
      */
-    function setTargetMessengerAddress(
-        address _targetMessengerAddress
-    ) external;
+    function setTargetMessengerAddress(address _targetMessengerAddress)
+        external;
 
-   /**
+    /**
      * Sends a cross domain message to the target messenger.
      * @param _target Target contract address.
      * @param _message Message to send to the target.
@@ -79,5 +79,4 @@ interface ICrossDomainMessenger {
         bytes memory _message,
         uint32 _gasLimit
     ) external;
-  
 }

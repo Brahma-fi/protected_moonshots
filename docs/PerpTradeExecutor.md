@@ -25,22 +25,20 @@ THe `PerpTradeExecutor` is handler contract for `PerpHandler` on L2. The `Vault`
 
 - `closePosition` - Sends a txn to `PerpHandler` on L2 via Optimism Gateway instructing the contract to close existing position on Perp and withdraw all USDC balance
 
-
-
 ## 3. Roles
 
-| Role Name  | Access                                            | Description                                                                                                                                       |
-| ---------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Governance | Mutable by current _Governance_ role (from Vault) | To modify the contract's base state and call `sweep` to sweep funds.                                                                              |
+| Role Name  | Access                                            | Description                                                                                                                                                           |
+| ---------- | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Governance | Mutable by current _Governance_ role (from Vault) | To modify the contract's base state and call `sweep` to sweep funds.                                                                                                  |
 | Keeper     | Mutable by _Governance_ role (from Vault)         | To perform all the main operations like `setSlippage`, `initiateDeposit`, `initiateWithdraw`, `openPosition`, `closePosition`, `setPosValue` and `setSocketRegistry`. |
 
 ## 4. Mechanisms & Concepts
 
 The `PerpTradeExecutor` is responsible for communicating with a `PerpHandler` contract on optimism L2. It accepts deposits from `Vault` in `wantToken` and sends it to the L2 `PerpHandler` contract. It also uses Optimism Gateway to send txns to `PerpHandler` to instruct it in performing tasks such as opening / closing positions on PerpV2 as well as sending `wantToken` back to L1 `PerpTradeExecutor`
+
 ## 5. Gotchas
 
-When sending `wantToken` to L2 using Socket, `PerpTradeExecutor` will decode and verify calldata. It will check the address where txn is to be sent and match against stored address. If Socket changes the address, it needs to be updated on `PerpTradeExecutor`. 
-
+When sending `wantToken` to L2 using Socket, `PerpTradeExecutor` will decode and verify calldata. It will check the address where txn is to be sent and match against stored address. If Socket changes the address, it needs to be updated on `PerpTradeExecutor`.
 
 ## 6. Failure Modes
 
