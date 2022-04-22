@@ -132,7 +132,7 @@ describe("Batcher [MAINNET]", function () {
   // setDpositSignatureCheck - checks if 
   it("User can deposit without signature when checks are disabled", async function() {
     let governanceSigner = await hre.ethers.getSigner(governanceAddress);
-    await batcher.connect(governanceSigner).setDpositSignatureCheck(false);
+    await batcher.connect(governanceSigner).setDepositSignatureCheck(false);
     let amount = BigNumber.from(100e6);
     const USDC = await getUSDCContract();
     await USDC.connect(signer).approve(batcher.address, amount);
@@ -143,7 +143,7 @@ describe("Batcher [MAINNET]", function () {
     let USDCDeposited = await batcher.depositLedger(signer.address);
 
     expect(USDCDeposited).to.equal(amount);
-    await batcher.connect(governanceSigner).setDpositSignatureCheck(true);
+    await batcher.connect(governanceSigner).setDepositSignatureCheck(true);
 
     await expect(batcher.connect(signer).depositFunds(amount, "0xabcdef")).to.be.revertedWith("ECDSA: invalid signature length");
   });

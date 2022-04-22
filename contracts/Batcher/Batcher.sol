@@ -336,7 +336,7 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
   }
 
   /// @notice Function to enable/disable deposit signature check
-  function setDpositSignatureCheck(bool enabled) public {
+  function setDepositSignatureCheck(bool enabled) public {
     onlyGovernance();
     checkValidDepositSignature = enabled;
   }
