@@ -39,7 +39,6 @@ describe("Batcher [MAINNET]", function () {
     const Batcher = await hre.ethers.getContractFactory("Batcher", signer);
     batcher = (await Batcher.deploy(
       invalidSigner.address,
-      governanceAddress,
       vault.address,
       BigNumber.from(1000e6)
     )) as Batcher;
@@ -79,24 +78,25 @@ describe("Batcher [MAINNET]", function () {
     expect(await batcher.depositLedger(signer.address)).to.equal(
       BigNumber.from(0)
     );
-    expect(await batcher.userTokens(signer.address)).to.equal(amount);
+    expect(await batcher.userLPTokens(signer.address)).to.equal(amount);
   });
 
   it("Claim tokens", async function () {
-    const tokenBalance = await batcher.userTokens(signer.address);
+    const tokenBalance = await batcher.userLPTokens(signer.address);
     await batcher
       .connect(signer)
       .claimTokens(tokenBalance.div(2), signer.address);
     expect(await vault.balanceOf(signer.address)).to.equal(tokenBalance.div(2));
-    expect(await batcher.userTokens(signer.address)).to.equal(
+    expect(await batcher.userLPTokens(signer.address)).to.equal(
       tokenBalance.div(2)
     );
   });
 
   // Operation - Expected Behaviour
-  // withdrawFunds -  increament in withdrawLedger mapping, batcher balance increament in vault tokens.
+  // initiateWithdrawal -  increament in withdrawLedger mapping, batcher balance increament in vault tokens.
   //              -  increase of USDC funds of user.
   // batchWithdraw - onlyOwner should call this function, with decrease in vault tokens.
+  // completeWithdrawal - user should finally call this to claim want tokens back
 
   it("Withdraw verification", async function () {
     let amount = BigNumber.from(100e6);
@@ -104,7 +104,7 @@ describe("Batcher [MAINNET]", function () {
     await USDC.connect(signer).approve(vault.address, amount);
     await vault.deposit(amount, signer.address);
     await vault.connect(signer).approve(batcher.address, amount);
-    await batcher.withdrawFunds(amount);
+    await batcher.initiateWithdrawal(amount);
     await expect(
       batcher.connect(invalidSigner).batchWithdraw([signer.address])
     ).to.be.revertedWith("ONLY_KEEPER");
@@ -115,6 +115,11 @@ describe("Batcher [MAINNET]", function () {
     let balanceBefore = await USDC.balanceOf(signer.address);
     // checking for duplicated user withdraw and invalide user withdraw
     await batcher.connect(keeperSigner).batchWithdraw([signer.address, signer.address, invalidSigner.address]);
+
+    let withdrawnAmountAvailable = await batcher.userWantTokens(signer.address);
+    expect(withdrawnAmountAvailable).to.equal(amount);
+
+    await batcher.connect(signer).completeWithdrawal(withdrawnAmountAvailable);
     let balanceAfter = await USDC.balanceOf(signer.address);
     expect(await batcher.withdrawLedger(signer.address)).to.equal(
       BigNumber.from(0)
@@ -122,51 +127,27 @@ describe("Batcher [MAINNET]", function () {
     expect(balanceAfter.sub(balanceBefore)).to.equal(amount);
   });
 
+  
   // Operation - Expected Behaviour
-  // depositFundsInCurveLpToken - increament in depositLedger mapping, batcher balance increament in usdc.
-  it("Deposit verification for curve lp tokens", async function () {
-    // get curve lp tokens
-    const curve3PoolZap = (await hre.ethers.getContractAt(
-      "ICurveDepositZapper",
-      "0xA79828DF1850E8a3A3064576f380D90aECDD3359"
-    )) as ICurveDepositZapper;
-    const curvePool = (await hre.ethers.getContractAt(
-      "ICurvePool",
-      ust3Pool
-    )) as ICurvePool;
-    let usdc_amount = BigNumber.from(100e6).mul(BigNumber.from(1e6));
-    let liquidityAmounts: [
-      BigNumberish,
-      BigNumberish,
-      BigNumberish,
-      BigNumberish
-    ] = [BigNumber.from(0), BigNumber.from(0), usdc_amount, BigNumber.from(0)];
+  // setDpositSignatureCheck - checks if 
+  it("User can deposit without signature when checks are disabled", async function() {
+    let governanceSigner = await hre.ethers.getSigner(governanceAddress);
+    await batcher.connect(governanceSigner).setDepositSignatureCheck(false);
+    let amount = BigNumber.from(100e6);
     const USDC = await getUSDCContract();
-    await USDC.connect(signer).approve(curve3PoolZap.address, usdc_amount);
-    console.log("before deposit", await USDC.balanceOf(signer.address));
-    await curve3PoolZap
-      .connect(signer)
-      .add_liquidity(ust3Pool, liquidityAmounts, BigNumber.from(0));
-    console.log("after deposit");
-    let lpTokenBalance = await curvePool.balanceOf(signer.address);
-    console.log("Curve lp token balance:", lpTokenBalance);
-    expect(lpTokenBalance.gt(BigNumber.from(0))).to.equal(true);
-    await curvePool.connect(signer).approve(batcher.address, lpTokenBalance);
-    let signature = await getSignature(
-      signer.address,
-      invalidSigner,
-      batcher.address
-    );
+    await USDC.connect(signer).approve(batcher.address, amount);
 
-    await batcher.setVaultLimit(usdc_amount);
-    await batcher.setSlippage(BigNumber.from(10000));
-    await batcher.depositFundsInCurveLpToken(lpTokenBalance, signature);
-    let ledgerBalance = await batcher.depositLedger(signer.address);
-    console.log("ledger balance", ledgerBalance.toString());
-    console.log("batcher balance", await USDC.balanceOf(batcher.address));
-    expect(ledgerBalance.gt(BigNumber.from(0))).to.equal(true);
-    expect(ledgerBalance.lt(lpTokenBalance)).to.equal(true);
+    // definitely invalid signature
+    await batcher.connect(signer).depositFunds(amount, "0xabcdef");
+
+    let USDCDeposited = await batcher.depositLedger(signer.address);
+
+    expect(USDCDeposited).to.equal(amount);
+    await batcher.connect(governanceSigner).setDepositSignatureCheck(true);
+
+    await expect(batcher.connect(signer).depositFunds(amount, "0xabcdef")).to.be.revertedWith("ECDSA: invalid signature length");
   });
+
 
   // Operation - Expected Behaviour
   // sweep - sweeps erc20 from batcher to governance.
@@ -194,4 +175,6 @@ describe("Batcher [MAINNET]", function () {
 
     expect(balanceAfter.sub(balanceBefore)).to.equal(balanceOfBatcher);
   });
+
+
 });
