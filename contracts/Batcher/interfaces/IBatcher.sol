@@ -38,6 +38,22 @@ interface IBatcher {
     uint256 amountOut
   );
 
+  /// @notice Batch Deposit event
+  /// @param amountIn Tokens deposited
+  /// @param totalUsers Total number of users in the batch
+  event BatchDepositSuccessful (
+    uint256 amountIn,
+    uint256 totalUsers
+  );
+
+  /// @notice Batch Withdraw event
+  /// @param amountOut Tokens withdrawn
+  /// @param totalUsers Total number of users in the batch
+  event BatchWithdrawSuccessful (
+    uint256 amountOut,
+    uint256 totalUsers
+  );
+
   /// @notice Withdraw complete event
   /// @param sender Address of the withdawer
   /// @param vault Address of the vault
@@ -46,6 +62,15 @@ interface IBatcher {
     address indexed sender,
     address indexed vault,
     uint256 amountOut
+  );
+
+
+  /// @notice Verification authority update event
+  /// @param oldVerificationAuthority address of old verification authority
+  /// @param newVerificationAuthority address of new verification authority
+  event VerificationAuthorityUpdated(
+    address indexed oldVerificationAuthority,
+    address indexed newVerificationAuthority
   );
 
   function depositFunds(uint256 amountIn, bytes memory signature) external;
