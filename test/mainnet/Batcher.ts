@@ -59,7 +59,7 @@ describe("Batcher [MAINNET]", function () {
   // depositFunds -  increament in depositLedger mapping, batcher balance increament,
   //              -  decrease of USDC funds of user, message for user only verified
   //              - shouldn't breach maxDepositLimit of rotuer.
-  // eposit - onlyOwner should call this function
+  // deposit - onlyOwner should call this function
 
   it("Deposit verification", async function () {
     let signature = await getSignature(
@@ -88,14 +88,64 @@ describe("Batcher [MAINNET]", function () {
     expect(await batcher.userLPTokens(signer.address)).to.equal(amount);
   });
 
+  // Operation - Expected Behaviour
+  // depositFunds -  increament in depositLedger mapping, batcher balance increament,
+  //              -  decrease of USDC funds of user, message for user only verified
+  //              - shouldn't breach maxDepositLimit of rotuer.
+  //              - Can be called by any contract, signature verified for recipient
+  // deposit - onlyOwner should call this function
+  it("Deposit verification using 3rd party", async function () {
+    let signature = await getSignature(
+      signer.address,
+      invalidSigner,
+      batcher.address
+    );
+    console.log("signature:", signature);
+    const prevLPTokens = await batcher.userLPTokens(signer.address);
+    let amount = BigNumber.from(100e6);
+    const USDC = await getUSDCContract();
+    await USDC.connect(signer).transfer(invalidSigner.address, amount);
+    await USDC.connect(invalidSigner).approve(batcher.address, amount);
+    // await batcher.setVaultParams(vault.address, USDC.address, BigNumber.from(1000e6));
+
+    await batcher
+      .connect(invalidSigner)
+      .depositFunds(amount, signature, signer.address);
+    expect(await batcher.depositLedger(signer.address)).to.equal(amount);
+    await expect(
+      batcher.connect(invalidSigner).batchDeposit([signer.address])
+    ).to.be.revertedWith("ONLY_KEEPER");
+    // checking for duplicated user deposit and invalide user deposit
+    await batcher
+      .connect(keeperSigner)
+      .batchDeposit([signer.address, signer.address, invalidSigner.address]);
+    expect(await batcher.depositLedger(signer.address)).to.equal(
+      BigNumber.from(0)
+    );
+    expect(await batcher.userLPTokens(signer.address)).to.equal(
+      amount.add(prevLPTokens)
+    );
+  });
+
+  // Operation - Expected Behaviour
+  // claimTokens -  decrement userLPTokens, send LP tokens to recipient address
+  //              - Can be called by any contract, signature verified for recipient
   it("Claim tokens", async function () {
     const tokenBalance = await batcher.userLPTokens(signer.address);
     await batcher
       .connect(signer)
-      .claimTokens(tokenBalance.div(2), signer.address);
+      .claimTokens(tokenBalance.div(4), signer.address);
+    expect(await vault.balanceOf(signer.address)).to.equal(tokenBalance.div(4));
+    expect(await batcher.userLPTokens(signer.address)).to.equal(
+      tokenBalance.sub(tokenBalance.div(4))
+    );
+
+    await batcher
+      .connect(invalidSigner)
+      .claimTokens(tokenBalance.div(4), signer.address);
     expect(await vault.balanceOf(signer.address)).to.equal(tokenBalance.div(2));
     expect(await batcher.userLPTokens(signer.address)).to.equal(
-      tokenBalance.div(2)
+      tokenBalance.sub(tokenBalance.div(2))
     );
   });
 
@@ -128,11 +178,22 @@ describe("Batcher [MAINNET]", function () {
     let withdrawnAmountAvailable = await batcher.userWantTokens(signer.address);
     expect(withdrawnAmountAvailable).to.equal(amount);
 
-    await batcher.connect(signer).completeWithdrawal(withdrawnAmountAvailable, signer.address);
-    let balanceAfter = await USDC.balanceOf(signer.address);
+    await batcher
+      .connect(signer)
+      .completeWithdrawal(withdrawnAmountAvailable.div(2), signer.address);
+
     expect(await batcher.withdrawLedger(signer.address)).to.equal(
       BigNumber.from(0)
     );
+
+    let balanceAfter = await USDC.balanceOf(signer.address);
+    expect(balanceAfter.sub(balanceBefore)).to.equal(amount.div(2));
+
+    await batcher
+      .connect(invalidSigner)
+      .completeWithdrawal(withdrawnAmountAvailable.div(2), signer.address);
+    balanceAfter = await USDC.balanceOf(signer.address);
+
     expect(balanceAfter.sub(balanceBefore)).to.equal(amount);
   });
 
@@ -146,7 +207,9 @@ describe("Batcher [MAINNET]", function () {
     await USDC.connect(signer).approve(batcher.address, amount);
 
     // definitely invalid signature
-    await batcher.connect(signer).depositFunds(amount, "0xabcdef", signer.address);
+    await batcher
+      .connect(signer)
+      .depositFunds(amount, "0xabcdef", signer.address);
 
     let USDCDeposited = await batcher.depositLedger(signer.address);
 
