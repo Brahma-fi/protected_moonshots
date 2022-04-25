@@ -66,13 +66,13 @@ interface IBatcher {
         address indexed newVerificationAuthority
     );
 
-    function depositFunds(uint256 amountIn, bytes memory signature) external;
+    function depositFunds(uint256 amountIn, bytes memory signature, address recipient) external;
 
     function claimTokens(uint256 amount, address recipient) external;
 
     function initiateWithdrawal(uint256 amountIn) external;
 
-    function completeWithdrawal(uint256 amountOut) external;
+    function completeWithdrawal(uint256 amountOut, address recipient) external;
 
     function batchDeposit(address[] memory users) external;
 
