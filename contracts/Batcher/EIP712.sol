@@ -13,6 +13,7 @@ contract EIP712 {
     /// @param authority Signer of the signature
     /// @return True if the signature is signed by authority
     function verifySignatureAgainstAuthority(
+        address recipient,
         bytes memory signature,
         address authority
     ) internal view returns (bool){
@@ -31,7 +32,7 @@ contract EIP712 {
         bytes32 hashStruct = keccak256(
             abi.encode(
                 keccak256("deposit(address owner)"),
-                msg.sender
+                recipient
             )
         );
 

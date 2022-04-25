@@ -68,7 +68,7 @@ describe("Batcher [MAINNET]", function () {
     await USDC.connect(signer).approve(batcher.address, amount);
     // await batcher.setVaultParams(vault.address, USDC.address, BigNumber.from(1000e6));
 
-    await batcher.depositFunds(amount, signature);
+    await batcher.depositFunds(amount, signature, signer.address);
     expect(await batcher.depositLedger(signer.address)).to.equal(amount);
     await expect(
       batcher.connect(invalidSigner).batchDeposit([signer.address])
@@ -119,7 +119,7 @@ describe("Batcher [MAINNET]", function () {
     let withdrawnAmountAvailable = await batcher.userWantTokens(signer.address);
     expect(withdrawnAmountAvailable).to.equal(amount);
 
-    await batcher.connect(signer).completeWithdrawal(withdrawnAmountAvailable);
+    await batcher.connect(signer).completeWithdrawal(withdrawnAmountAvailable, signer.address);
     let balanceAfter = await USDC.balanceOf(signer.address);
     expect(await batcher.withdrawLedger(signer.address)).to.equal(
       BigNumber.from(0)
@@ -138,14 +138,14 @@ describe("Batcher [MAINNET]", function () {
     await USDC.connect(signer).approve(batcher.address, amount);
 
     // definitely invalid signature
-    await batcher.connect(signer).depositFunds(amount, "0xabcdef");
+    await batcher.connect(signer).depositFunds(amount, "0xabcdef", signer.address);
 
     let USDCDeposited = await batcher.depositLedger(signer.address);
 
     expect(USDCDeposited).to.equal(amount);
     await batcher.connect(governanceSigner).setDepositSignatureCheck(true);
 
-    await expect(batcher.connect(signer).depositFunds(amount, "0xabcdef")).to.be.revertedWith("ECDSA: invalid signature length");
+    await expect(batcher.connect(signer).depositFunds(amount, "0xabcdef", signer.address)).to.be.revertedWith("ECDSA: invalid signature length");
   });
 
 
@@ -161,7 +161,7 @@ describe("Batcher [MAINNET]", function () {
     );
     console.log("signature:", signature);
     await USDC.connect(signer).approve(batcher.address, amount);
-    await batcher.depositFunds(amount, signature);
+    await batcher.depositFunds(amount, signature, signer.address);
     let governanceSigner = await hre.ethers.getSigner(governanceAddress);
 
     await expect(
