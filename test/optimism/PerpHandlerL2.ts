@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import hre from "hardhat";
+import hre, { ethers } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import {
   Vault,
@@ -26,6 +26,7 @@ import { moverCall } from "../api";
 describe("PerpHandlerL2 [OPTIMISM]", function () {
   let signer: SignerWithAddress;
   let invalidSigner: SignerWithAddress;
+  let strategist: SignerWithAddress;
 
   let perpL2Handler: PerpPositionHandlerL2;
   let USDC: IERC20;
@@ -51,12 +52,29 @@ describe("PerpHandlerL2 [OPTIMISM]", function () {
     });
 
     await hre.network.provider.request({
+      method: "hardhat_setBalance",
+      params: [
+        "0x5db7CdA01aF82Ef18B94Ae87FF681F734DE1d1cB",
+        "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+      ],
+    });
+
+    await hre.network.provider.request({
       method: "hardhat_impersonateAccount",
       params: ["0xAE75B29ADe678372D77A8B41225654138a7E6ff1"],
     });
 
     invalidSigner = await hre.ethers.getSigner(
       "0xAE75B29ADe678372D77A8B41225654138a7E6ff1"
+    );
+
+    await hre.network.provider.request({
+      method: "hardhat_impersonateAccount",
+      params: ["0x5db7CdA01aF82Ef18B94Ae87FF681F734DE1d1cB"],
+    });
+
+    strategist = await hre.ethers.getSigner(
+      "0x5db7CdA01aF82Ef18B94Ae87FF681F734DE1d1cB"
     );
 
     const PerpHandlerL2 = await hre.ethers.getContractFactory(
@@ -75,6 +93,7 @@ describe("PerpHandlerL2 [OPTIMISM]", function () {
       baseToken,
       quoteTokenvUSDC,
       signer.address,
+      strategist.address,
       movrRegistry
     )) as PerpPositionHandlerL2;
 
@@ -288,6 +307,47 @@ describe("PerpHandlerL2 [OPTIMISM]", function () {
     let usdcBalAfter = await USDC.balanceOf(perpL2Handler.address);
 
     expect(usdcBalAfter.lt(usdcBalBefore));
+  });
+
+  // Operation - Expected Behaviour
+  // setSocketRegistry - Should only work with strategist address
+  it("strategist functions", async function () {
+    await expect(
+      perpL2Handler.connect(signer).setStrategist(invalidSigner.address)
+    ).to.be.revertedWith("ONLY_STRATEGIST");
+
+    await perpL2Handler
+      .connect(strategist)
+      .setStrategist(invalidSigner.address);
+
+    expect(await perpL2Handler.strategist()).equal(invalidSigner.address);
+
+    await perpL2Handler
+      .connect(invalidSigner)
+      .setStrategist(strategist.address);
+
+    expect(await perpL2Handler.strategist()).equal(strategist.address);
+
+    await expect(
+      perpL2Handler.connect(signer).setSocketRegistry(invalidSigner.address)
+    ).to.be.revertedWith("ONLY_STRATEGIST");
+
+    await perpL2Handler
+      .connect(strategist)
+      .setSocketRegistry(invalidSigner.address);
+
+    expect(await perpL2Handler.socketRegistry()).equal(invalidSigner.address);
+
+    let referalCode = ethers.utils.randomBytes(32);
+    await expect(
+      perpL2Handler.connect(signer).setReferralCode(referalCode)
+    ).to.be.revertedWith("ONLY_STRATEGIST");
+
+    await perpL2Handler.connect(strategist).setReferralCode(referalCode);
+
+    expect(await perpL2Handler.referralCode()).equal(
+      ethers.utils.hexlify(referalCode)
+    );
   });
 });
 
