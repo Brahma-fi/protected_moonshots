@@ -54,7 +54,7 @@ contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
    @notice Keeper function to set max accepted slippage of swaps
    @param _slippage Max accepted slippage during harvesting
    */
-    function setSlippage(uint256 _slippage) external onlyKeeper {
+    function setSlippage(uint256 _slippage) external onlyGovernance {
         ConvexPositionHandler._setSlippage(_slippage);
     }
 

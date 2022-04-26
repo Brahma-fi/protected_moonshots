@@ -5,11 +5,9 @@ import {
   Vault,
   IERC20,
   PerpPositionHandlerL2,
-  IClearingHouseConfig,
-  IAccountBalance,
   PerpTradeExecutor,
 } from "../../src/types";
-import { BigNumber, ContractTransaction, Signer } from "ethers";
+import { BigNumber, ContractTransaction } from "ethers";
 import {
   wantTokenL1,
   wantTokenL2,

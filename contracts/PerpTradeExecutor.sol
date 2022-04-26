@@ -63,7 +63,7 @@ contract PerpTradeExecutor is BaseTradeExecutor, PerpPositionHandler {
 
     /// @notice Socket registry setter, called by keeper
     /// @param _socketRegistry address of new socket registry
-    function setSocketRegistry(address _socketRegistry) public onlyKeeper {
+    function setSocketRegistry(address _socketRegistry) public onlyGovernance {
         socketRegistry = _socketRegistry;
     }
 
@@ -77,7 +77,7 @@ contract PerpTradeExecutor is BaseTradeExecutor, PerpPositionHandler {
         address _l2HandlerAddress,
         address _L1CrossDomainMessenger,
         address _socketRegistry
-    ) public onlyKeeper {
+    ) public onlyGovernance {
         _initHandler(
             vaultWantToken(),
             _wantTokenL2,
