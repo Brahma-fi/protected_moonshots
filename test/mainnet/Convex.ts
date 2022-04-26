@@ -47,7 +47,8 @@ let keeperAddress: string,
   governanceAddress: string,
   governance: SignerWithAddress,
   signer: SignerWithAddress,
-  invalidSigner: SignerWithAddress;
+  invalidSigner: SignerWithAddress,
+  governanceSigner: SignerWithAddress;
 
 const deploy = async () => {
   const convexTradeExecutorFactory = await ethers.getContractFactory(
@@ -99,12 +100,20 @@ const deploy = async () => {
     vault.address
   )) as ConvexTradeExecutor;
   // set slippage as 0.1%
-  await convexTradeExecutor.connect(signer).setSlippage(BigNumber.from(10));
+  await convexTradeExecutor
+    .connect(governanceSigner)
+    .setSlippage(BigNumber.from(10));
 };
 
 describe("Convex Trade Executor [MAINNET]", function () {
   before(async () => {
-    [keeperAddress, governanceAddress, signer, invalidSigner] = await setup();
+    [
+      keeperAddress,
+      governanceAddress,
+      signer,
+      governanceSigner,
+      invalidSigner,
+    ] = await setup();
     governance = await ethers.getSigner(governanceAddress);
     await deploy();
   });
