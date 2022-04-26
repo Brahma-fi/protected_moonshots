@@ -30,6 +30,8 @@
     "hardhat": "^2.8.3",
     "hardhat-contract-sizer": "^2.4.0",
     "hardhat-gas-reporter": "^1.0.7",
+    "husky": "4",
+    "lint-staged": "^12.4.0",
     "prettier": "^2.5.1",
     "prettier-plugin-solidity": "^1.0.0-beta.13",
     "solhint": "^3.3.6",
@@ -45,5 +47,13 @@
     "@uniswap/v3-periphery": "^1.4.0",
     "abi-decoder": "^2.4.0",
     "axios": "^0.26.1"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{js,md,ts,sol}": "prettier --write"
   }
 }
