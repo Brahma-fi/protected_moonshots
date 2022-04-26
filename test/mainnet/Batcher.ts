@@ -1,20 +1,14 @@
 import { expect } from "chai";
 import hre from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import {
-  Batcher,
-  Vault,
-  ICurveDepositZapper,
-  ICurvePool,
-} from "../../src/types";
+import { Batcher, Vault } from "../../src/types";
 import {
   setup,
   getSignature,
   getVaultContract,
   getUSDCContract,
 } from "../utils";
-import { BigNumber, BigNumberish } from "ethers";
-import { ust3Pool } from "../../scripts/constants";
+import { BigNumber } from "ethers";
 
 // Language: typescript
 // Path: test/Batcher.ts
@@ -27,9 +21,16 @@ describe("Batcher [MAINNET]", function () {
   let signer: SignerWithAddress;
   let invalidSigner: SignerWithAddress;
   let keeperSigner: SignerWithAddress;
+  let governanceSigner: SignerWithAddress;
   let vault: Vault;
   before(async () => {
-    [keeperAddress, governanceAddress, signer, invalidSigner] = await setup();
+    [
+      keeperAddress,
+      governanceAddress,
+      signer,
+      governanceSigner,
+      invalidSigner,
+    ] = await setup();
     invalidSigner = (await hre.ethers.getSigners())[0];
     vault = await getVaultContract();
     await hre.network.provider.request({
@@ -53,6 +54,7 @@ describe("Batcher [MAINNET]", function () {
     expect(await batcher.verificationAuthority()).to.equal(
       invalidSigner.address
     );
+    await vault.connect(governanceSigner).setBatcher(batcher.address);
   });
 
   // Operation - Expected Behaviour
@@ -159,7 +161,9 @@ describe("Batcher [MAINNET]", function () {
     let amount = BigNumber.from(100e6);
     const USDC = await getUSDCContract();
     await USDC.connect(signer).approve(vault.address, amount);
+    await vault.connect(governanceSigner).setBatcher(signer.address);
     await vault.deposit(amount, signer.address);
+    await vault.connect(governanceSigner).setBatcher(batcher.address);
     await vault.connect(signer).approve(batcher.address, amount);
     await batcher.initiateWithdrawal(amount);
     await expect(
