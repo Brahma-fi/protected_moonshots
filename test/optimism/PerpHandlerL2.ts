@@ -1,5 +1,5 @@
 import { expect } from "chai";
-import hre from "hardhat";
+import hre, { ethers } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import {
   Vault,
@@ -313,20 +313,20 @@ describe("PerpHandlerL2 [OPTIMISM]", function () {
   // setSocketRegistry - Should only work with strategy address
   it("Strategy functions", async function () {
     await expect(
-      perpL2Handler.connect(signer).setStrategy(invalidSigner.address)
-    ).to.be.revertedWith("ONLY_STRATEGY");
+      perpL2Handler.connect(signer).setStrategist(invalidSigner.address)
+    ).to.be.revertedWith("ONLY_STRATEGIST");
 
-    await perpL2Handler.connect(strategy).setStrategy(invalidSigner.address);
+    await perpL2Handler.connect(strategy).setStrategist(invalidSigner.address);
 
-    expect(await perpL2Handler.strategy()).equal(invalidSigner.address);
+    expect(await perpL2Handler.strategist()).equal(invalidSigner.address);
 
-    await perpL2Handler.connect(invalidSigner).setStrategy(strategy.address);
+    await perpL2Handler.connect(invalidSigner).setStrategist(strategy.address);
 
-    expect(await perpL2Handler.strategy()).equal(strategy.address);
+    expect(await perpL2Handler.strategist()).equal(strategy.address);
 
     await expect(
       perpL2Handler.connect(signer).setSocketRegistry(invalidSigner.address)
-    ).to.be.revertedWith("ONLY_STRATEGY");
+    ).to.be.revertedWith("ONLY_STRATEGIST");
 
     await perpL2Handler
       .connect(strategy)
@@ -334,13 +334,16 @@ describe("PerpHandlerL2 [OPTIMISM]", function () {
 
     expect(await perpL2Handler.socketRegistry()).equal(invalidSigner.address);
 
-    // await expect(
-    //   perpL2Handler.connect(signer).setReferralCode("0xabcdef")
-    // ).to.be.revertedWith("ONLY_STRATEGY");
+    let referalCode = ethers.utils.randomBytes(32);
+    await expect(
+      perpL2Handler.connect(signer).setReferralCode(referalCode)
+    ).to.be.revertedWith("ONLY_STRATEGIST");
 
-    // await perpL2Handler.connect(strategy).setReferralCode("0xabcdef");
+    await perpL2Handler.connect(strategy).setReferralCode(referalCode);
 
-    // expect(await perpL2Handler.referralCode()).equal("0xabcdef");
+    expect(await perpL2Handler.referralCode()).equal(
+      ethers.utils.hexlify(referalCode)
+    );
   });
 });
 
