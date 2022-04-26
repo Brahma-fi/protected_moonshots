@@ -9,7 +9,6 @@ import "./interfaces/IPositionHandler.sol";
 import {SafeMathUpgradeable} from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import "./interfaces/IERC20.sol";
 
-
 /// @title PerpPositionHandlerL2
 /// @author 0xAd1
 /// @notice Acts as positon handler and token bridger on L2 Optimism
@@ -20,7 +19,6 @@ contract PerpPositionHandlerL2 is
     OptimismL2Wrapper
 {
     using SafeMathUpgradeable for uint256;
-
 
     /*///////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -41,9 +39,11 @@ contract PerpPositionHandlerL2 is
     /// @notice Keeper address
     address public keeper;
 
+    /// @notice Strategy address
+    address public strategy;
+
     /// @notice Details of current position on Perp
     PerpPosition public perpPosition;
-
 
     /*///////////////////////////////////////////////////////////////
                             INITIALIZING
@@ -76,7 +76,6 @@ contract PerpPositionHandlerL2 is
         socketRegistry = _socketRegistry;
     }
 
-
     /*///////////////////////////////////////////////////////////////
                         DEPOSIT / WITHDRAW LOGIC
     //////////////////////////////////////////////////////////////*/
@@ -102,13 +101,12 @@ contract PerpPositionHandlerL2 is
             wantTokenL2,
             allowanceTarget,
             socketRegistry,
-            positionHandlerL1, 
+            positionHandlerL1,
             amountOut,
-            1, 
+            1,
             socketData
         );
     }
-
 
     /*///////////////////////////////////////////////////////////////
                         OPEN / CLOSE LOGIC
@@ -130,7 +128,6 @@ contract PerpPositionHandlerL2 is
         perpPosition = PerpPosition({
             entryMarkPrice: formatSqrtPriceX96(getMarkTwapPrice()),
             entryIndexPrice: getIndexTwapPrice(),
-            // entryIndexPrice: getIndexTwapPrice(),
             entryAmount: amountIn,
             isShort: isShort,
             isActive: true
@@ -148,14 +145,13 @@ contract PerpPositionHandlerL2 is
         _withdrawFromPerp(getFreeCollateral());
     }
 
-
     /*///////////////////////////////////////////////////////////////
                             MAINTAINANCE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Sweep tokens 
+    /// @notice Sweep tokens
     /// @param _token Address of the token to sweepr
-    function sweep(address _token) public override onlyAuthorized {
+    function sweep(address _token) public override onlyStrategy {
         IERC20(_token).transfer(
             msg.sender,
             IERC20(_token).balanceOf(address(this))
@@ -164,22 +160,27 @@ contract PerpPositionHandlerL2 is
 
     /// @notice referral code setter
     /// @param _referralCode updated referral code
-    function setReferralCode(bytes32 _referralCode) public onlyAuthorized {
+    function setReferralCode(bytes32 _referralCode) public onlyStrategy {
         referralCode = _referralCode;
     }
 
     /// @notice socket registry setter
     /// @param _socketRegistry new address of socket registry
-    function setSocketRegistry(address _socketRegistry) public onlyAuthorized {
+    function setSocketRegistry(address _socketRegistry) public onlyStrategy {
         socketRegistry = _socketRegistry;
     }
 
     /// @notice keeper setter
     /// @param _keeper new keeper address
-    function setKeeper(address _keeper) public onlyAuthorized {
+    function setKeeper(address _keeper) public onlyStrategy {
         keeper = _keeper;
     }
 
+    /// @notice strategy setter
+    /// @param _strategy new strategy address
+    function setStrategy(address _strategy) public onlyStrategy {
+        strategy = _strategy;
+    }
 
     /// @notice checks wether txn sender is keeper address or PerpTradeExecutor using optimism gateway
     modifier onlyAuthorized() {
@@ -188,6 +189,12 @@ contract PerpPositionHandlerL2 is
                 messageSender() == positionHandlerL1) || msg.sender == keeper),
             "ONLY_AUTHORIZED"
         );
+        _;
+    }
+
+    /// @notice checks wether txn sender is strategy address
+    modifier onlyStrategy() {
+        require(msg.sender == strategy, "ONLY_STRATEGY");
         _;
     }
 }
