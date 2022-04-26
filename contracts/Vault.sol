@@ -420,8 +420,8 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
   }
 
   /// @dev Checks if the address is valid.
-  function isValidAddress(address _tradeExecutor) internal pure {
-    require(_tradeExecutor != address(0), "NULL_ADDRESS");
+  function isValidAddress(address _addr) internal pure {
+    require(_addr != address(0), "NULL_ADDRESS");
   }
 
   /// @dev Checks if the tradeExecutor is valid.
