@@ -26,6 +26,7 @@ import { moverCall } from "../api";
 describe("PerpHandlerL2 [OPTIMISM]", function () {
   let signer: SignerWithAddress;
   let invalidSigner: SignerWithAddress;
+  let strategy: SignerWithAddress;
 
   let perpL2Handler: PerpPositionHandlerL2;
   let USDC: IERC20;
@@ -51,12 +52,29 @@ describe("PerpHandlerL2 [OPTIMISM]", function () {
     });
 
     await hre.network.provider.request({
+      method: "hardhat_setBalance",
+      params: [
+        "0x5db7CdA01aF82Ef18B94Ae87FF681F734DE1d1cB",
+        "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF",
+      ],
+    });
+
+    await hre.network.provider.request({
       method: "hardhat_impersonateAccount",
       params: ["0xAE75B29ADe678372D77A8B41225654138a7E6ff1"],
     });
 
     invalidSigner = await hre.ethers.getSigner(
       "0xAE75B29ADe678372D77A8B41225654138a7E6ff1"
+    );
+
+    await hre.network.provider.request({
+      method: "hardhat_impersonateAccount",
+      params: ["0x5db7CdA01aF82Ef18B94Ae87FF681F734DE1d1cB"],
+    });
+
+    strategy = await hre.ethers.getSigner(
+      "0x5db7CdA01aF82Ef18B94Ae87FF681F734DE1d1cB"
     );
 
     const PerpHandlerL2 = await hre.ethers.getContractFactory(
@@ -75,6 +93,7 @@ describe("PerpHandlerL2 [OPTIMISM]", function () {
       baseToken,
       quoteTokenvUSDC,
       signer.address,
+      strategy.address,
       movrRegistry
     )) as PerpPositionHandlerL2;
 
@@ -288,6 +307,40 @@ describe("PerpHandlerL2 [OPTIMISM]", function () {
     let usdcBalAfter = await USDC.balanceOf(perpL2Handler.address);
 
     expect(usdcBalAfter.lt(usdcBalBefore));
+  });
+
+  // Operation - Expected Behaviour
+  // setSocketRegistry - Should only work with strategy address
+  it("Strategy functions", async function () {
+    await expect(
+      perpL2Handler.connect(signer).setStrategy(invalidSigner.address)
+    ).to.be.revertedWith("ONLY_STRATEGY");
+
+    await perpL2Handler.connect(strategy).setStrategy(invalidSigner.address);
+
+    expect(await perpL2Handler.strategy()).equal(invalidSigner.address);
+
+    await perpL2Handler.connect(invalidSigner).setStrategy(strategy.address);
+
+    expect(await perpL2Handler.strategy()).equal(signer.address);
+
+    await expect(
+      perpL2Handler.connect(signer).setSocketRegistry(invalidSigner.address)
+    ).to.be.revertedWith("ONLY_STRATEGY");
+
+    await perpL2Handler
+      .connect(strategy)
+      .setSocketRegistry(invalidSigner.address);
+
+    expect(await perpL2Handler.socketRegistry()).equal(invalidSigner.address);
+
+    // await expect(
+    //   perpL2Handler.connect(signer).setReferralCode("0xabcdef")
+    // ).to.be.revertedWith("ONLY_STRATEGY");
+
+    // await perpL2Handler.connect(strategy).setReferralCode("0xabcdef");
+
+    // expect(await perpL2Handler.referralCode()).equal("0xabcdef");
   });
 });
 
