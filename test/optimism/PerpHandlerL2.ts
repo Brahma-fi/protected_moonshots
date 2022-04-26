@@ -322,7 +322,7 @@ describe("PerpHandlerL2 [OPTIMISM]", function () {
 
     await perpL2Handler.connect(invalidSigner).setStrategy(strategy.address);
 
-    expect(await perpL2Handler.strategy()).equal(signer.address);
+    expect(await perpL2Handler.strategy()).equal(strategy.address);
 
     await expect(
       perpL2Handler.connect(signer).setSocketRegistry(invalidSigner.address)
