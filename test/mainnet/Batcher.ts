@@ -44,7 +44,6 @@ describe("Batcher [MAINNET]", function () {
     const Batcher = await hre.ethers.getContractFactory("Batcher", signer);
     batcher = (await Batcher.deploy(
       invalidSigner.address,
-      governanceAddress,
       vault.address,
       BigNumber.from(1000e6)
     )) as Batcher;
@@ -60,7 +59,7 @@ describe("Batcher [MAINNET]", function () {
   // depositFunds -  increament in depositLedger mapping, batcher balance increament,
   //              -  decrease of USDC funds of user, message for user only verified
   //              - shouldn't breach maxDepositLimit of rotuer.
-  // eposit - onlyOwner should call this function
+  // deposit - onlyOwner should call this function
 
   it("Deposit verification", async function () {
     let signature = await getSignature(
@@ -74,7 +73,7 @@ describe("Batcher [MAINNET]", function () {
     await USDC.connect(signer).approve(batcher.address, amount);
     // await batcher.setVaultParams(vault.address, USDC.address, BigNumber.from(1000e6));
 
-    await batcher.depositFunds(amount, signature);
+    await batcher.depositFunds(amount, signature, signer.address);
     expect(await batcher.depositLedger(signer.address)).to.equal(amount);
     await expect(
       batcher.connect(invalidSigner).batchDeposit([signer.address])
@@ -86,24 +85,75 @@ describe("Batcher [MAINNET]", function () {
     expect(await batcher.depositLedger(signer.address)).to.equal(
       BigNumber.from(0)
     );
-    expect(await batcher.userTokens(signer.address)).to.equal(amount);
+    expect(await batcher.userLPTokens(signer.address)).to.equal(amount);
   });
 
-  it("Claim tokens", async function () {
-    const tokenBalance = await batcher.userTokens(signer.address);
+  // Operation - Expected Behaviour
+  // depositFunds -  increament in depositLedger mapping, batcher balance increament,
+  //              -  decrease of USDC funds of user, message for user only verified
+  //              - shouldn't breach maxDepositLimit of rotuer.
+  //              - Can be called by any contract, signature verified for recipient
+  // deposit - onlyOwner should call this function
+  it("Deposit verification using 3rd party", async function () {
+    let signature = await getSignature(
+      signer.address,
+      invalidSigner,
+      batcher.address
+    );
+    console.log("signature:", signature);
+    const prevLPTokens = await batcher.userLPTokens(signer.address);
+    let amount = BigNumber.from(100e6);
+    const USDC = await getUSDCContract();
+    await USDC.connect(signer).transfer(invalidSigner.address, amount);
+    await USDC.connect(invalidSigner).approve(batcher.address, amount);
+    // await batcher.setVaultParams(vault.address, USDC.address, BigNumber.from(1000e6));
+
     await batcher
-      .connect(signer)
-      .claimTokens(tokenBalance.div(2), signer.address);
-    expect(await vault.balanceOf(signer.address)).to.equal(tokenBalance.div(2));
-    expect(await batcher.userTokens(signer.address)).to.equal(
-      tokenBalance.div(2)
+      .connect(invalidSigner)
+      .depositFunds(amount, signature, signer.address);
+    expect(await batcher.depositLedger(signer.address)).to.equal(amount);
+    await expect(
+      batcher.connect(invalidSigner).batchDeposit([signer.address])
+    ).to.be.revertedWith("ONLY_KEEPER");
+    // checking for duplicated user deposit and invalide user deposit
+    await batcher
+      .connect(keeperSigner)
+      .batchDeposit([signer.address, signer.address, invalidSigner.address]);
+    expect(await batcher.depositLedger(signer.address)).to.equal(
+      BigNumber.from(0)
+    );
+    expect(await batcher.userLPTokens(signer.address)).to.equal(
+      amount.add(prevLPTokens)
     );
   });
 
   // Operation - Expected Behaviour
-  // withdrawFunds -  increament in withdrawLedger mapping, batcher balance increament in vault tokens.
+  // claimTokens -  decrement userLPTokens, send LP tokens to recipient address
+  //              - Can be called by any contract, signature verified for recipient
+  it("Claim tokens", async function () {
+    const tokenBalance = await batcher.userLPTokens(signer.address);
+    await batcher
+      .connect(signer)
+      .claimTokens(tokenBalance.div(4), signer.address);
+    expect(await vault.balanceOf(signer.address)).to.equal(tokenBalance.div(4));
+    expect(await batcher.userLPTokens(signer.address)).to.equal(
+      tokenBalance.sub(tokenBalance.div(4))
+    );
+
+    await batcher
+      .connect(invalidSigner)
+      .claimTokens(tokenBalance.div(4), signer.address);
+    expect(await vault.balanceOf(signer.address)).to.equal(tokenBalance.div(2));
+    expect(await batcher.userLPTokens(signer.address)).to.equal(
+      tokenBalance.sub(tokenBalance.div(2))
+    );
+  });
+
+  // Operation - Expected Behaviour
+  // initiateWithdrawal -  increament in withdrawLedger mapping, batcher balance increament in vault tokens.
   //              -  increase of USDC funds of user.
   // batchWithdraw - onlyOwner should call this function, with decrease in vault tokens.
+  // completeWithdrawal - user should finally call this to claim want tokens back
 
   it("Withdraw verification", async function () {
     let amount = BigNumber.from(100e6);
@@ -111,7 +161,7 @@ describe("Batcher [MAINNET]", function () {
     await USDC.connect(signer).approve(vault.address, amount);
     await vault.deposit(amount, signer.address);
     await vault.connect(signer).approve(batcher.address, amount);
-    await batcher.withdrawFunds(amount);
+    await batcher.initiateWithdrawal(amount);
     await expect(
       batcher.connect(invalidSigner).batchWithdraw([signer.address])
     ).to.be.revertedWith("ONLY_KEEPER");
@@ -124,57 +174,51 @@ describe("Batcher [MAINNET]", function () {
     await batcher
       .connect(keeperSigner)
       .batchWithdraw([signer.address, signer.address, invalidSigner.address]);
-    let balanceAfter = await USDC.balanceOf(signer.address);
+
+    let withdrawnAmountAvailable = await batcher.userWantTokens(signer.address);
+    expect(withdrawnAmountAvailable).to.equal(amount);
+
+    await batcher
+      .connect(signer)
+      .completeWithdrawal(withdrawnAmountAvailable.div(2), signer.address);
+
     expect(await batcher.withdrawLedger(signer.address)).to.equal(
       BigNumber.from(0)
     );
+
+    let balanceAfter = await USDC.balanceOf(signer.address);
+    expect(balanceAfter.sub(balanceBefore)).to.equal(amount.div(2));
+
+    await batcher
+      .connect(invalidSigner)
+      .completeWithdrawal(withdrawnAmountAvailable.div(2), signer.address);
+    balanceAfter = await USDC.balanceOf(signer.address);
+
     expect(balanceAfter.sub(balanceBefore)).to.equal(amount);
   });
 
   // Operation - Expected Behaviour
-  // depositFundsInCurveLpToken - increament in depositLedger mapping, batcher balance increament in usdc.
-  it("Deposit verification for curve lp tokens", async function () {
-    // get curve lp tokens
-    const curve3PoolZap = (await hre.ethers.getContractAt(
-      "ICurveDepositZapper",
-      "0xA79828DF1850E8a3A3064576f380D90aECDD3359"
-    )) as ICurveDepositZapper;
-    const curvePool = (await hre.ethers.getContractAt(
-      "ICurvePool",
-      ust3Pool
-    )) as ICurvePool;
-    let usdc_amount = BigNumber.from(100e6).mul(BigNumber.from(1e6));
-    let liquidityAmounts: [
-      BigNumberish,
-      BigNumberish,
-      BigNumberish,
-      BigNumberish
-    ] = [BigNumber.from(0), BigNumber.from(0), usdc_amount, BigNumber.from(0)];
+  // setDpositSignatureCheck - checks if
+  it("User can deposit without signature when checks are disabled", async function () {
+    let governanceSigner = await hre.ethers.getSigner(governanceAddress);
+    await batcher.connect(governanceSigner).setDepositSignatureCheck(false);
+    let amount = BigNumber.from(100e6);
     const USDC = await getUSDCContract();
-    await USDC.connect(signer).approve(curve3PoolZap.address, usdc_amount);
-    console.log("before deposit", await USDC.balanceOf(signer.address));
-    await curve3PoolZap
-      .connect(signer)
-      .add_liquidity(ust3Pool, liquidityAmounts, BigNumber.from(0));
-    console.log("after deposit");
-    let lpTokenBalance = await curvePool.balanceOf(signer.address);
-    console.log("Curve lp token balance:", lpTokenBalance);
-    expect(lpTokenBalance.gt(BigNumber.from(0))).to.equal(true);
-    await curvePool.connect(signer).approve(batcher.address, lpTokenBalance);
-    let signature = await getSignature(
-      signer.address,
-      invalidSigner,
-      batcher.address
-    );
+    await USDC.connect(signer).approve(batcher.address, amount);
 
-    await batcher.setVaultLimit(usdc_amount);
-    await batcher.setSlippage(BigNumber.from(10000));
-    await batcher.depositFundsInCurveLpToken(lpTokenBalance, signature);
-    let ledgerBalance = await batcher.depositLedger(signer.address);
-    console.log("ledger balance", ledgerBalance.toString());
-    console.log("batcher balance", await USDC.balanceOf(batcher.address));
-    expect(ledgerBalance.gt(BigNumber.from(0))).to.equal(true);
-    expect(ledgerBalance.lt(lpTokenBalance)).to.equal(true);
+    // definitely invalid signature
+    await batcher
+      .connect(signer)
+      .depositFunds(amount, "0xabcdef", signer.address);
+
+    let USDCDeposited = await batcher.depositLedger(signer.address);
+
+    expect(USDCDeposited).to.equal(amount);
+    await batcher.connect(governanceSigner).setDepositSignatureCheck(true);
+
+    await expect(
+      batcher.connect(signer).depositFunds(amount, "0xabcdef", signer.address)
+    ).to.be.revertedWith("ECDSA: invalid signature length");
   });
 
   // Operation - Expected Behaviour
@@ -189,7 +233,7 @@ describe("Batcher [MAINNET]", function () {
     );
     console.log("signature:", signature);
     await USDC.connect(signer).approve(batcher.address, amount);
-    await batcher.depositFunds(amount, signature);
+    await batcher.depositFunds(amount, signature, signer.address);
     let governanceSigner = await hre.ethers.getSigner(governanceAddress);
 
     await expect(

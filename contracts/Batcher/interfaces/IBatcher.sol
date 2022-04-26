@@ -16,7 +16,6 @@ interface IBatcher {
         address vaultAddress;
         address tokenAddress;
         uint256 maxAmount;
-        uint256 currentAmount;
     }
 
     /// @notice Deposit event
@@ -29,7 +28,7 @@ interface IBatcher {
         uint256 amountIn
     );
 
-    /// @notice Withdraw event
+    /// @notice Withdraw initiate event
     /// @param sender Address of the withdawer
     /// @param vault Address of the vault
     /// @param amountOut Tokens deposited
@@ -39,22 +38,45 @@ interface IBatcher {
         uint256 amountOut
     );
 
-    function depositFunds(uint256 amountIn, bytes memory signature) external;
+    /// @notice Batch Deposit event
+    /// @param amountIn Tokens deposited
+    /// @param totalUsers Total number of users in the batch
+    event BatchDepositSuccessful(uint256 amountIn, uint256 totalUsers);
 
-    function depositFundsInCurveLpToken(
-        uint256 amountIn,
-        bytes memory signature
-    ) external;
+    /// @notice Batch Withdraw event
+    /// @param amountOut Tokens withdrawn
+    /// @param totalUsers Total number of users in the batch
+    event BatchWithdrawSuccessful(uint256 amountOut, uint256 totalUsers);
+
+    /// @notice Withdraw complete event
+    /// @param sender Address of the withdawer
+    /// @param vault Address of the vault
+    /// @param amountOut Tokens deposited
+    event WithdrawComplete(
+        address indexed sender,
+        address indexed vault,
+        uint256 amountOut
+    );
+
+    /// @notice Verification authority update event
+    /// @param oldVerificationAuthority address of old verification authority
+    /// @param newVerificationAuthority address of new verification authority
+    event VerificationAuthorityUpdated(
+        address indexed oldVerificationAuthority,
+        address indexed newVerificationAuthority
+    );
+
+    function depositFunds(uint256 amountIn, bytes memory signature, address recipient) external;
 
     function claimTokens(uint256 amount, address recipient) external;
 
-    function withdrawFunds(uint256 amountOut) external;
+    function initiateWithdrawal(uint256 amountIn) external;
+
+    function completeWithdrawal(uint256 amountOut, address recipient) external;
 
     function batchDeposit(address[] memory users) external;
 
     function batchWithdraw(address[] memory users) external;
 
     function setVaultLimit(uint256 maxLimit) external;
-
-    function setSlippage(uint256 slippage) external;
 }

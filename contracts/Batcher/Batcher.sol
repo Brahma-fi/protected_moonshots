@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+/// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -6,9 +6,6 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/IBatcher.sol";
 import "../../interfaces/IVault.sol";
-import "../ConvexExecutor/interfaces/ICurvePool.sol";
-import "../ConvexExecutor/interfaces/ICurveDepositZapper.sol";
-
 import "./EIP712.sol";
 
 /// @title Batcher
@@ -20,26 +17,26 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     /// @notice Vault parameters for the batcher
     VaultInfo public vaultInfo;
 
+    /// @notice Enforces signature checking on deposits
+    bool public checkValidDepositSignature;
+
     /// @notice Creates a new Batcher strictly linked to a vault
     /// @param _verificationAuthority Address of the verification authority which allows users to deposit
-    /// @param _governance Address of governance for Batcher
     /// @param vaultAddress Address of the vault which will be used to deposit and withdraw want tokens
     /// @param maxAmount Maximum amount of tokens that can be deposited in the vault
     constructor(
         address _verificationAuthority,
-        address _governance,
         address vaultAddress,
         uint256 maxAmount
     ) {
         verificationAuthority = _verificationAuthority;
-        governance = _governance;
+        checkValidDepositSignature = true;
 
         require(vaultAddress != address(0), "NULL_ADDRESS");
         vaultInfo = VaultInfo({
             vaultAddress: vaultAddress,
             tokenAddress: IVault(vaultAddress).wantToken(),
-            maxAmount: maxAmount,
-            currentAmount: 0
+            maxAmount: maxAmount
         });
 
         IERC20(vaultInfo.tokenAddress).approve(vaultAddress, type(uint256).max);
@@ -58,79 +55,95 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     /// @notice Address which authorises users to deposit into Batcher
     address public verificationAuthority;
 
+    /// @notice Amount of want tokens pending to be deposited
+    uint256 public pendingDeposit;
+
+    /// @notice Amount of LP tokens pending to be exchanged back to want token
+    uint256 public pendingWithdrawal;
+
     /**
      * @notice Stores the deposits for future batching via periphery
      * @param amountIn Value of token to be deposited
      * @param signature signature verifying that depositor has enough karma and is authorized to deposit by brahma
      */
-    function depositFunds(uint256 amountIn, bytes memory signature)
-        external
-        override
-        nonReentrant
-    {
-        validDeposit(signature);
+    function depositFunds(
+        uint256 amountIn,
+        bytes memory signature,
+        address recipient
+    ) external override nonReentrant {
+        validDeposit(recipient, signature);
         IERC20(vaultInfo.tokenAddress).safeTransferFrom(
             msg.sender,
             address(this),
             amountIn
         );
 
-        vaultInfo.currentAmount += amountIn;
         require(
-            vaultInfo.currentAmount <= vaultInfo.maxAmount,
+            IERC20(vaultInfo.vaultAddress).totalSupply() +
+                pendingDeposit -
+                pendingWithdrawal +
+                amountIn <=
+                vaultInfo.maxAmount,
             "MAX_LIMIT_EXCEEDED"
         );
 
-        _completeDeposit(amountIn);
+        depositLedger[recipient] = depositLedger[recipient] + (amountIn);
+        pendingDeposit = pendingDeposit + amountIn;
+
+        emit DepositRequest(recipient, vaultInfo.vaultAddress, amountIn);
     }
 
     /**
-     * @notice Stores the deposits for future batching via periphery
-     * @param amountIn Value of Lp token to be deposited
-     * @param signature signature verifying that depositor has enough karma and is authorized to deposit by brahma
-     */
-    function depositFundsInCurveLpToken(
-        uint256 amountIn,
-        bytes memory signature
-    ) external override nonReentrant {
-        validDeposit(signature);
-        /// Curve Lp Token - UST_Wormhole
-        IERC20 lpToken = IERC20(0xCEAF7747579696A2F0bb206a14210e3c9e6fB269);
-
-        lpToken.safeTransferFrom(msg.sender, address(this), amountIn);
-
-        uint256 usdcReceived = _convertLpTokenIntoUSDC(lpToken);
-
-        _completeDeposit(usdcReceived);
-    }
-
-    /**
-     * @notice Stores the deposits for future batching via periphery
+     * @notice User deposits vault LP tokens to be withdrawn. Stores the deposits for future batching via periphery
      * @param amountIn Value of token to be deposited
      */
-    function withdrawFunds(uint256 amountIn) external override nonReentrant {
+    function initiateWithdrawal(uint256 amountIn)
+        external
+        override
+        nonReentrant
+    {
         require(depositLedger[msg.sender] == 0, "DEPOSIT_PENDING");
 
-        if (amountIn > userTokens[msg.sender]) {
+        require(amountIn > 0, "AMOUNT_IN_ZERO");
+
+        if (amountIn > userLPTokens[msg.sender]) {
             IERC20(vaultInfo.vaultAddress).safeTransferFrom(
                 msg.sender,
                 address(this),
-                amountIn - userTokens[msg.sender]
+                amountIn - userLPTokens[msg.sender]
             );
-            userTokens[msg.sender] = 0;
+            userLPTokens[msg.sender] = 0;
         } else {
-            userTokens[msg.sender] = userTokens[msg.sender] - amountIn;
+            userLPTokens[msg.sender] = userLPTokens[msg.sender] - amountIn;
         }
 
         withdrawLedger[msg.sender] = withdrawLedger[msg.sender] + (amountIn);
 
-        vaultInfo.currentAmount -= amountIn;
+        pendingWithdrawal = pendingWithdrawal + amountIn;
 
         emit WithdrawRequest(msg.sender, vaultInfo.vaultAddress, amountIn);
     }
 
     /**
-     * @notice Allows user to withdraw LP tokens
+     * @notice Allows user to collect want token back after successfull batch withdrawal
+     * @param amountOut Amount of token to be withdrawn
+     */
+    function completeWithdrawal(uint256 amountOut, address recipient)
+        external
+        override
+        nonReentrant
+    {
+        require(amountOut != 0, "INVALID_AMOUNTOUT");
+
+        // Will revert if not enough balance
+        userWantTokens[recipient] = userWantTokens[recipient] - amountOut;
+        IERC20(vaultInfo.tokenAddress).safeTransfer(recipient, amountOut);
+
+        emit WithdrawComplete(recipient, vaultInfo.vaultAddress, amountOut);
+    }
+
+    /**
+     * @notice Can be used to send LP tokens owed to the recipient
      * @param amount Amount of LP tokens to withdraw
      * @param recipient Address to receive the LP tokens
      */
@@ -139,8 +152,8 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
         override
         nonReentrant
     {
-        require(userTokens[msg.sender] >= amount, "NO_FUNDS");
-        userTokens[msg.sender] = userTokens[msg.sender] - amount;
+        require(userLPTokens[recipient] >= amount, "NO_FUNDS");
+        userLPTokens[recipient] = userLPTokens[recipient] - amount;
         IERC20(vaultInfo.vaultAddress).safeTransfer(recipient, amount);
     }
 
@@ -148,11 +161,11 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
                     VAULT DEPOSIT/WITHDRAWAL LOGIC
   //////////////////////////////////////////////////////////////*/
 
-    /// @notice Ledger to maintain addresses and vault tokens which batcher owes them
-    mapping(address => uint256) public userTokens;
+    /// @notice Ledger to maintain addresses and vault LP tokens which batcher owes them
+    mapping(address => uint256) public userLPTokens;
 
-    /// @notice Priavte mapping used to check duplicate addresses while processing batch deposits and withdrawals
-    mapping(address => bool) private processedAddresses;
+    /// @notice Ledger to maintain addresses and vault want tokens which batcher owes them
+    mapping(address => uint256) public userWantTokens;
 
     /**
      * @notice Performs deposits on the periphery for the supplied users in batch
@@ -169,11 +182,18 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
         uint256 amountToDeposit = 0;
         uint256 oldLPBalance = IERC20(address(vault)).balanceOf(address(this));
 
+        // Temprorary array to hold user deposit info and check for duplicate addresses
+        uint256[] memory depositValues = new uint256[](users.length);
+
         for (uint256 i = 0; i < users.length; i++) {
-            if (!processedAddresses[users[i]]) {
-                amountToDeposit = amountToDeposit + (depositLedger[users[i]]);
-                processedAddresses[users[i]] = true;
-            }
+            // Copies deposit value from ledger to temporary array
+            uint256 userDeposit = depositLedger[users[i]];
+            amountToDeposit = amountToDeposit + userDeposit;
+            depositValues[i] = userDeposit;
+
+            // deposit ledger for that address is set to zero
+            // Incase of duplicate address sent, new deposit amount used for same user will be 0
+            depositLedger[users[i]] = 0;
         }
 
         require(amountToDeposit > 0, "NO_DEPOSITS");
@@ -192,18 +212,25 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
             "LP_TOKENS_MISMATCH"
         );
 
+        uint256 totalUsersProcessed = 0;
+
         for (uint256 i = 0; i < users.length; i++) {
-            uint256 userAmount = depositLedger[users[i]];
-            if (processedAddresses[users[i]]) {
-                if (userAmount > 0) {
-                    uint256 userShare = (userAmount * (lpTokensReceived)) /
-                        (amountToDeposit);
-                    userTokens[users[i]] = userTokens[users[i]] + userShare;
-                    depositLedger[users[i]] = 0;
-                }
-                processedAddresses[users[i]] = false;
+            uint256 userAmount = depositValues[i];
+
+            // Checks if userAmount is not 0, only then proceed to allocate LP tokens
+            if (userAmount > 0) {
+                uint256 userShare = (userAmount * (lpTokensReceived)) /
+                    (amountToDeposit);
+
+                // Allocating LP tokens to user, can be calimed by the user later by calling claimTokens
+                userLPTokens[users[i]] = userLPTokens[users[i]] + userShare;
+                ++totalUsersProcessed;
             }
         }
+
+        pendingDeposit = pendingDeposit - amountToDeposit;
+
+        emit BatchDepositSuccessful(lpTokensReceived, totalUsersProcessed);
     }
 
     /**
@@ -223,13 +250,17 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
         uint256 amountToWithdraw = 0;
         uint256 oldWantBalance = token.balanceOf(address(this));
 
+        // Temprorary array to hold user withdrawal info and check for duplicate addresses
+        uint256[] memory withdrawValues = new uint256[](users.length);
+
         for (uint256 i = 0; i < users.length; i++) {
-            if (!processedAddresses[users[i]]) {
-                amountToWithdraw =
-                    amountToWithdraw +
-                    (withdrawLedger[users[i]]);
-                processedAddresses[users[i]] = true;
-            }
+            uint256 userWithdraw = withdrawLedger[users[i]];
+            amountToWithdraw = amountToWithdraw + userWithdraw;
+            withdrawValues[i] = userWithdraw;
+
+            // Withdrawal ledger for that address is set to zero
+            // Incase of duplicate address sent, new withdrawal amount used for same user will be 0
+            withdrawLedger[users[i]] = 0;
         }
 
         require(amountToWithdraw > 0, "NO_WITHDRAWS");
@@ -247,19 +278,25 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
             "WANT_TOKENS_MISMATCH"
         );
 
-        for (uint256 i = 0; i < users.length; i++) {
-            uint256 userAmount = withdrawLedger[users[i]];
-            if (processedAddresses[users[i]]) {
-                if (userAmount > 0) {
-                    uint256 userShare = (userAmount * wantTokensReceived) /
-                        amountToWithdraw;
-                    token.safeTransfer(users[i], userShare);
+        uint256 totalUsersProcessed = 0;
 
-                    withdrawLedger[users[i]] = 0;
-                }
-                processedAddresses[users[i]] = false;
+        for (uint256 i = 0; i < users.length; i++) {
+            uint256 userAmount = withdrawValues[i];
+
+            // Checks if userAmount is not 0, only then proceed to allocate want tokens
+            if (userAmount > 0) {
+                uint256 userShare = (userAmount * wantTokensReceived) /
+                    amountToWithdraw;
+
+                // Allocating want tokens to user. Can be claimed by the user by calling completeWithdrawal
+                userWantTokens[users[i]] = userWantTokens[users[i]] + userShare;
+                ++totalUsersProcessed;
             }
         }
+
+        pendingWithdrawal = pendingWithdrawal - amountToWithdraw;
+
+        emit BatchWithdrawSuccessful(wantTokensReceived, totalUsersProcessed);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -268,61 +305,22 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
 
     /// @notice Helper to verify signature against verification authority
     /// @param signature Should be generated by verificationAuthority. Should contain msg.sender
-    function validDeposit(bytes memory signature) internal view {
-        require(
-            verifySignatureAgainstAuthority(signature, verificationAuthority),
-            "INVALID_SIGNATURE"
-        );
+    function validDeposit(address recipient, bytes memory signature)
+        internal
+        view
+    {
+        if (checkValidDepositSignature) {
+            require(
+                verifySignatureAgainstAuthority(
+                    recipient,
+                    signature,
+                    verificationAuthority
+                ),
+                "INVALID_SIGNATURE"
+            );
+        }
 
         require(withdrawLedger[msg.sender] == 0, "WITHDRAW_PENDING");
-    }
-
-    /// @notice Common internal helper to process deposit requests from both wantTokena and CurveLPToken
-    /// @param amountIn Amount of want tokens deposited
-    function _completeDeposit(uint256 amountIn) internal {
-        depositLedger[msg.sender] = depositLedger[msg.sender] + (amountIn);
-
-        emit DepositRequest(msg.sender, vaultInfo.vaultAddress, amountIn);
-    }
-
-    /// @notice Can be changed by keeper
-    uint256 public slippageForCurveLp = 30;
-
-    /// @notice Helper to convert Lp tokens into USDC
-    /// @dev Burns LpTokens on UST3-Wormhole pool on curve to get USDC
-    /// @param lpToken Curve Lp Token
-    function _convertLpTokenIntoUSDC(IERC20 lpToken)
-        internal
-        returns (uint256 receivedWantTokens)
-    {
-        uint256 MAX_BPS = 10000;
-
-        ICurvePool ust3Pool = ICurvePool(
-            0xCEAF7747579696A2F0bb206a14210e3c9e6fB269
-        );
-        ICurveDepositZapper curve3PoolZap = ICurveDepositZapper(
-            0xA79828DF1850E8a3A3064576f380D90aECDD3359
-        );
-
-        uint256 _amount = lpToken.balanceOf(address(this));
-
-        lpToken.safeApprove(address(curve3PoolZap), _amount);
-
-        int128 usdcIndexInPool = int128(int256(uint256(2)));
-
-        // estimate amount of USDC received on burning Lp tokens
-        uint256 expectedWantTokensOut = curve3PoolZap.calc_withdraw_one_coin(
-            address(ust3Pool),
-            _amount,
-            usdcIndexInPool
-        );
-        // burn Lp tokens to receive USDC with a slippage of 0.3%
-        receivedWantTokens = curve3PoolZap.remove_liquidity_one_coin(
-            address(ust3Pool),
-            _amount,
-            usdcIndexInPool,
-            (expectedWantTokensOut * (MAX_BPS - slippageForCurveLp)) / (MAX_BPS)
-        );
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -333,21 +331,22 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     /// @param authority New authority address
     function setAuthority(address authority) public {
         onlyGovernance();
+
+        // Logging old and new verification authority
+        emit VerificationAuthorityUpdated(verificationAuthority, authority);
         verificationAuthority = authority;
     }
 
     /// @inheritdoc IBatcher
     function setVaultLimit(uint256 maxAmount) external override {
-        onlyKeeper();
+        onlyGovernance();
         vaultInfo.maxAmount = maxAmount;
     }
 
-    /// @notice Setting slippage for swaps
-    /// @param _slippage Must be between 0 and 10000
-    function setSlippage(uint256 _slippage) external override {
-        onlyKeeper();
-        require(_slippage <= 10000, "HIGH_SLIPPAGE");
-        slippageForCurveLp = _slippage;
+    /// @notice Function to enable/disable deposit signature check
+    function setDepositSignatureCheck(bool enabled) public {
+        onlyGovernance();
+        checkValidDepositSignature = enabled;
     }
 
     /// @notice Function to sweep funds out in case of emergency, can only be called by governance
@@ -364,11 +363,12 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
                     ACCESS MODIFERS
   //////////////////////////////////////////////////////////////*/
 
-    /// @notice Governance address
-    address public governance;
-
-    /// @notice Pending governance address
-    address public pendingGovernance;
+    /// @notice Helper to get Governance address from Vault contract
+    /// @return Governance address
+    function governance() public view returns (address) {
+        require(vaultInfo.vaultAddress != address(0), "NULL_ADDRESS");
+        return IVault(vaultInfo.vaultAddress).governance();
+    }
 
     /// @notice Helper to get Keeper address from Vault contract
     /// @return Keeper address
@@ -377,26 +377,13 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
         return IVault(vaultInfo.vaultAddress).keeper();
     }
 
-    /// @notice Helper to asset msg.sender as keeper address
+    /// @notice Helper to assert msg.sender as keeper address
     function onlyKeeper() internal view {
         require(msg.sender == keeper(), "ONLY_KEEPER");
     }
 
     /// @notice Helper to asset msg.sender as governance address
     function onlyGovernance() internal view {
-        require(governance == msg.sender, "ONLY_GOV");
-    }
-
-    /// @notice Function to change governance. New address will need to accept the governance role
-    /// @param _governance Address of new temporary governance
-    function setGovernance(address _governance) external {
-        onlyGovernance();
-        pendingGovernance = _governance;
-    }
-
-    /// @notice Function to accept governance role. Only pending governance can accept this role
-    function acceptGovernance() external {
-        require(msg.sender == pendingGovernance, "ONLY_PENDING_GOV");
-        governance = pendingGovernance;
+        require(governance() == msg.sender, "ONLY_GOV");
     }
 }
