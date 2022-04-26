@@ -81,8 +81,13 @@ export async function getVaultContract(): Promise<Vault> {
   console.log("here1");
   let token_name: string = "BUSDC";
   let token_symbol: string = "BUSDC";
-  let token_decimals: number = 6;
-  let [keeperAddress, governanceAddress, signer, invalidSigner] = await setup();
+  let [
+    keeperAddress,
+    governanceAddress,
+    signer,
+    governanceSigner,
+    invalidSigner,
+  ] = await setup();
   const vaultFactory = await hre.ethers.getContractFactory("Vault", signer);
   let vault = (await vaultFactory.deploy(
     token_name,

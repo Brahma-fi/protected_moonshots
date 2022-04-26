@@ -69,7 +69,7 @@ const config: HardhatUserConfig = {
       forking: buildForkConfig(),
     },
     tenderly: {
-      url: `https://rpc.tenderly.co/fork/aed83930-a6b8-4d7e-989f-5960c20aeb1e`,
+      url: `https://rpc.tenderly.co/fork/${process.env.TENDERLY_FORK_ID}`,
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },

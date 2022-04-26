@@ -47,7 +47,7 @@ library AddrArrayLib {
         view
         returns (address)
     {
-        require(index < size(self), "the index is out of bounds");
+        require(index < size(self), "INVALID_INDEX");
         return self._items[index];
     }
 
