@@ -39,8 +39,8 @@ contract PerpPositionHandlerL2 is
     /// @notice Keeper address
     address public keeper;
 
-    /// @notice Strategy address
-    address public strategy;
+    /// @notice Strategist address
+    address public strategist;
 
     /// @notice Details of current position on Perp
     PerpPosition public perpPosition;
@@ -60,7 +60,7 @@ contract PerpPositionHandlerL2 is
         address _baseToken,
         address _quoteTokenvUSDC,
         address _keeper,
-        address _strategy,
+        address _strategist,
         address _socketRegistry
     ) {
         wantTokenL1 = _wantTokenL1;
@@ -74,7 +74,7 @@ contract PerpPositionHandlerL2 is
         baseToken = IERC20(_baseToken);
         quoteTokenvUSDC = IERC20(_quoteTokenvUSDC);
         keeper = _keeper;
-        strategy = _strategy;
+        strategist = _strategist;
         socketRegistry = _socketRegistry;
     }
 
@@ -82,9 +82,9 @@ contract PerpPositionHandlerL2 is
                         DEPOSIT / WITHDRAW LOGIC
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Bridges wantToken back to strategy on L1
+    /// @notice Bridges wantToken back to PerpTE on L1
     /// @dev Check MovrV1Controller for more details on implementation of token bridging
-    /// @param amountOut amount needed to be sent to strategy
+    /// @param amountOut amount needed to be sent to PerpTE
     /// @param allowanceTarget address of contract to provide ERC20 allowance to
     /// @param _socketRegistry address of movr contract to send txn to
     /// @param socketData movr txn calldata
@@ -153,7 +153,7 @@ contract PerpPositionHandlerL2 is
 
     /// @notice Sweep tokens
     /// @param _token Address of the token to sweepr
-    function sweep(address _token) public override onlyStrategy {
+    function sweep(address _token) public override onlyStrategist {
         IERC20(_token).transfer(
             msg.sender,
             IERC20(_token).balanceOf(address(this))
@@ -162,26 +162,26 @@ contract PerpPositionHandlerL2 is
 
     /// @notice referral code setter
     /// @param _referralCode updated referral code
-    function setReferralCode(bytes32 _referralCode) public onlyStrategy {
+    function setReferralCode(bytes32 _referralCode) public onlyStrategist {
         referralCode = _referralCode;
     }
 
     /// @notice socket registry setter
     /// @param _socketRegistry new address of socket registry
-    function setSocketRegistry(address _socketRegistry) public onlyStrategy {
+    function setSocketRegistry(address _socketRegistry) public onlyStrategist {
         socketRegistry = _socketRegistry;
     }
 
     /// @notice keeper setter
     /// @param _keeper new keeper address
-    function setKeeper(address _keeper) public onlyStrategy {
+    function setKeeper(address _keeper) public onlyStrategist {
         keeper = _keeper;
     }
 
-    /// @notice strategy setter
-    /// @param _strategy new strategy address
-    function setStrategy(address _strategy) public onlyStrategy {
-        strategy = _strategy;
+    /// @notice strategist setter
+    /// @param _strategist new strategist address
+    function setStrategist(address _strategist) public onlyStrategist {
+        strategist = _strategist;
     }
 
     /// @notice checks wether txn sender is keeper address or PerpTradeExecutor using optimism gateway
@@ -194,9 +194,9 @@ contract PerpPositionHandlerL2 is
         _;
     }
 
-    /// @notice checks wether txn sender is strategy address
-    modifier onlyStrategy() {
-        require(msg.sender == strategy, "ONLY_STRATEGY");
+    /// @notice checks wether txn sender is strategist address
+    modifier onlyStrategist() {
+        require(msg.sender == strategist, "ONLY_STRATEGIST");
         _;
     }
 }
