@@ -60,6 +60,7 @@ contract PerpPositionHandlerL2 is
         address _baseToken,
         address _quoteTokenvUSDC,
         address _keeper,
+        address _strategy,
         address _socketRegistry
     ) {
         wantTokenL1 = _wantTokenL1;
@@ -73,6 +74,7 @@ contract PerpPositionHandlerL2 is
         baseToken = IERC20(_baseToken);
         quoteTokenvUSDC = IERC20(_quoteTokenvUSDC);
         keeper = _keeper;
+        strategy = _strategy;
         socketRegistry = _socketRegistry;
     }
 
