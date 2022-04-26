@@ -26,7 +26,7 @@ import { moverCall } from "../api";
 describe("PerpHandlerL2 [OPTIMISM]", function () {
   let signer: SignerWithAddress;
   let invalidSigner: SignerWithAddress;
-  let strategy: SignerWithAddress;
+  let strategist: SignerWithAddress;
 
   let perpL2Handler: PerpPositionHandlerL2;
   let USDC: IERC20;
@@ -73,7 +73,7 @@ describe("PerpHandlerL2 [OPTIMISM]", function () {
       params: ["0x5db7CdA01aF82Ef18B94Ae87FF681F734DE1d1cB"],
     });
 
-    strategy = await hre.ethers.getSigner(
+    strategist = await hre.ethers.getSigner(
       "0x5db7CdA01aF82Ef18B94Ae87FF681F734DE1d1cB"
     );
 
@@ -93,7 +93,7 @@ describe("PerpHandlerL2 [OPTIMISM]", function () {
       baseToken,
       quoteTokenvUSDC,
       signer.address,
-      strategy.address,
+      strategist.address,
       movrRegistry
     )) as PerpPositionHandlerL2;
 
@@ -310,26 +310,30 @@ describe("PerpHandlerL2 [OPTIMISM]", function () {
   });
 
   // Operation - Expected Behaviour
-  // setSocketRegistry - Should only work with strategy address
-  it("Strategy functions", async function () {
+  // setSocketRegistry - Should only work with strategist address
+  it("strategist functions", async function () {
     await expect(
       perpL2Handler.connect(signer).setStrategist(invalidSigner.address)
     ).to.be.revertedWith("ONLY_STRATEGIST");
 
-    await perpL2Handler.connect(strategy).setStrategist(invalidSigner.address);
+    await perpL2Handler
+      .connect(strategist)
+      .setStrategist(invalidSigner.address);
 
     expect(await perpL2Handler.strategist()).equal(invalidSigner.address);
 
-    await perpL2Handler.connect(invalidSigner).setStrategist(strategy.address);
+    await perpL2Handler
+      .connect(invalidSigner)
+      .setStrategist(strategist.address);
 
-    expect(await perpL2Handler.strategist()).equal(strategy.address);
+    expect(await perpL2Handler.strategist()).equal(strategist.address);
 
     await expect(
       perpL2Handler.connect(signer).setSocketRegistry(invalidSigner.address)
     ).to.be.revertedWith("ONLY_STRATEGIST");
 
     await perpL2Handler
-      .connect(strategy)
+      .connect(strategist)
       .setSocketRegistry(invalidSigner.address);
 
     expect(await perpL2Handler.socketRegistry()).equal(invalidSigner.address);
@@ -339,7 +343,7 @@ describe("PerpHandlerL2 [OPTIMISM]", function () {
       perpL2Handler.connect(signer).setReferralCode(referalCode)
     ).to.be.revertedWith("ONLY_STRATEGIST");
 
-    await perpL2Handler.connect(strategy).setReferralCode(referalCode);
+    await perpL2Handler.connect(strategist).setReferralCode(referalCode);
 
     expect(await perpL2Handler.referralCode()).equal(
       ethers.utils.hexlify(referalCode)
