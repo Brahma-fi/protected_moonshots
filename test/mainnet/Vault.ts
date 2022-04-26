@@ -266,6 +266,42 @@ describe("Vault [MAINNET]", function () {
   });
 
   // Operation - Expected Behaviour
+  // sweep and emergencyMode - sweep function can only work during emergency mode.
+  //       - in emergency mode deposit/withdraw shouldn't be working.
+  it("Sweeping funds", async function () {
+    await expect(vault.sweep(USDC.address)).to.be.revertedWith("EMERGENCY_MODE");
+    await expect(vault.connect(signer).setEmergencyMode(true)).to.be.revertedWith("ONLY_GOV");
+    await vault.connect(governanceSigner).setEmergencyMode(true);
+    let balanceBefore = await USDC.balanceOf(governanceAddress);
+    await vault.sweep(USDC.address);
+    let balanceAfter = await USDC.balanceOf(governanceAddress);
+    expect(balanceAfter.sub(balanceBefore).gt(BigNumber.from(0))).to.equal(true);
+    expect(await vault.batcherOnlyDeposit()).to.equal(true);
+    expect(await vault.emergencyMode()).to.equal(true);
+    expect(await vault.batcher()).to.equal("0x0000000000000000000000000000000000000000");
+    await expect(vault.deposit(depositAmount, keeperAddress)).to.be.revertedWith("ONLY_BATCHER");
+    await expect(vault.withdraw(depositAmount, keeperAddress)).to.be.revertedWith("ONLY_BATCHER");
+  });
+
+  // Operation - Expected Behaviour
+  //  setEmergencyMode - only governance can set the emergency mode.
+  it("Unwinding Emergency Mode", async function () {
+    await expect(vault.connect(invalidSigner).setEmergencyMode(false)).to.be.revertedWith("ONLY_GOV");
+    await vault.connect(governanceSigner).setEmergencyMode(false);
+    expect(await vault.emergencyMode()).to.equal(false);
+    expect(await vault.batcherOnlyDeposit()).to.equal(true);
+    await vault.connect(governanceSigner).setBatcher(signer.address);
+    expect(await vault.batcher()).to.equal(signer.address);
+    let balanceBefore = await USDC.balanceOf(signer.address);
+    // transfer funds as they are sweeped before
+    await USDC.connect(signer).transfer(vault.address, depositAmount);
+    await vault.deposit(depositAmount, keeperAddress);
+    let balanceAfter = await USDC.balanceOf(signer.address);
+    expect(balanceBefore.sub(balanceAfter).gt(BigNumber.from(0))).to.equal(true);
+  });
+
+
+  // Operation - Expected Behaviour
   // changeGovernance - only governance can change the governance.
   it("Changing governance", async function () {
     await expect(

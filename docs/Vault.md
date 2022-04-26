@@ -45,6 +45,6 @@ When trade executor funds are updated incorrectly the depositers might be issued
 
 ## 6. Failure Modes
 
-- In case of emergency the deposits/withdrawals are disabled by modifying the `batcher` address via `Governance`.
+- In case of emergency the deposits/withdrawals are disabled by taking the `vault` in emergency mode with `setEmergencyMode` function.
 - All the funds from will be recalled from `TradeExecutors` to `vault` to reduce attack impact.
 - Only `Governance` can enable back the deposits/withdrawals after emergency.
