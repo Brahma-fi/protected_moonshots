@@ -7,52 +7,54 @@ pragma solidity ^0.8.0;
  * @dev Provides an interface for Batcher
  */
 interface IBatcher {
-  /// @notice Data structure to store vault info
-  /// @param vaultAddress Address of the vault
-  /// @param tokenAddress Address vault's want token
-  /// @param maxAmount Max amount of tokens to deposit in vault
-  /// @param currentAmount Current amount of wantTokens deposited in the vault
-  struct VaultInfo {
-    address vaultAddress;
-    address tokenAddress;
-    uint256 maxAmount;
-    uint256 currentAmount;
-  }
+    /// @notice Data structure to store vault info
+    /// @param vaultAddress Address of the vault
+    /// @param tokenAddress Address vault's want token
+    /// @param maxAmount Max amount of tokens to deposit in vault
+    /// @param currentAmount Current amount of wantTokens deposited in the vault
+    struct VaultInfo {
+        address vaultAddress;
+        address tokenAddress;
+        uint256 maxAmount;
+        uint256 currentAmount;
+    }
 
-  /// @notice Deposit event
-  /// @param sender Address of the depositor
-  /// @param vault Address of the vault
-  /// @param amountIn Tokens deposited
-  event DepositRequest(
-    address indexed sender,
-    address indexed vault,
-    uint256 amountIn
-  );
+    /// @notice Deposit event
+    /// @param sender Address of the depositor
+    /// @param vault Address of the vault
+    /// @param amountIn Tokens deposited
+    event DepositRequest(
+        address indexed sender,
+        address indexed vault,
+        uint256 amountIn
+    );
 
-  /// @notice Withdraw event
-  /// @param sender Address of the withdawer
-  /// @param vault Address of the vault
-  /// @param amountOut Tokens deposited
-  event WithdrawRequest(
-    address indexed sender,
-    address indexed vault,
-    uint256 amountOut
-  );
+    /// @notice Withdraw event
+    /// @param sender Address of the withdawer
+    /// @param vault Address of the vault
+    /// @param amountOut Tokens deposited
+    event WithdrawRequest(
+        address indexed sender,
+        address indexed vault,
+        uint256 amountOut
+    );
 
-  function depositFunds(uint256 amountIn, bytes memory signature) external;
+    function depositFunds(uint256 amountIn, bytes memory signature) external;
 
-  function depositFundsInCurveLpToken(uint256 amountIn, bytes memory signature)
-    external;
+    function depositFundsInCurveLpToken(
+        uint256 amountIn,
+        bytes memory signature
+    ) external;
 
-  function claimTokens(uint256 amount, address recipient) external;
+    function claimTokens(uint256 amount, address recipient) external;
 
-  function withdrawFunds(uint256 amountOut) external;
+    function withdrawFunds(uint256 amountOut) external;
 
-  function batchDeposit(address[] memory users) external;
+    function batchDeposit(address[] memory users) external;
 
-  function batchWithdraw(address[] memory users) external;
+    function batchWithdraw(address[] memory users) external;
 
-  function setVaultLimit(uint256 maxLimit) external;
+    function setVaultLimit(uint256 maxLimit) external;
 
-  function setSlippage(uint256 slippage) external;
+    function setSlippage(uint256 slippage) external;
 }
