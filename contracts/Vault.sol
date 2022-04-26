@@ -39,12 +39,17 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
     //////////////////////////////////////////////////////////////*/
     /// @notice boolean for enabling deposit/withdraw solely via batcher.
     bool public batcherOnlyDeposit;
+
+    /// @notice boolean for enabling emergency mode to halt new withdrawal/deposits into vault.
+    bool public emergencyMode;
+
+    // @notice address of batcher used for batching user deposits/withdrawals.
     address public batcher;
     /// @notice keeper address to move funds between executors.
     address public override keeper;
     /// @notice Governance address to add/remove  executors.
     address public override governance;
-    address pendingGovernance;
+    address public pendingGovernance;
 
     /// @notice Creates a new Vault that accepts a specific underlying token.
     /// @param _wantToken The ERC20 compliant token the vault should accept.
@@ -63,6 +68,8 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
         wantToken = _wantToken;
         keeper = _keeper;
         governance = _governance;
+        // to prevent any front running deposits
+        batcherOnlyDeposit = true;
     }
 
     function decimals() public view override returns (uint8) {
@@ -79,22 +86,19 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
         public
         override
         nonReentrant
+        ensureFeesAreCollected
         returns (uint256 shares)
     {
         /// checks for only batcher deposit
         onlyBatcher();
         isValidAddress(receiver);
         require(amountIn > 0, "ZERO_AMOUNT");
-        // collect the fees
-        collectFees();
         // calculate the shares based on the amount.
         shares = totalSupply() > 0
             ? (totalSupply() * amountIn) / totalVaultFunds()
             : amountIn;
         IERC20(wantToken).safeTransferFrom(receiver, address(this), amountIn);
         _mint(receiver, shares);
-        // update vault funds
-        prevVaultFunds = totalVaultFunds();
     }
 
     /// @notice Initiates a withdrawal of vault tokens to the user.
@@ -104,20 +108,17 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
         public
         override
         nonReentrant
+        ensureFeesAreCollected
         returns (uint256 amountOut)
     {
         /// checks for only batcher withdrawal
         onlyBatcher();
         isValidAddress(receiver);
         require(sharesIn > 0, "ZERO_SHARES");
-        // collect the fees
-        collectFees();
         // calculate the amount based on the shares.
         amountOut = (sharesIn * totalVaultFunds()) / totalSupply();
         _burn(receiver, sharesIn);
         IERC20(wantToken).safeTransfer(receiver, amountOut);
-        // update vault funds
-        prevVaultFunds = totalVaultFunds();
     }
 
     /// @notice Calculates the total amount of underlying tokens the vault holds.
@@ -179,6 +180,7 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
                            FEE CONFIGURATION
     //////////////////////////////////////////////////////////////*/
     /// @notice lagging value of vault total funds.
+    /// @dev value intialized to max to prevent slashing on first deposit.
     uint256 public prevVaultFunds = type(uint256).max;
     /// @dev Perfomance fee for the vault.
     uint256 public performanceFee;
@@ -209,13 +211,19 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
         uint256 currentFunds = totalVaultFunds();
         // collect fees only when profit is made.
         if ((performanceFee > 0) && (currentFunds > prevVaultFunds)) {
-            uint256 yieldEarned = (currentFunds - prevVaultFunds) *
-                performanceFee;
+            uint256 yieldEarned = (currentFunds - prevVaultFunds);
             // normalization by MAX_BPS
-            yieldEarned = (yieldEarned / MAX_BPS);
-            IERC20(wantToken).safeTransfer(governance, yieldEarned);
-            emit FeesCollected(yieldEarned);
+            uint256 fees = ((yieldEarned * performanceFee) / MAX_BPS);
+            IERC20(wantToken).safeTransfer(governance, fees);
+            emit FeesCollected(fees);
         }
+    }
+
+    modifier ensureFeesAreCollected() {
+        collectFees();
+        _;
+        // update vault funds after fees are collected.
+        prevVaultFunds = totalVaultFunds();
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -252,6 +260,8 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
     function removeExecutor(address _tradeExecutor) public {
         onlyGovernance();
         isValidAddress(_tradeExecutor);
+        // check if executor attached to vault.
+        isActiveExecutor(_tradeExecutor);
         require(
             ITradeExecutor(_tradeExecutor).vault() == address(this),
             "INVALID_VAULT"
@@ -260,10 +270,7 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
         (uint256 executorFunds, uint256 blockUpdated) = ITradeExecutor(
             _tradeExecutor
         ).totalFunds();
-        require(
-            block.number <= blockUpdated + BLOCK_LIMIT,
-            "FUNDS_NOT_UPDATED"
-        );
+        areFundsUpdated(blockUpdated);
         require(executorFunds < DUST_LIMIT, "FUNDS_TOO_HIGH");
         tradeExecutorsList.removeAddress(_tradeExecutor);
         emit ExecutorRemoved(_tradeExecutor);
@@ -278,7 +285,6 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
     /// @notice Returns trade executor at given index.
     /// @return The executor address at given valid index.
     function executorByIndex(uint256 _index) public view returns (address) {
-        require(_index < totalExecutors(), "INVALID_INDEX");
         return tradeExecutorsList.getAddressAtIndex(_index);
     }
 
@@ -291,10 +297,7 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
             (uint256 executorFunds, uint256 blockUpdated) = ITradeExecutor(
                 executor
             ).totalFunds();
-            require(
-                block.number <= blockUpdated + BLOCK_LIMIT,
-                "FUNDS_NOT_UPDATED"
-            );
+            areFundsUpdated(blockUpdated);
             totalFunds += executorFunds;
         }
         return totalFunds;
@@ -371,12 +374,27 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
         emit UpdatedKeeper(_keeper);
     }
 
+    /// @notice Emitted when emergencyMode status is updated.
+    /// @param emergencyMode boolean indicating state of emergency.
+    event EmergencyModeStatus(bool emergencyMode);
+
+    /// @notice sets emergencyMode.
+    /// @dev  This can only be called by governance.
+    /// @param _emergencyMode if true, vault will be in emergency mode.
+    function setEmergencyMode(bool _emergencyMode) public {
+        onlyGovernance();
+        emergencyMode = _emergencyMode;
+        batcherOnlyDeposit = true;
+        batcher = address(0);
+        emit EmergencyModeStatus(_emergencyMode);
+    }
+
     /// @notice Removes invalid tokens from the vault.
-    /// @dev  This is used as fail safe to remove want tokens from the vault.
-    /// can only be called by governance.
+    /// @dev  This is used as fail safe to remove want tokens from the vault during emergency mode
+    /// can be called by anyone to send funds to governance.
     /// @param _token The address of token to be removed.
     function sweep(address _token) public {
-        onlyGovernance();
+        isEmergencyMode();
         IERC20(_token).safeTransfer(
             governance,
             IERC20(_token).balanceOf(address(this))
@@ -403,13 +421,26 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
         }
     }
 
+    /// @dev Checks if emergency mode is enabled.
+    function isEmergencyMode() internal view {
+        require(emergencyMode == true, "EMERGENCY_MODE");
+    }
+
     /// @dev Checks if the address is valid.
-    function isValidAddress(address _tradeExecutor) internal pure {
-        require(_tradeExecutor != address(0), "NULL_ADDRESS");
+    function isValidAddress(address _addr) internal pure {
+        require(_addr != address(0), "NULL_ADDRESS");
     }
 
     /// @dev Checks if the tradeExecutor is valid.
     function isActiveExecutor(address _tradeExecutor) internal view {
         require(tradeExecutorsList.exists(_tradeExecutor), "INVALID_EXECUTOR");
+    }
+
+    /// @dev Checks if funds are updated.
+    function areFundsUpdated(uint256 _blockUpdated) internal view {
+        require(
+            block.number <= _blockUpdated + BLOCK_LIMIT,
+            "FUNDS_NOT_UPDATED"
+        );
     }
 }
