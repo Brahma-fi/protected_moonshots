@@ -9,7 +9,6 @@ import "./interfaces/IPositionHandler.sol";
 import {SafeMathUpgradeable} from "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
 import "./interfaces/IERC20.sol";
 
-
 /// @title PerpPositionHandlerL2
 /// @author 0xAd1
 /// @notice Acts as positon handler and token bridger on L2 Optimism
@@ -20,7 +19,6 @@ contract PerpPositionHandlerL2 is
     OptimismL2Wrapper
 {
     using SafeMathUpgradeable for uint256;
-
 
     /*///////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -41,9 +39,11 @@ contract PerpPositionHandlerL2 is
     /// @notice Keeper address
     address public keeper;
 
+    /// @notice Strategist address
+    address public strategist;
+
     /// @notice Details of current position on Perp
     PerpPosition public perpPosition;
-
 
     /*///////////////////////////////////////////////////////////////
                             INITIALIZING
@@ -60,6 +60,7 @@ contract PerpPositionHandlerL2 is
         address _baseToken,
         address _quoteTokenvUSDC,
         address _keeper,
+        address _strategist,
         address _socketRegistry
     ) {
         wantTokenL1 = _wantTokenL1;
@@ -73,17 +74,17 @@ contract PerpPositionHandlerL2 is
         baseToken = IERC20(_baseToken);
         quoteTokenvUSDC = IERC20(_quoteTokenvUSDC);
         keeper = _keeper;
+        strategist = _strategist;
         socketRegistry = _socketRegistry;
     }
-
 
     /*///////////////////////////////////////////////////////////////
                         DEPOSIT / WITHDRAW LOGIC
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Bridges wantToken back to strategy on L1
+    /// @notice Bridges wantToken back to PerpTE on L1
     /// @dev Check MovrV1Controller for more details on implementation of token bridging
-    /// @param amountOut amount needed to be sent to strategy
+    /// @param amountOut amount needed to be sent to PerpTE
     /// @param allowanceTarget address of contract to provide ERC20 allowance to
     /// @param _socketRegistry address of movr contract to send txn to
     /// @param socketData movr txn calldata
@@ -102,13 +103,12 @@ contract PerpPositionHandlerL2 is
             wantTokenL2,
             allowanceTarget,
             socketRegistry,
-            positionHandlerL1, 
+            positionHandlerL1,
             amountOut,
-            1, 
+            1,
             socketData
         );
     }
-
 
     /*///////////////////////////////////////////////////////////////
                         OPEN / CLOSE LOGIC
@@ -130,7 +130,6 @@ contract PerpPositionHandlerL2 is
         perpPosition = PerpPosition({
             entryMarkPrice: formatSqrtPriceX96(getMarkTwapPrice()),
             entryIndexPrice: getIndexTwapPrice(),
-            // entryIndexPrice: getIndexTwapPrice(),
             entryAmount: amountIn,
             isShort: isShort,
             isActive: true
@@ -148,14 +147,13 @@ contract PerpPositionHandlerL2 is
         _withdrawFromPerp(getFreeCollateral());
     }
 
-
     /*///////////////////////////////////////////////////////////////
                             MAINTAINANCE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Sweep tokens 
+    /// @notice Sweep tokens
     /// @param _token Address of the token to sweepr
-    function sweep(address _token) public override onlyAuthorized {
+    function sweep(address _token) public override onlyStrategist {
         IERC20(_token).transfer(
             msg.sender,
             IERC20(_token).balanceOf(address(this))
@@ -164,22 +162,27 @@ contract PerpPositionHandlerL2 is
 
     /// @notice referral code setter
     /// @param _referralCode updated referral code
-    function setReferralCode(bytes32 _referralCode) public onlyAuthorized {
+    function setReferralCode(bytes32 _referralCode) public onlyStrategist {
         referralCode = _referralCode;
     }
 
     /// @notice socket registry setter
     /// @param _socketRegistry new address of socket registry
-    function setSocketRegistry(address _socketRegistry) public onlyAuthorized {
+    function setSocketRegistry(address _socketRegistry) public onlyStrategist {
         socketRegistry = _socketRegistry;
     }
 
     /// @notice keeper setter
     /// @param _keeper new keeper address
-    function setKeeper(address _keeper) public onlyAuthorized {
+    function setKeeper(address _keeper) public onlyStrategist {
         keeper = _keeper;
     }
 
+    /// @notice strategist setter
+    /// @param _strategist new strategist address
+    function setStrategist(address _strategist) public onlyStrategist {
+        strategist = _strategist;
+    }
 
     /// @notice checks wether txn sender is keeper address or PerpTradeExecutor using optimism gateway
     modifier onlyAuthorized() {
@@ -188,6 +191,12 @@ contract PerpPositionHandlerL2 is
                 messageSender() == positionHandlerL1) || msg.sender == keeper),
             "ONLY_AUTHORIZED"
         );
+        _;
+    }
+
+    /// @notice checks wether txn sender is strategist address
+    modifier onlyStrategist() {
+        require(msg.sender == strategist, "ONLY_STRATEGIST");
         _;
     }
 }
