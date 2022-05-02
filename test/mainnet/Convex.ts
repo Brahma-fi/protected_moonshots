@@ -1,7 +1,9 @@
+/* eslint-disable node/no-missing-import */
+import * as dotenv from "dotenv";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import { BigNumber } from "ethers";
-import hre, { ethers } from "hardhat";
+import { ethers } from "hardhat";
 import { wantTokenL1 } from "../../scripts/constants";
 import {
   ConvexTradeExecutor,
@@ -10,17 +12,19 @@ import {
   IConvexRewards,
   IERC20,
 } from "../../src/types";
-import { getUSDCContract, mineBlocks, setup } from "../utils";
+import {
+  getERC20ContractAt,
+  getPreloadedSigners,
+  mineBlocks,
+  randomSigner,
+  switchToNetwork,
+} from "../utils";
 
 const ConvexTradeExecutorConfig = {
   baseRewardPool: "0x7e2b9B5244bcFa5108A76D5E7b507CFD5581AD4A",
   convexBooster: "0xF403C135812408BFbE8713b5A23a04b3D48AAE31",
   ust3Pool: "0xCEAF7747579696A2F0bb206a14210e3c9e6fB269",
   curve3PoolZap: "0xA79828DF1850E8a3A3064576f380D90aECDD3359",
-};
-
-const HarvesterConfig = {
-  wantToken: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
 };
 
 const MAX_INT =
@@ -43,12 +47,10 @@ let CRV: IERC20;
 let CVX: IERC20;
 let _3CRV: IERC20;
 
-let keeperAddress: string,
-  governanceAddress: string,
-  governance: SignerWithAddress,
+let governance: SignerWithAddress,
   signer: SignerWithAddress,
   invalidSigner: SignerWithAddress,
-  governanceSigner: SignerWithAddress;
+  keeper: SignerWithAddress;
 
 const deploy = async () => {
   const convexTradeExecutorFactory = await ethers.getContractFactory(
@@ -57,75 +59,62 @@ const deploy = async () => {
   const HarvesterFactory = await ethers.getContractFactory("Harvester");
   const vaultFactory = await ethers.getContractFactory("Vault", signer);
   LP = (await ethers.getContractAt(
-    "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20",
+    "ERC20",
     ConvexTradeExecutorConfig.ust3Pool
   )) as IERC20;
-  CRV = (await ethers.getContractAt(
-    "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20",
-    CRV_ADDR
-  )) as IERC20;
-  CVX = (await ethers.getContractAt(
-    "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20",
-    CVX_ADDR
-  )) as IERC20;
-  _3CRV = (await ethers.getContractAt(
-    "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20",
-    _3CRV_ADDR
-  )) as IERC20;
+  CRV = (await ethers.getContractAt("ERC20", CRV_ADDR)) as IERC20;
+  CVX = (await ethers.getContractAt("ERC20", CVX_ADDR)) as IERC20;
+  _3CRV = (await ethers.getContractAt("ERC20", _3CRV_ADDR)) as IERC20;
 
   baseRewardPool = (await ethers.getContractAt(
     "IConvexRewards",
     ConvexTradeExecutorConfig.baseRewardPool
   )) as IConvexRewards;
 
-  USDC = await getUSDCContract();
+  USDC = await getERC20ContractAt(wantTokenL1);
+
+  [signer, keeper, governance, invalidSigner] = await getPreloadedSigners();
 
   vault = (await vaultFactory.deploy(
     "PMUSDC",
     "PMUSDC",
     wantTokenL1,
-    keeperAddress,
-    governanceAddress
+    keeper.address,
+    governance.address
   )) as Vault;
 
+  const HarvesterConfig = {
+    vaultAddress: vault.address,
+  };
   harvester = (await HarvesterFactory.deploy(
-    keeperAddress,
-    ...Object.values(HarvesterConfig),
-    governanceAddress
+    ...Object.values(HarvesterConfig)
   )) as Harvester;
 
   convexTradeExecutor = (await convexTradeExecutorFactory.deploy(
-    ...Object.values(ConvexTradeExecutorConfig),
     harvester.address,
     vault.address
   )) as ConvexTradeExecutor;
   // set slippage as 0.1%
-  await convexTradeExecutor
-    .connect(governanceSigner)
-    .setSlippage(BigNumber.from(10));
+  await convexTradeExecutor.connect(governance).setSlippage(BigNumber.from(10));
 };
 
 describe("Convex Trade Executor [MAINNET]", function () {
   before(async () => {
-    [
-      keeperAddress,
-      governanceAddress,
-      signer,
-      governanceSigner,
-      invalidSigner,
-    ] = await setup();
-    governance = await ethers.getSigner(governanceAddress);
+    dotenv.config();
+    await switchToNetwork(
+      `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}`,
+      Number(process.env.BLOCK_NUMBER)
+    );
     await deploy();
   });
 
   it("Should deploy Harvester correctly", async () => {
-    expect(await harvester.governance()).equals(governanceAddress);
-    expect(await harvester.wantToken()).equals(HarvesterConfig.wantToken);
+    expect(await harvester.vault()).equals(vault.address);
   });
 
   it("Should deploy ConvexTradeExecutor correctly", async () => {
     expect(await convexTradeExecutor.harvester()).equals(harvester.address);
-    expect(await convexTradeExecutor.governance()).equals(governanceAddress);
+    expect(await convexTradeExecutor.governance()).equals(governance.address);
 
     expect(await convexTradeExecutor.wantToken()).equals(wantTokenL1);
     expect(await convexTradeExecutor.lpToken()).equals(
@@ -246,6 +235,21 @@ describe("Convex Trade Executor [MAINNET]", function () {
     console.log("Lp after close:", finalLpBal.toString());
 
     expect(finalLpBal.gt(initialLpBal));
+    const completeCloseParamsInBytes = ethers.utils.AbiCoder.prototype.encode(
+      ["tuple(uint256)"],
+      [[BigNumber.from(0)]]
+    );
+    // test closing all amount
+    await convexTradeExecutor
+      .connect(signer)
+      .closePosition(completeCloseParamsInBytes);
+    console.log("paramsInBytes:", completeCloseParamsInBytes);
+    expect(finalLpBal.gt(initialLpBal));
+
+    // invest back some funds
+    await convexTradeExecutor.connect(signer).openPosition(paramsInBytes, {
+      gasLimit: 5e6,
+    });
   });
 
   it("Should withdraw correctly", async () => {
@@ -255,7 +259,7 @@ describe("Convex Trade Executor [MAINNET]", function () {
     const initialUsdcBal = await USDC.balanceOf(convexTradeExecutor.address);
     const paramsInBytes = ethers.utils.AbiCoder.prototype.encode(
       ["tuple(uint256)"],
-      [[totalFund]]
+      [[totalFund.div(2)]]
     );
 
     await convexTradeExecutor.connect(signer).initateWithdraw(paramsInBytes);
@@ -268,5 +272,13 @@ describe("Convex Trade Executor [MAINNET]", function () {
     );
 
     expect(finalUsdcBal.gt(initialUsdcBal));
+    let completeParamsInBytes = ethers.utils.AbiCoder.prototype.encode(
+      ["tuple(uint256)"],
+      [[MAX_INT]]
+    );
+
+    await convexTradeExecutor
+      .connect(signer)
+      .initateWithdraw(completeParamsInBytes);
   });
 });

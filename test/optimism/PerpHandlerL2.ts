@@ -1,3 +1,5 @@
+import * as dotenv from "dotenv";
+
 import { expect } from "chai";
 import hre, { ethers } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
@@ -21,6 +23,8 @@ import {
   movrRegistry,
 } from "../../scripts/constants";
 
+import { switchToNetwork } from "../utils/hardhat";
+
 import { moverCall } from "../api";
 
 describe("PerpHandlerL2 [OPTIMISM]", function () {
@@ -34,6 +38,13 @@ describe("PerpHandlerL2 [OPTIMISM]", function () {
   let accountBalanceContract: IAccountBalance;
 
   before(async () => {
+    dotenv.config();
+
+    await switchToNetwork(
+      process.env.QUICKNODE_OPTIMISM_URL,
+      Number(process.env.OPTIMISM_BLOCK_NUMBER)
+    );
+
     await hre.network.provider.request({
       method: "hardhat_impersonateAccount",
       params: ["0x45af3Bd5A2c60B7410f33C313c247c439b633446"],
