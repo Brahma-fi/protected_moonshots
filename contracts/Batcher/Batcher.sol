@@ -9,7 +9,7 @@ import "../../interfaces/IVault.sol";
 import "./EIP712.sol";
 
 /// @title Batcher
-/// @author 0xAd1
+/// @author 0xAd1, Bapireddy
 /// @notice Used to batch user deposits and withdrawals until the next rebalance
 contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     using SafeERC20 for IERC20;
@@ -63,8 +63,9 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
 
     /**
      * @notice Stores the deposits for future batching via periphery
-     * @param amountIn Value of token to be deposited
-     * @param signature signature verifying that depositor has enough karma and is authorized to deposit by brahma
+     * @param amountIn Value of token to be deposited. It will be ignored if txn is sent with native ETH
+     * @param signature signature verifying that recipient has enough karma and is authorized to deposit by brahma
+     * @param recipient address receiving the shares issued by vault
      */
     function depositFunds(
         uint256 amountIn,
@@ -72,15 +73,27 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
         address recipient
     ) external override nonReentrant {
         validDeposit(recipient, signature);
+
+        uint256 wantBalanceBeforeTransfer = IERC20(vaultInfo.tokenAddress)
+            .balanceOf(address(this));
+
         IERC20(vaultInfo.tokenAddress).safeTransferFrom(
             msg.sender,
             address(this),
             amountIn
         );
 
+        uint256 wantBalanceAfterTransfer = IERC20(vaultInfo.tokenAddress)
+            .balanceOf(address(this));
+
+        /// Check in both cases for want balance increase to be correct
+        assert(
+            wantBalanceAfterTransfer - wantBalanceBeforeTransfer == amountIn
+        );
+
         require(
-            IERC20(vaultInfo.vaultAddress).totalSupply() +
-                pendingDeposit -
+            IERC20(vaultInfo.vaultAddress).totalSupply() -
+                pendingDeposit +
                 pendingWithdrawal +
                 amountIn <=
                 vaultInfo.maxAmount,
@@ -207,10 +220,7 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
             address(this)
         ) - (oldLPBalance);
 
-        require(
-            lpTokensReceived == lpTokensReportedByVault,
-            "LP_TOKENS_MISMATCH"
-        );
+        assert(lpTokensReceived == lpTokensReportedByVault);
 
         uint256 totalUsersProcessed = 0;
 
@@ -273,10 +283,7 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
         uint256 wantTokensReceived = token.balanceOf(address(this)) -
             (oldWantBalance);
 
-        require(
-            wantTokensReceived == wantTokensReportedByVault,
-            "WANT_TOKENS_MISMATCH"
-        );
+        assert(wantTokensReceived == wantTokensReportedByVault);
 
         uint256 totalUsersProcessed = 0;
 
@@ -366,14 +373,12 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     /// @notice Helper to get Governance address from Vault contract
     /// @return Governance address
     function governance() public view returns (address) {
-        require(vaultInfo.vaultAddress != address(0), "NULL_ADDRESS");
         return IVault(vaultInfo.vaultAddress).governance();
     }
 
     /// @notice Helper to get Keeper address from Vault contract
     /// @return Keeper address
     function keeper() public view returns (address) {
-        require(vaultInfo.vaultAddress != address(0), "NULL_ADDRESS");
         return IVault(vaultInfo.vaultAddress).keeper();
     }
 
