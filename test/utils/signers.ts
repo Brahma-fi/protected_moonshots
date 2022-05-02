@@ -1,6 +1,7 @@
 import hre from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { BigNumber, Wallet } from "ethers";
+import { governance } from "../../scripts/constants";
 
 export async function getSigner(
   address: string,
@@ -66,4 +67,24 @@ export async function getSignature(
   const signature = await signer._signTypedData(domain, types, value);
   // console.log("eip712 signature", signature);
   return hre.ethers.utils.hexlify(signature);
+}
+
+export async function getPreloadedSigners(): Promise<
+  [SignerWithAddress, SignerWithAddress, SignerWithAddress, SignerWithAddress]
+> {
+  const keeperAddress = "0x55FE002aefF02F77364de339a1292923A15844B8";
+  const governanceAddress = "0xAE75B29ADe678372D77A8B41225654138a7E6ff1";
+
+  await hre.network.provider.request({
+    method: "hardhat_impersonateAccount",
+    params: [keeperAddress],
+  });
+  await hre.network.provider.request({
+    method: "hardhat_impersonateAccount",
+    params: [governanceAddress],
+  });
+  let keeper = await hre.ethers.getSigner(keeperAddress);
+  let invalidSigner = (await hre.ethers.getSigners())[0];
+  let governance = await hre.ethers.getSigner(governanceAddress);
+  return [keeper, keeper, governance, invalidSigner];
 }
