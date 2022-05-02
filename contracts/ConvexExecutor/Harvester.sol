@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "./interfaces/IHarvester.sol";
+import "../../interfaces/IVault.sol";
 import "./interfaces/IUniswapV3Router.sol";
 import "./interfaces/ICurveV2Pool.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
@@ -50,30 +51,13 @@ contract Harvester is IHarvester {
     /*///////////////////////////////////////////////////////////////
                         MUTABLE ACCESS MODFIERS
   //////////////////////////////////////////////////////////////*/
-
-    /// @notice address of keeper
-    address public override keeper;
-    /// @notice address of governance
-    address public override governance;
-
-    /*///////////////////////////////////////////////////////////////
-                            EXTERNAL CONTRACTS
-  //////////////////////////////////////////////////////////////*/
-    /// @notice address of want token
-    IERC20Metadata public wantToken;
+    /// @notice instance of vault
+    IVault public override vault;
 
     /// @notice creates a new Harvester
-    /// @param _keeper address of the keeper
-    /// @param _wantToken address of the want token
-    /// @param _governance address of the governance
-    constructor(
-        address _keeper,
-        IERC20Metadata _wantToken,
-        address _governance
-    ) {
-        keeper = _keeper;
-        wantToken = _wantToken;
-        governance = _governance;
+    /// @param _vault address of vault
+    constructor(address _vault) {
+        vault = IVault(_vault);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -103,42 +87,14 @@ contract Harvester is IHarvester {
         _3crv.safeApprove(address(_3crvPool), type(uint256).max);
     }
 
-    /// @notice Keeper function to set want token to convert swapTokens into
-    /// @param _addr address of the want token
-    function setWantToken(address _addr)
-        external
-        override
-        validAddress(_addr)
-        onlyKeeper
-    {
-        wantToken = IERC20Metadata(_addr);
-    }
-
-    /// @notice Governance function to set a new keeper
-    /// @param _keeper address of new keeper
-    function setKeeper(address _keeper) external override onlyGovernance {
-        keeper = _keeper;
-    }
-
     /*///////////////////////////////////////////////////////////////
                       GOVERNANCE FUNCTIONS
   //////////////////////////////////////////////////////////////*/
-
-    /// @notice Governance function to set a new governance
-    /// @param _governance address of new governance
-    function setGovernance(address _governance)
-        external
-        override
-        onlyGovernance
-    {
-        governance = _governance;
-    }
-
     /// @notice Governance function to sweep a token's balance lying in Harvester
     /// @param _token address of token to sweep
     function sweep(address _token) external override onlyGovernance {
         IERC20(_token).safeTransfer(
-            governance,
+            vault.governance(),
             IERC20Metadata(_token).balanceOf(address(this))
         );
     }
@@ -170,7 +126,7 @@ contract Harvester is IHarvester {
                     abi.encodePacked(
                         address(weth),
                         uint24(500),
-                        address(wantToken)
+                        address(vault.wantToken())
                     ),
                     address(this),
                     block.timestamp,
@@ -186,7 +142,10 @@ contract Harvester is IHarvester {
         }
 
         // send token usdc back to vault
-        wantToken.safeTransfer(msg.sender, wantToken.balanceOf(address(this)));
+        IERC20(vault.wantToken()).safeTransfer(
+            msg.sender,
+            IERC20(vault.wantToken()).balanceOf(address(this))
+        );
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -201,13 +160,16 @@ contract Harvester is IHarvester {
 
     /// @notice to check if caller is governance
     modifier onlyGovernance() {
-        require(msg.sender == governance, "Harvester :: onlyGovernance");
+        require(
+            msg.sender == vault.governance(),
+            "Harvester :: onlyGovernance"
+        );
         _;
     }
 
     /// @notice to check if caller is keeper
     modifier onlyKeeper() {
-        require(msg.sender == keeper, "auth: keeper");
+        require(msg.sender == vault.keeper(), "auth: keeper");
         _;
     }
 }

@@ -40,6 +40,8 @@ contract ConvexPositionHandler is BasePositionHandler {
   //////////////////////////////////////////////////////////////*/
     /// @dev the max basis points used as normalizing factor.
     uint256 public immutable MAX_BPS = 10000;
+    /// @dev the normalization factor for amounts
+    uint256 public constant NORMALIZATION_FACTOR = 1e30;
 
     /*///////////////////////////////////////////////////////////////
                           GLOBAL MUTABLES
@@ -57,56 +59,49 @@ contract ConvexPositionHandler is BasePositionHandler {
     /// @notice The want token that is deposited and withdrawn
     IERC20 public wantToken;
     /// @notice Curve LP Tokens that are converted and staked on Convex
-    IERC20 public lpToken;
+    IERC20 public lpToken = IERC20(0xCEAF7747579696A2F0bb206a14210e3c9e6fB269);
 
     /// @notice Harvester that harvests rewards claimed from Convex
     IHarvester public harvester;
 
-    // 0x7e2b9B5244bcFa5108A76D5E7b507CFD5581AD4A
     /// @notice convex UST3 base reward pool
-    IConvexRewards public baseRewardPool;
-    // 0xCEAF7747579696A2F0bb206a14210e3c9e6fB269
+    IConvexRewards public immutable baseRewardPool =
+        IConvexRewards(0x7e2b9B5244bcFa5108A76D5E7b507CFD5581AD4A);
     /// @notice curve's UST3 Pool
-    ICurvePool public ust3Pool;
-    // 0xA79828DF1850E8a3A3064576f380D90aECDD3359
+    ICurvePool public immutable ust3Pool =
+        ICurvePool(0xCEAF7747579696A2F0bb206a14210e3c9e6fB269);
     /// @notice curve 3 pool zap
-    ICurveDepositZapper public curve3PoolZap;
-    // 0xF403C135812408BFbE8713b5A23a04b3D48AAE31
+    ICurveDepositZapper public immutable curve3PoolZap =
+        ICurveDepositZapper(0xA79828DF1850E8a3A3064576f380D90aECDD3359);
     /// @notice convex booster
-    IConvexBooster public convexBooster;
+    IConvexBooster public immutable convexBooster =
+        IConvexBooster(0xF403C135812408BFbE8713b5A23a04b3D48AAE31);
 
     /*///////////////////////////////////////////////////////////////
                           INITIALIZING
-  //////////////////////////////////////////////////////////////*/
-
-    /**
-   @notice Configures the handler with its base state
-   @param _baseRewardPool address of convex UST3 base reward pool
-   @param _convexBooster address of convex booster
-   @param _ust3Pool address of curve's UST3 Pool
-   @param _curve3PoolZap address of curve 3 pool zap
-   @param _token address of want token (USDC)
-   @param _harvester address of reward harvester contract
-   */
-    function _configHandler(
-        address _baseRewardPool,
-        address _convexBooster,
-        address _ust3Pool,
-        address _curve3PoolZap,
-        address _token,
-        address _harvester
-    ) internal {
-        baseRewardPool = IConvexRewards(_baseRewardPool);
-        convexBooster = IConvexBooster(_convexBooster);
-
-        ust3Pool = ICurvePool(_ust3Pool);
-        curve3PoolZap = ICurveDepositZapper(_curve3PoolZap);
-
-        wantToken = IERC20(_token);
-        lpToken = IERC20(_ust3Pool);
-
+    //////////////////////////////////////////////////////////////*/
+    /// @notice configures ConvexPositionHandler with the required state
+    /// @param _harvester address of harvester
+    /// @param _wantToken address of want token
+    function _configHandler(address _harvester, address _wantToken) internal {
+        wantToken = IERC20(_wantToken);
         harvester = IHarvester(_harvester);
-        lpToken.safeApprove(address(convexBooster), type(uint256).max);
+
+        address UST_3POOL = 0xCEAF7747579696A2F0bb206a14210e3c9e6fB269;
+        address CURVE3POOL_ZAP = 0xA79828DF1850E8a3A3064576f380D90aECDD3359;
+        address CONVEX_BOOSTER = 0xF403C135812408BFbE8713b5A23a04b3D48AAE31;
+
+        // Assign virtual price of ust3pool
+        prevSharePrice = ICurvePool(UST_3POOL).get_virtual_price();
+
+        // Approve max LP tokens to convex booster
+        IERC20(UST_3POOL).safeApprove(CONVEX_BOOSTER, type(uint256).max);
+
+        // Approve max want tokens to zapper.
+        wantToken.safeApprove(CURVE3POOL_ZAP, type(uint256).max);
+
+        // Approve max lp tokens to zapper
+        IERC20(UST_3POOL).safeApprove(CURVE3POOL_ZAP, type(uint256).max);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -128,7 +123,7 @@ contract ConvexPositionHandler is BasePositionHandler {
             uint256 stakedLpBalance,
             uint256 lpTokenBalance,
             uint256 usdcBalance
-        ) = _getTotalBalancesInWantToken();
+        ) = _getTotalBalancesInWantToken(false);
 
         return (stakedLpBalance + lpTokenBalance + usdcBalance, block.number);
     }
@@ -166,13 +161,13 @@ contract ConvexPositionHandler is BasePositionHandler {
             uint256 stakedLpBalance,
             uint256 lpTokenBalance,
             uint256 usdcBalance
-        ) = _getTotalBalancesInWantToken();
+        ) = _getTotalBalancesInWantToken(true);
+        uint256 totalBalance = (stakedLpBalance + lpTokenBalance + usdcBalance);
 
-        require(
-            withdrawParams._amount <=
-                (stakedLpBalance + lpTokenBalance + usdcBalance),
-            "amount requested exceeds limit"
-        );
+        // if _amount is more than balance, then withdraw entire balance
+        if (withdrawParams._amount > totalBalance) {
+            withdrawParams._amount = totalBalance;
+        }
 
         // calculate maximum amount that can be withdrawn
         uint256 amountToWithdraw = withdrawParams._amount;
@@ -181,7 +176,6 @@ contract ConvexPositionHandler is BasePositionHandler {
         // if usdc token balance is insufficient
         if (amountToWithdraw > usdcBalance) {
             usdcValueOfLpTokensToConvert = amountToWithdraw - usdcBalance;
-
             if (usdcValueOfLpTokensToConvert > lpTokenBalance) {
                 uint256 amountToUnstake = usdcValueOfLpTokensToConvert -
                     lpTokenBalance;
@@ -195,7 +189,6 @@ contract ConvexPositionHandler is BasePositionHandler {
                 );
             }
         }
-
         // usdcValueOfLpTokensToConvert's value converted to Lp Tokens
         uint256 lpTokensToConvert = _USDCValueInLpToken(
             usdcValueOfLpTokensToConvert
@@ -225,7 +218,7 @@ contract ConvexPositionHandler is BasePositionHandler {
 
         require(
             openPositionParams._amount <= lpToken.balanceOf(address(this)),
-            "insufficient balance"
+            "INSUFFICIENT_BALANCE"
         );
 
         require(
@@ -234,7 +227,7 @@ contract ConvexPositionHandler is BasePositionHandler {
                 openPositionParams._amount,
                 true
             ),
-            "convex staking failed"
+            "CONVEX_STAKING_FAILED"
         );
     }
 
@@ -252,17 +245,23 @@ contract ConvexPositionHandler is BasePositionHandler {
         require(
             closePositionParams._amount <=
                 baseRewardPool.balanceOf(address(this)),
-            "ConvexPositionHandler :: close amount"
+            "AMOUNT_EXCEEDS_BALANCE"
         );
 
-        /// Unstake _amount and claim rewards from convex
-        /// Unstake entire balance if closePositionParams._amount is 0
-        baseRewardPool.withdrawAndUnwrap(closePositionParams._amount, true);
+        if (closePositionParams._amount > 0) {
+            /// Unstake _amount and claim rewards from convex
+            baseRewardPool.withdrawAndUnwrap(closePositionParams._amount, true);
+        } else {
+            /// Unstake entire balance if closePositionParams._amount is 0
+            baseRewardPool.withdrawAllAndUnwrap(true);
+        }
     }
 
     /*///////////////////////////////////////////////////////////////
                       REWARDS LOGIC
   //////////////////////////////////////////////////////////////*/
+    /// @notice variable to track previous share price of LP token
+    uint256 public prevSharePrice = type(uint256).max;
 
     /**
    @notice To claim rewards from Convex Staking position
@@ -292,6 +291,30 @@ contract ConvexPositionHandler is BasePositionHandler {
         // convert all rewards to usdc
         harvester.harvest();
 
+        // get curve lp rewards
+        uint256 currentSharePrice = ust3Pool.get_virtual_price();
+        if (currentSharePrice > prevSharePrice) {
+            // claim any gain on lp token yields
+            uint256 contractLpTokenBalance = lpToken.balanceOf(address(this));
+            uint256 totalLpBalance = contractLpTokenBalance +
+                baseRewardPool.balanceOf(address(this));
+            uint256 yieldEarned = (currentSharePrice - prevSharePrice) *
+                totalLpBalance;
+
+            uint256 lpTokenEarned = yieldEarned / 1e18; // 18 decimal from virtual price
+
+            // If lpTokenEarned is more than lpToken balance in contract, unstake the difference
+            if (lpTokenEarned > contractLpTokenBalance) {
+                baseRewardPool.withdrawAndUnwrap(
+                    lpTokenEarned - contractLpTokenBalance,
+                    true
+                );
+            }
+            // convert lp token to usdc
+            _convertLpTokenIntoUSDC(lpTokenEarned);
+        }
+        prevSharePrice = currentSharePrice;
+
         latestHarvestedRewards =
             wantToken.balanceOf(address(this)) -
             initialUSDCBalance;
@@ -304,14 +327,13 @@ contract ConvexPositionHandler is BasePositionHandler {
                           HELPER FUNCTIONS
   //////////////////////////////////////////////////////////////*/
 
-    /**
-   @notice To get total contract balances in terms of want token
-   @dev Gets lp token balance from contract, staked position on convex, and converts all of them to usdc. And gives balance as want token.
-   @return stakedLpBalance balance of staked LP tokens in terms of want token
-   @return lpTokenBalance balance of LP tokens in contract
-   @return usdcBalance usdc balance in contract
-   */
-    function _getTotalBalancesInWantToken()
+    /// @notice To get total contract balances in terms of want token
+    /// @dev Gets lp token balance from contract, staked position on convex, and converts all of them to usdc. And gives balance as want token.
+    /// @param useVirtualPrice to check if balances shoudl be based on virtual price
+    /// @return stakedLpBalance balance of staked LP tokens in terms of want token
+    /// @return lpTokenBalance balance of LP tokens in contract
+    /// @return usdcBalance usdc balance in contract
+    function _getTotalBalancesInWantToken(bool useVirtualPrice)
         internal
         view
         returns (
@@ -320,10 +342,24 @@ contract ConvexPositionHandler is BasePositionHandler {
             uint256 usdcBalance
         )
     {
-        stakedLpBalance = _lpTokenValueInUSDC(
-            baseRewardPool.balanceOf(address(this))
-        );
-        lpTokenBalance = _lpTokenValueInUSDC(lpToken.balanceOf(address(this)));
+        uint256 stakedLpBalanceRaw = baseRewardPool.balanceOf(address(this));
+        uint256 lpTokenBalanceRaw = lpToken.balanceOf(address(this));
+
+        uint256 totalLpBalance = stakedLpBalanceRaw + lpTokenBalanceRaw;
+
+        // Here, in order to prevent price manipulation attacks via curve pools,
+        // When getting total position value -> its calculated based on virtual price
+        // During withdrawal -> calc_withdraw_one_coin() is used to get an actual estimate of USDC received if we were to remove liquidity
+        // The following checks account for this
+        uint256 totalLpBalanceInUSDC = useVirtualPrice
+            ? _lpTokenValueInUSDCfromVirtualPrice(totalLpBalance)
+            : _lpTokenValueInUSDC(totalLpBalance);
+
+        lpTokenBalance = useVirtualPrice
+            ? _lpTokenValueInUSDCfromVirtualPrice(lpTokenBalanceRaw)
+            : _lpTokenValueInUSDC(lpTokenBalanceRaw);
+
+        stakedLpBalance = totalLpBalanceInUSDC - lpTokenBalance;
         usdcBalance = wantToken.balanceOf(address(this));
     }
 
@@ -337,15 +373,13 @@ contract ConvexPositionHandler is BasePositionHandler {
         internal
         returns (uint256 receivedWantTokens)
     {
-        lpToken.safeApprove(address(curve3PoolZap), _amount);
-
         int128 usdcIndexInPool = int128(
             int256(uint256(UST3PoolCoinIndexes.USDC))
         );
 
         // estimate amount of USDC received based on stable peg i.e., 1UST = 1 3Pool LP Token
         uint256 expectedWantTokensOut = (_amount *
-            ust3Pool.get_virtual_price()) / 1e30; // 30 = normalizing 18 decimals for virutal price + 18 decimals for LP token - 6 decimals for want token
+            ust3Pool.get_virtual_price()) / NORMALIZATION_FACTOR; // 30 = normalizing 18 decimals for virutal price + 18 decimals for LP token - 6 decimals for want token
         // burn Lp tokens to receive USDC with a slippage of `maxSlippage`
         receivedWantTokens = curve3PoolZap.remove_liquidity_one_coin(
             address(ust3Pool),
@@ -367,10 +401,9 @@ contract ConvexPositionHandler is BasePositionHandler {
     {
         uint256[4] memory liquidityAmounts = [0, 0, _amount, 0];
 
-        wantToken.safeApprove(address(curve3PoolZap), _amount);
-
         // estimate amount of Lp Tokens based on stable peg i.e., 1UST = 1 3Pool LP Token
-        uint256 expectedLpOut = (_amount * 1e30) / ust3Pool.get_virtual_price(); // 30 = normalizing 18 decimals for virutal price + 18 decimals for LP token - 6 decimals for want token
+        uint256 expectedLpOut = (_amount * NORMALIZATION_FACTOR) /
+            ust3Pool.get_virtual_price(); // 30 = normalizing 18 decimals for virutal price + 18 decimals for LP token - 6 decimals for want token
         // Provide USDC liquidity to receive Lp tokens with a slippage of `maxSlippage`
         receivedLpTokens = curve3PoolZap.add_liquidity(
             address(ust3Pool),
@@ -397,6 +430,19 @@ contract ConvexPositionHandler is BasePositionHandler {
                 _value,
                 int128(int256(uint256(UST3PoolCoinIndexes.USDC)))
             );
+    }
+
+    /**
+   @notice to get value of an amount in USDC based on virtual price
+   @param _value value to be converted
+   @return estimatedLpTokenAmount lp tokens value in USDC based on its virtual price 
+   */
+    function _lpTokenValueInUSDCfromVirtualPrice(uint256 _value)
+        internal
+        view
+        returns (uint256)
+    {
+        return (ust3Pool.get_virtual_price() * _value) / NORMALIZATION_FACTOR;
     }
 
     /**
