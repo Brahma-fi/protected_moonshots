@@ -349,7 +349,7 @@ contract ConvexPositionHandler is BasePositionHandler {
 
         // Here, in order to prevent price manipulation attacks via curve pools,
         // When getting total position value -> its calculated based on virtual price
-        // During withdrawal -> calc_withdraw_one_coin() is used to get an actual estimate of ETH received if we were to remove liquidity
+        // During withdrawal -> calc_withdraw_one_coin() is used to get an actual estimate of USDC received if we were to remove liquidity
         // The following checks account for this
         uint256 totalLpBalanceInUSDC = useVirtualPrice
             ? _lpTokenValueInUSDCfromVirtualPrice(totalLpBalance)
@@ -433,9 +433,9 @@ contract ConvexPositionHandler is BasePositionHandler {
     }
 
     /**
-   @notice to get value of an amount in ETB based on virtual price
+   @notice to get value of an amount in USDC based on virtual price
    @param _value value to be converted
-   @return estimatedLpTokenAmount lp tokens value in ETH based on its virtual price 
+   @return estimatedLpTokenAmount lp tokens value in USDC based on its virtual price 
    */
     function _lpTokenValueInUSDCfromVirtualPrice(uint256 _value)
         internal
