@@ -2,7 +2,7 @@
 description: The ConvexTradeExecutor Contract
 ---
 
-# ConvexTradeExecutor - Detailed Documentation
+# ConvexTradeExecutor - Documentation
 
 - **Contract Name:** ConvexTradeExecutor.sol
 - **Type/Category:** Core Module
@@ -26,7 +26,7 @@ The `ConvexTradeExecutor` is a contract to execute strategy's trade, on Convex. 
 
 - `closePosition` - Unstakes and withdraws from the current Convex staked position.
 
-- `claimRewards` - Claims the rewards accrued in the open staked position on Convex, and harvests these rewards into Want Token.
+- `claimRewards` - Claims the rewards accrued in the open staked position on Convex, and harvests these rewards into Want Token. This also claims any yield generated from price changes in UST3 Metapool's LP tokens, and burns them for Want Tokens.
 
 ## 3. Roles
 
@@ -37,7 +37,7 @@ The `ConvexTradeExecutor` is a contract to execute strategy's trade, on Convex. 
 
 ## 4. Mechanisms & Concepts
 
-The `ConvexTradeExecutor` is responsible for executing the strategy's trade, on Convex. It accepts deposits from `Vault` in `wantToken` and converts this into Curve LP (UST3 Metapool) Tokens, which are converted to Convex Curve LP Tokens and staked on Convex. It also claims rewards from the Convex staked position, and harvests these into `wantToken`s. At the final stage, it prepares enough `wantToken`s, by either unstaking from position or converting LP Tokens, for the `Vault` to pull.
+The `ConvexTradeExecutor` is responsible for executing the strategy's trade, on Convex. It accepts deposits from `Vault` in `wantToken` and converts this into Curve LP (UST3 Metapool) Tokens, which are converted to Convex Curve LP Tokens and staked on Convex. It also claims rewards from the Convex staked position and from the UST3 Metapool's LP token's price, and harvests these into `wantToken`s. At the final stage, it prepares enough `wantToken`s, by either unstaking from position or converting LP Tokens, for the `Vault` to pull.
 
 ## 5. Gotchas
 
@@ -46,3 +46,7 @@ During swaps, the estimated amounts may temporarily be considerably different fr
 ## 6. Failure Modes
 
 - In case of emergency, `Governance` can sweep funds from the contract to retrieve them.
+
+## 7. Trust Assumptions
+
+We assume that the `Vault` will send and pull out funds from vault during deposit and withdraw respectively.
