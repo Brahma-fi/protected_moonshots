@@ -117,6 +117,7 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
         require(sharesIn > 0, "ZERO_SHARES");
         // calculate the amount based on the shares.
         amountOut = (sharesIn * totalVaultFunds()) / totalSupply();
+        // burn shares of msg.sender
         _burn(receiver, sharesIn);
         IERC20(wantToken).safeTransfer(receiver, amountOut);
     }
@@ -262,10 +263,6 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
         isValidAddress(_tradeExecutor);
         // check if executor attached to vault.
         isActiveExecutor(_tradeExecutor);
-        require(
-            ITradeExecutor(_tradeExecutor).vault() == address(this),
-            "INVALID_VAULT"
-        );
 
         (uint256 executorFunds, uint256 blockUpdated) = ITradeExecutor(
             _tradeExecutor
@@ -356,7 +353,7 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
     /// @notice The nomine of new governance address proposed by `setGovernance` function can accept the governance.
     /// @dev  This can only be called by address of pendingGovernance.
     function acceptGovernance() public {
-        require(msg.sender == pendingGovernance);
+        require(msg.sender == pendingGovernance, "INVALID_ADDRESS");
         emit UpdatedGovernance(governance, pendingGovernance);
         governance = pendingGovernance;
     }
