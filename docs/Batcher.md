@@ -20,8 +20,6 @@ The `Batcher` contract is the contract where user deposit/withdraw their funds. 
 
 - `depositFunds` - Accept user's `wantTokens` and store state reflecting their pending wantTokens to be deposited to the `Vault`. Verifies an EIP 712 signature signed by `verificationAuthority` containing the user address depositing as msg.sender to ensure user has permissions to deposit
 
-- `depositFundsInCurveLpToken` - Accept user's `CurveLPTokens`, swap them into `wantTokens` and store state reflecting their pending wantTokens to be deposited to the `Vault`
-
 - `withdrawFunds` - Accept user's request to withdraw `wantToken`. Also accept user's vault LP tokens if they dont have enough tokens stored in `Batcher`
 
 - `batchDeposit` - Deposits funds into the `vault` contract and holds LP tokens received on behalf of user
