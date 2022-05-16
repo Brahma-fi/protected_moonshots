@@ -1,3 +1,4 @@
+import { BigNumber } from "ethers";
 import { ethers } from "hardhat";
 import { convexTradeExecutorAddress, vaultAddress } from "./constants";
 const getDepositBytes = async () => {
@@ -11,9 +12,9 @@ const getDepositBytes = async () => {
     "0xceaf7747579696a2f0bb206a14210e3c9e6fb269"
   );
 
-  let usdcBal = await usdc.balanceOf(convexTE.address);
-  usdcBal = usdcBal.sub(ethers.utils.parseEther("0.1"));
-  console.log("Vault USDC bal:", usdcBal.toString());
+  // let usdcBal = await usdc.balanceOf(convexTE.address);
+  let usdcBal = 500000 * 1e6;
+  // console.log("Vault USDC bal:", usdcBal.toString());
   const paramsInBytes = ethers.utils.AbiCoder.prototype.encode(
     ["tuple(uint256)"],
     [[usdcBal]]
