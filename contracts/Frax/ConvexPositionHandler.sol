@@ -14,8 +14,6 @@ import "../ConvexExecutor/interfaces/IHarvester.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "hardhat/console.sol";
-
 /// @title ConvexPositionHandler
 /// @author PradeepSelva & BapireddyK;
 /// @notice A Position handler to handle Convex for Frax Pool
