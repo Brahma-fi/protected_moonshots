@@ -2,12 +2,15 @@
 pragma solidity ^0.8.0;
 
 import "../BaseTradeExecutor.sol";
-import {ConvexPositionHandler} from "../ConvexExecutor/ConvexPositionHandler.sol";
+import {ConvexPositionHandler} from "./ConvexPositionHandler.sol";
 
 /// @title ConvexTradeExecutor
 /// @author PradeepSelva
 /// @notice A contract to execute strategy's trade, on Convex
-contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
+contract ConvexFraxPoolTradeExecutor is
+    BaseTradeExecutor,
+    ConvexPositionHandler
+{
     /// @notice creates a new ConvexTradeExecutor with required state
     /// @param _harvester address of harvester
     /// @param _vault address of vault
