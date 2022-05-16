@@ -3,6 +3,8 @@ pragma solidity ^0.8.0;
 pragma abicoder v2;
 
 import "../../interfaces/BasePositionHandler.sol";
+import "../../library/Math.sol";
+
 import "../ConvexExecutor/interfaces/IConvexRewards.sol";
 import "../ConvexExecutor/interfaces/IConvexBooster.sol";
 import "../ConvexExecutor/interfaces/ICurvePool.sol";
@@ -11,6 +13,8 @@ import "../ConvexExecutor/interfaces/IHarvester.sol";
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
+import "hardhat/console.sol";
 
 /// @title ConvexPositionHandler
 /// @author PradeepSelva & BapireddyK;
@@ -172,22 +176,29 @@ contract ConvexPositionHandler is BasePositionHandler {
         // if usdc token balance is insufficient
         if (amountToWithdraw > usdcBalance) {
             usdcValueOfLpTokensToConvert = amountToWithdraw - usdcBalance;
+
             if (usdcValueOfLpTokensToConvert > lpTokenBalance) {
                 uint256 amountToUnstake = usdcValueOfLpTokensToConvert -
                     lpTokenBalance;
                 // unstake convex position partially
-                uint256 lpTokensToUnstake = _USDCValueInLpToken(
-                    amountToUnstake
+                // this is min between actual staked balance and calculated amount, to ensure overflow
+                uint256 lpTokensToUnstake = Math.min(
+                    _USDCValueInLpToken(amountToUnstake),
+                    baseRewardPool.balanceOf(address(this))
                 );
+
                 require(
                     baseRewardPool.withdrawAndUnwrap(lpTokensToUnstake, true),
                     "could not unstake"
                 );
             }
         }
+
         // usdcValueOfLpTokensToConvert's value converted to Lp Tokens
-        uint256 lpTokensToConvert = _USDCValueInLpToken(
-            usdcValueOfLpTokensToConvert
+        // this is min between converted value and lp token balance, to ensure overflow
+        uint256 lpTokensToConvert = Math.min(
+            _USDCValueInLpToken(usdcValueOfLpTokensToConvert),
+            lpToken.balanceOf(address(this))
         );
         // if lp tokens are required to convert, then convert to usdc and update amountToWithdraw
         if (lpTokensToConvert > 0) {
