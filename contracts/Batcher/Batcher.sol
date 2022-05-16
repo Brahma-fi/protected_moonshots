@@ -327,7 +327,7 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
             );
         }
 
-        require(withdrawLedger[msg.sender] == 0, "WITHDRAW_PENDING");
+        require(withdrawLedger[recipient] == 0, "WITHDRAW_PENDING");
     }
 
     /*///////////////////////////////////////////////////////////////
