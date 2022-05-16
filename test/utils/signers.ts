@@ -83,8 +83,19 @@ export async function getPreloadedSigners(): Promise<
     method: "hardhat_impersonateAccount",
     params: [governanceAddress],
   });
+
   let keeper = await hre.ethers.getSigner(keeperAddress);
   let invalidSigner = (await hre.ethers.getSigners())[0];
   let governance = await hre.ethers.getSigner(governanceAddress);
+
+  await hre.network.provider.request({
+    method: "hardhat_setBalance",
+    params: [keeperAddress, "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"],
+  });
+  await hre.network.provider.request({
+    method: "hardhat_setBalance",
+    params: [governanceAddress, "0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"],
+  });
+
   return [keeper, keeper, governance, invalidSigner];
 }
