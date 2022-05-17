@@ -97,7 +97,7 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
         shares = totalSupply() > 0
             ? (totalSupply() * amountIn) / totalVaultFunds()
             : amountIn;
-        IERC20(wantToken).safeTransferFrom(receiver, address(this), amountIn);
+        IERC20(wantToken).safeTransferFrom(msg.sender, address(this), amountIn);
         _mint(receiver, shares);
     }
 
@@ -118,7 +118,7 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
         // calculate the amount based on the shares.
         amountOut = (sharesIn * totalVaultFunds()) / totalSupply();
         // burn shares of msg.sender
-        _burn(receiver, sharesIn);
+        _burn(msg.sender, sharesIn);
         IERC20(wantToken).safeTransfer(receiver, amountOut);
     }
 
