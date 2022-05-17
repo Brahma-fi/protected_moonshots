@@ -92,8 +92,8 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
         );
 
         require(
-            IERC20(vaultInfo.vaultAddress).totalSupply() -
-                pendingDeposit +
+            IERC20(vaultInfo.vaultAddress).totalSupply() +
+                pendingDeposit -
                 pendingWithdrawal +
                 amountIn <=
                 vaultInfo.maxAmount,
