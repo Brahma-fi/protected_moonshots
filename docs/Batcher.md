@@ -30,10 +30,10 @@ The `Batcher` contract is the contract where user deposit/withdraw their funds. 
 
 ## 3. Roles
 
-| Role Name  | Access                               | Description                                                                                         |
-| ---------- | ------------------------------------ | --------------------------------------------------------------------------------------------------- |
-| Governance | Mutable by current _Governance_ role | Allows to set new `verificationAuthority` on `Batcher` . Allows to sweep ERC20 in case of emergency |
-| Keeper     | Fetched from `Vault`                 | Main operation is to perform operations like `batchDeposit`, `batchWithdraw` and `setVaultLimit`    |
+| Role Name  | Access               | Description                                                                                                                                                         |
+| ---------- | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Governance | Fetched from `Vault` | Allows to set new `verificationAuthority` on `Batcher` . Allows to sweep ERC20 in case of emergency. Allows to perform maintainence operations like `setVaultLimit` |
+| Keeper     | Fetched from `Vault` | Main operation is to perform operations like `batchDeposit`, `batchWithdraw`                                                                                        |
 
 ## 4. Mechanisms & Concepts
 
@@ -45,4 +45,4 @@ Users can only deposit if they get a signature signed from the `verificationAuth
 
 ## 6. Failure Modes
 
-- In case of emergency the sweep can be initated via `Governance`.
+- In case of emergency the sweep can be initated via `Governance` of vault.
