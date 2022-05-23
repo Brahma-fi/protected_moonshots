@@ -11,7 +11,6 @@ interface IBatcher {
     /// @param vaultAddress Address of the vault
     /// @param tokenAddress Address vault's want token
     /// @param maxAmount Max amount of tokens to deposit in vault
-    /// @param currentAmount Current amount of wantTokens deposited in the vault
     struct VaultInfo {
         address vaultAddress;
         address tokenAddress;
@@ -66,7 +65,11 @@ interface IBatcher {
         address indexed newVerificationAuthority
     );
 
-    function depositFunds(uint256 amountIn, bytes memory signature, address recipient) external;
+    function depositFunds(
+        uint256 amountIn,
+        bytes memory signature,
+        address recipient
+    ) external;
 
     function claimTokens(uint256 amount, address recipient) external;
 
