@@ -97,6 +97,7 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
         shares = totalSupply() > 0
             ? (totalSupply() * amountIn) / totalVaultFunds()
             : amountIn;
+        require(shares != 0, "ZERO_SHARES");
         IERC20(wantToken).safeTransferFrom(msg.sender, address(this), amountIn);
         _mint(receiver, shares);
     }
