@@ -1,7 +1,7 @@
 /// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
@@ -14,7 +14,7 @@ import "../interfaces/IVault.sol";
 /// @title vault (Brahma Vault)
 /// @author 0xAd1 and Bapireddy
 /// @notice Minimal vault contract to support trades across different protocols.
-contract Vault is IVault, ERC20, ReentrancyGuard {
+contract Vault is IVault, ERC20Permit, ReentrancyGuard {
     using AddrArrayLib for AddrArrayLib.Addresses;
     using SafeERC20 for IERC20;
     /*///////////////////////////////////////////////////////////////
@@ -63,7 +63,7 @@ contract Vault is IVault, ERC20, ReentrancyGuard {
         address _wantToken,
         address _keeper,
         address _governance
-    ) ERC20(_name, _symbol) {
+    ) ERC20(_name, _symbol) ERC20Permit(_name) {
         tokenDecimals = IERC20Metadata(_wantToken).decimals();
         wantToken = _wantToken;
         keeper = _keeper;

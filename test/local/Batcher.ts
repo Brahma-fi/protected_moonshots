@@ -12,7 +12,6 @@ import {
 } from "../utils/signers";
 import { randomBN } from "../utils/helper";
 import { BigNumber, Wallet } from "ethers";
-import { AbiCoder } from "ethers/lib/utils";
 
 let wantToken: WantERC20;
 let batcher: Batcher;
@@ -186,8 +185,6 @@ describe("Batcher [LOCAL]", function () {
     const amount = randomBN((await batcher.vaultInfo()).maxAmount);
 
     const invalidAmount = (await batcher.vaultInfo()).maxAmount.add(1);
-
-    // await wantToken.connect(signer).approve(batcher.address, invalidAmount);
 
     const validSignature = await getSignature(
       sampleRecipient.address,
