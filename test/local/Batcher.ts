@@ -4,9 +4,15 @@ import hre, { ethers } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { Batcher, Vault, WantERC20 } from "../../src/types";
 import { getWantToken, getVault, getBatcher } from "../utils/contracts";
-import { randomSigner, randomWallet, getSignature } from "../utils/signers";
+import {
+  randomSigner,
+  randomWallet,
+  getSignature,
+  getSigner,
+} from "../utils/signers";
 import { randomBN } from "../utils/helper";
 import { BigNumber, Wallet } from "ethers";
+import { AbiCoder } from "ethers/lib/utils";
 
 let wantToken: WantERC20;
 let batcher: Batcher;
@@ -16,7 +22,14 @@ let invalidSigner: SignerWithAddress;
 let keeper: SignerWithAddress;
 let governance: SignerWithAddress;
 let verificationAuthority: Wallet;
+let permitWallet: Wallet;
+let permitSigner: SignerWithAddress;
+
+let wantTokenName = "pnzi US magic dollars";
+let wantTokenSymbol = "USDC";
+
 let maxBatcherDepositLimit: BigNumber;
+let invalidPermit;
 
 // Language: typescript
 // Path: test/Batcher.ts
@@ -29,10 +42,20 @@ describe("Batcher [LOCAL]", function () {
     keeper = await randomSigner();
     governance = await randomSigner();
     verificationAuthority = await randomWallet();
+    permitWallet = await randomWallet();
+    permitSigner = await getSigner(permitWallet.address);
+
+    invalidPermit = {
+      value: 0,
+      deadline: 0,
+      v: 0,
+      r: ethers.utils.randomBytes(32),
+      s: ethers.utils.randomBytes(32),
+    };
 
     wantToken = await getWantToken(
-      "pnzi US magic dollars",
-      "USDC",
+      wantTokenName,
+      wantTokenSymbol,
       BigNumber.from(6)
     );
     vault = await getVault(
@@ -52,6 +75,7 @@ describe("Batcher [LOCAL]", function () {
     await vault.connect(governance).setBatcher(batcher.address);
 
     await wantToken.connect(signer).mint(ethers.utils.parseEther("420"));
+    await wantToken.connect(permitSigner).mint(ethers.utils.parseEther("420"));
 
     await wantToken
       .connect(signer)
@@ -77,7 +101,7 @@ describe("Batcher [LOCAL]", function () {
   //              -  decrease of WantToken funds of user, message for user only verified
   //              - shouldn't breach maxDepositLimit of rotuer.
   //              - Can be called by any contract, signature verified for recipient
-  it("Want Deposit", async function () {
+  it("Want Deposit with approval", async function () {
     const sampleRecipient = await randomWallet();
 
     const prevDepositLedger = await batcher.depositLedger(
@@ -107,18 +131,149 @@ describe("Batcher [LOCAL]", function () {
     await expect(
       batcher
         .connect(signer)
-        .depositFunds(amount, invalidSignature, sampleRecipient.address)
+        .depositFunds(
+          amount,
+          invalidSignature,
+          sampleRecipient.address,
+          invalidPermit
+        )
     ).to.be.revertedWith("ECDSA");
 
     await expect(
       batcher
         .connect(signer)
-        .depositFunds(invalidAmount, validSignature, sampleRecipient.address)
+        .depositFunds(
+          invalidAmount,
+          validSignature,
+          sampleRecipient.address,
+          invalidPermit
+        )
     ).to.be.revertedWith("MAX_LIMIT_EXCEEDED");
 
     await batcher
       .connect(signer)
-      .depositFunds(amount, validSignature, sampleRecipient.address);
+      .depositFunds(
+        amount,
+        validSignature,
+        sampleRecipient.address,
+        invalidPermit
+      );
+
+    const newDepositLedger = await batcher.depositLedger(
+      sampleRecipient.address
+    );
+    const newPendingDeposit = await batcher.pendingDeposit();
+    const newWantBalance = await wantToken.balanceOf(batcher.address);
+
+    expect(newDepositLedger.sub(prevDepositLedger)).equal(amount);
+    expect(newPendingDeposit.sub(prevPendingDeposit)).equal(amount);
+    expect(newWantBalance.sub(prevWantBalance)).equal(amount);
+  });
+
+  // depositFunds -  increament in depositLedger mapping, batcher balance increament,
+  //              -  decrease of WantToken funds of user, message for user only verified
+  //              - shouldn't breach maxDepositLimit of rotuer.
+  //              - Can be called by any contract, signature verified for recipient
+  it("Want Deposit with permit", async function () {
+    const sampleRecipient = await randomWallet();
+
+    const prevDepositLedger = await batcher.depositLedger(
+      sampleRecipient.address
+    );
+    const prevPendingDeposit = await batcher.pendingDeposit();
+    const prevWantBalance = await wantToken.balanceOf(batcher.address);
+
+    const amount = randomBN((await batcher.vaultInfo()).maxAmount);
+
+    const invalidAmount = (await batcher.vaultInfo()).maxAmount.add(1);
+
+    // await wantToken.connect(signer).approve(batcher.address, invalidAmount);
+
+    const validSignature = await getSignature(
+      sampleRecipient.address,
+      verificationAuthority,
+      batcher.address
+    );
+
+    await expect(
+      batcher
+        .connect(signer)
+        .depositFunds(
+          invalidAmount,
+          validSignature,
+          sampleRecipient.address,
+          invalidPermit
+        )
+    ).to.be.revertedWith("MAX_LIMIT_EXCEEDED");
+
+    let typedPermitData = {
+      types: {
+        Permit: [
+          {
+            name: "owner",
+            type: "address",
+          },
+          {
+            name: "spender",
+            type: "address",
+          },
+          {
+            name: "value",
+            type: "uint256",
+          },
+          {
+            name: "nonce",
+            type: "uint256",
+          },
+          {
+            name: "deadline",
+            type: "uint256",
+          },
+        ],
+      },
+      primaryType: "Permit",
+      domain: {
+        name: wantTokenName,
+        version: "1",
+        chainId: hre.network.config.chainId,
+        verifyingContract: wantToken.address,
+      },
+      message: {
+        owner: permitWallet.address,
+        spender: batcher.address,
+        value: amount,
+        nonce:
+          (await ethers.provider.getTransactionCount(permitSigner.address)) - 1,
+        deadline: Math.floor(Date.now() / 1000) + 360000, // valid for now + 60 mins
+      },
+    };
+
+    let permitSignature = await permitWallet._signTypedData(
+      typedPermitData.domain,
+      typedPermitData.types,
+      typedPermitData.message
+    );
+
+    const v = "0x" + permitSignature.slice(130, 132);
+    const r = permitSignature.slice(0, 66);
+    const s = "0x" + permitSignature.slice(66, 130);
+
+    let validPermit = {
+      value: typedPermitData.message.value,
+      deadline: typedPermitData.message.deadline,
+      v: v,
+      r: r,
+      s: s,
+    };
+
+    await batcher
+      .connect(permitSigner)
+      .depositFunds(
+        amount,
+        validSignature,
+        sampleRecipient.address,
+        validPermit
+      );
 
     const newDepositLedger = await batcher.depositLedger(
       sampleRecipient.address
@@ -146,7 +301,12 @@ describe("Batcher [LOCAL]", function () {
     );
     await batcher
       .connect(signer)
-      .depositFunds(amount, validSignature, sampleRecipient.address);
+      .depositFunds(
+        amount,
+        validSignature,
+        sampleRecipient.address,
+        invalidPermit
+      );
 
     const prevDepositLedger = await batcher.depositLedger(
       sampleRecipient.address
@@ -189,7 +349,12 @@ describe("Batcher [LOCAL]", function () {
     );
     await batcher
       .connect(signer)
-      .depositFunds(amount, validSignature, sampleRecipient.address);
+      .depositFunds(
+        amount,
+        validSignature,
+        sampleRecipient.address,
+        invalidPermit
+      );
     await batcher.connect(keeper).batchDeposit([sampleRecipient.address]);
 
     const claimAmount = randomBN(amount);
@@ -229,7 +394,12 @@ describe("Batcher [LOCAL]", function () {
     );
     await batcher
       .connect(signer)
-      .depositFunds(amount, validSignature, sampleRecipient.address);
+      .depositFunds(
+        amount,
+        validSignature,
+        sampleRecipient.address,
+        invalidPermit
+      );
 
     await expect(
       batcher.connect(sampleRecipient).initiateWithdrawal(amount)
@@ -286,7 +456,12 @@ describe("Batcher [LOCAL]", function () {
     );
     await batcher
       .connect(signer)
-      .depositFunds(amount, validSignature, sampleRecipient.address);
+      .depositFunds(
+        amount,
+        validSignature,
+        sampleRecipient.address,
+        invalidPermit
+      );
 
     await expect(
       batcher.connect(sampleRecipient).initiateWithdrawal(amount)
@@ -350,7 +525,12 @@ describe("Batcher [LOCAL]", function () {
     );
     await batcher
       .connect(signer)
-      .depositFunds(amount, validSignature, sampleRecipient.address);
+      .depositFunds(
+        amount,
+        validSignature,
+        sampleRecipient.address,
+        invalidPermit
+      );
     await batcher.connect(keeper).batchDeposit([sampleRecipient.address]);
 
     const withdrawAmount = randomBN(amount);
@@ -359,7 +539,12 @@ describe("Batcher [LOCAL]", function () {
     await expect(
       batcher
         .connect(sampleRecipient)
-        .depositFunds(amount, validSignature, sampleRecipient.address)
+        .depositFunds(
+          amount,
+          validSignature,
+          sampleRecipient.address,
+          invalidPermit
+        )
     ).to.be.revertedWith("WITHDRAW_PENDING");
 
     const prevWantERC20Tokens = await wantToken.balanceOf(
@@ -416,7 +601,12 @@ describe("Batcher [LOCAL]", function () {
     );
     await batcher
       .connect(signer)
-      .depositFunds(amount, validSignature, sampleRecipient.address);
+      .depositFunds(
+        amount,
+        validSignature,
+        sampleRecipient.address,
+        invalidPermit
+      );
     await batcher.connect(keeper).batchDeposit([sampleRecipient.address]);
 
     const withdrawAmount = randomBN(amount);
@@ -478,7 +668,12 @@ describe("Batcher [LOCAL]", function () {
     await expect(
       batcher
         .connect(signer)
-        .depositFunds(amount, randomAuthoritySignature, sampleRecipient.address)
+        .depositFunds(
+          amount,
+          randomAuthoritySignature,
+          sampleRecipient.address,
+          invalidPermit
+        )
     ).to.be.revertedWith("ECDSA");
 
     await expect(
@@ -492,12 +687,22 @@ describe("Batcher [LOCAL]", function () {
     await expect(
       batcher
         .connect(signer)
-        .depositFunds(amount, oldSignature, sampleRecipient.address)
+        .depositFunds(
+          amount,
+          oldSignature,
+          sampleRecipient.address,
+          invalidPermit
+        )
     ).to.be.revertedWith("ECDSA");
 
     await batcher
       .connect(signer)
-      .depositFunds(amount, randomAuthoritySignature, sampleRecipient.address);
+      .depositFunds(
+        amount,
+        randomAuthoritySignature,
+        sampleRecipient.address,
+        invalidPermit
+      );
   });
 
   // setVaultLimit - update the vault limit
@@ -531,7 +736,12 @@ describe("Batcher [LOCAL]", function () {
     await expect(
       batcher
         .connect(signer)
-        .depositFunds(amount, randomAuthoritySignature, sampleRecipient.address)
+        .depositFunds(
+          amount,
+          randomAuthoritySignature,
+          sampleRecipient.address,
+          invalidPermit
+        )
     ).to.be.revertedWith("ECDSA");
 
     await expect(
@@ -542,7 +752,12 @@ describe("Batcher [LOCAL]", function () {
 
     await batcher
       .connect(signer)
-      .depositFunds(amount, randomAuthoritySignature, sampleRecipient.address);
+      .depositFunds(
+        amount,
+        randomAuthoritySignature,
+        sampleRecipient.address,
+        invalidPermit
+      );
   });
 
   // sweep - sweeps erc20 from batcher to governance.
@@ -556,7 +771,12 @@ describe("Batcher [LOCAL]", function () {
     );
     await batcher
       .connect(signer)
-      .depositFunds(amount, validSignature, sampleRecipient.address);
+      .depositFunds(
+        amount,
+        validSignature,
+        sampleRecipient.address,
+        invalidPermit
+      );
     await batcher.connect(keeper).batchDeposit([sampleRecipient.address]);
 
     const withdrawAmount = randomBN(amount);

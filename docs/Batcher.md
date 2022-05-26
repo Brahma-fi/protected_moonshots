@@ -18,7 +18,7 @@ The `Batcher` contract is the contract where user deposit/withdraw their funds. 
 
 **- Key Functionalities**
 
-- `depositFunds` - Accept user's `wantTokens` and store state reflecting their pending wantTokens to be deposited to the `Vault`. Verifies an EIP 712 signature signed by `verificationAuthority` containing the user address depositing as msg.sender to ensure user has permissions to deposit
+- `depositFunds` - Accept user's `wantTokens` and store state reflecting their pending wantTokens to be deposited to the `Vault`. Verifies an EIP 712 signature signed by `verificationAuthority` containing the user address depositing as msg.sender to ensure user has permissions to deposit. Also optionally accepts a permit to approve users want token for a single transactions
 
 - `withdrawFunds` - Accept user's request to withdraw `wantToken`. Also accept user's vault LP tokens if they dont have enough tokens stored in `Batcher`
 
