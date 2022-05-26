@@ -17,6 +17,20 @@ interface IBatcher {
         uint256 maxAmount;
     }
 
+    /// @notice PermitParams to provide permit for want token deposit approval
+    /// @param value Amount of want tokens to approve
+    /// @param deadline unix timestamp of permit validity
+    /// @param v signarure param
+    /// @param r signarure param
+    /// @param s signarure param
+    struct PermitParams {
+        uint256 value;
+        uint256 deadline;
+        uint8 v;
+        bytes32 r;
+        bytes32 s;
+    }
+
     /// @notice Deposit event
     /// @param sender Address of the depositor
     /// @param vault Address of the vault
@@ -68,7 +82,8 @@ interface IBatcher {
     function depositFunds(
         uint256 amountIn,
         bytes memory signature,
-        address recipient
+        address recipient,
+        PermitParams memory permit
     ) external;
 
     function claimTokens(uint256 amount, address recipient) external;
