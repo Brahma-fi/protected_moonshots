@@ -123,7 +123,7 @@ contract ConvexPositionHandler is BasePositionHandler {
             uint256 stakedLpBalance,
             uint256 lpTokenBalance,
             uint256 usdcBalance
-        ) = _getTotalBalancesInWantToken(false);
+        ) = _getTotalBalancesInWantToken(true);
 
         return (stakedLpBalance + lpTokenBalance + usdcBalance, block.number);
     }
@@ -161,7 +161,7 @@ contract ConvexPositionHandler is BasePositionHandler {
             uint256 stakedLpBalance,
             uint256 lpTokenBalance,
             uint256 usdcBalance
-        ) = _getTotalBalancesInWantToken(true);
+        ) = _getTotalBalancesInWantToken(false);
         uint256 totalBalance = (stakedLpBalance + lpTokenBalance + usdcBalance);
 
         // if _amount is more than balance, then withdraw entire balance
@@ -180,9 +180,12 @@ contract ConvexPositionHandler is BasePositionHandler {
                 uint256 amountToUnstake = usdcValueOfLpTokensToConvert -
                     lpTokenBalance;
                 // unstake convex position partially
+                // this is min between actual staked balance and calculated amount to prevent overflow.
                 uint256 lpTokensToUnstake = _USDCValueInLpToken(
                     amountToUnstake
-                );
+                ) > baseRewardPool.balanceOf(address(this))
+                    ? baseRewardPool.balanceOf(address(this))
+                    : _USDCValueInLpToken(amountToUnstake);
                 require(
                     baseRewardPool.withdrawAndUnwrap(lpTokensToUnstake, true),
                     "could not unstake"
@@ -190,9 +193,12 @@ contract ConvexPositionHandler is BasePositionHandler {
             }
         }
         // usdcValueOfLpTokensToConvert's value converted to Lp Tokens
+        // this is the minimum amount between converted value and lp token balance to prevent overflow.
         uint256 lpTokensToConvert = _USDCValueInLpToken(
             usdcValueOfLpTokensToConvert
-        );
+        ) > lpToken.balanceOf(address(this))
+            ? lpToken.balanceOf(address(this))
+            : _USDCValueInLpToken(usdcValueOfLpTokensToConvert);
         // if lp tokens are required to convert, then convert to usdc and update amountToWithdraw
         if (lpTokensToConvert > 0) {
             _convertLpTokenIntoUSDC(lpTokensToConvert);

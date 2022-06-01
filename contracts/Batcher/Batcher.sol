@@ -1,6 +1,7 @@
 /// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.4;
 
+import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/draft-IERC20Permit.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
@@ -70,9 +71,22 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     function depositFunds(
         uint256 amountIn,
         bytes memory signature,
-        address recipient
+        address recipient,
+        PermitParams memory permit
     ) external override nonReentrant {
         validDeposit(recipient, signature);
+
+        if (permit.value != 0) {
+            IERC20Permit(vaultInfo.tokenAddress).permit(
+                msg.sender,
+                address(this),
+                permit.value,
+                permit.deadline,
+                permit.v,
+                permit.r,
+                permit.s
+            );
+        }
 
         uint256 wantBalanceBeforeTransfer = IERC20(vaultInfo.tokenAddress)
             .balanceOf(address(this));
@@ -92,8 +106,8 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
         );
 
         require(
-            IERC20(vaultInfo.vaultAddress).totalSupply() -
-                pendingDeposit +
+            IERC20(vaultInfo.vaultAddress).totalSupply() +
+                pendingDeposit -
                 pendingWithdrawal +
                 amountIn <=
                 vaultInfo.maxAmount,
@@ -327,7 +341,7 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
             );
         }
 
-        require(withdrawLedger[msg.sender] == 0, "WITHDRAW_PENDING");
+        require(withdrawLedger[recipient] == 0, "WITHDRAW_PENDING");
     }
 
     /*///////////////////////////////////////////////////////////////
