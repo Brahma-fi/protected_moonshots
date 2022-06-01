@@ -15,16 +15,16 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol";
 
-contract WantERC20 is ERC20 {
+contract WantERC20 is ERC20Permit {
     uint8 setDecimals;
 
     constructor(
         string memory name,
         string memory symbol,
         uint8 _decimals
-    ) ERC20(name, symbol) {
+    ) ERC20(name, symbol) ERC20Permit(name) {
         setDecimals = _decimals;
     }
 
