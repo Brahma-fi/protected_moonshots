@@ -17,6 +17,8 @@ contract UniswapV3Controller {
 
     /// @notice maximum basis points for all numeric operations
     uint256 public constant MAX_BPS = 10000;
+    /// @notice normalization factor for all decimals
+    uint256 public constant NORMALIZATION_FACTOR = 1e18;
     /// @notice uniswap swap fee
     uint24 public constant UNISWAP_FEE = 500;
 
@@ -59,14 +61,11 @@ contract UniswapV3Controller {
         );
 
         // get USDC price and estimate amount out to account for slippage, using chanlink price feeds
-        (
-            uint256 normalizationFactor,
-            uint256 usdcPriceInsUSD
-        ) = _getUSDCPriceInsUSD();
+        uint256 usdcPriceInsUSD = _getUSDCPriceInsUSD();
 
         uint256 amountOutExpected = direction
-            ? (amountToSwap * usdcPriceInsUSD) / normalizationFactor
-            : (amountToSwap * normalizationFactor) / usdcPriceInsUSD;
+            ? (amountToSwap * usdcPriceInsUSD) / NORMALIZATION_FACTOR
+            : (amountToSwap * NORMALIZATION_FACTOR) / usdcPriceInsUSD;
 
         IUniswapSwapRouter.ExactInputSingleParams
             memory params = IUniswapSwapRouter.ExactInputSingleParams({
@@ -83,18 +82,17 @@ contract UniswapV3Controller {
         uniswapRouter.exactInputSingle(params);
     }
 
+    /// @notice returns the price of usdc in terms of sUSD, normalized to 18 decimals
     function _getUSDCPriceInsUSD()
         internal
         view
-        returns (uint256 normalizationFactor, uint256 usdcPriceInsUSD)
+        returns (uint256 usdcPriceInsUSD)
     {
-        normalizationFactor = 10**usdcPrice.decimals();
-
         (, int256 usdcPriceInUSD, , , ) = usdcPrice.latestRoundData();
         (, int256 sUSDPriceInUSD, , , ) = sUSDPrice.latestRoundData();
 
         usdcPriceInsUSD =
-            (uint256(usdcPriceInUSD) * normalizationFactor) /
+            (uint256(usdcPriceInUSD) * NORMALIZATION_FACTOR) /
             uint256(sUSDPriceInUSD);
     }
 }
