@@ -79,12 +79,11 @@ contract LyraPositionHandlerL2 is
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
     function positionInWantToken() public view override returns (uint256) {
-        /// Get balance in susd and convert it into ETH
+        /// Get balance in sUSD and convert it into USDC
         uint256 sUSDbalance = LyraController._positionInWantToken();
-        uint256 ETHPriceInsUSD = lyraGlobals.getSpotPriceForMarket(
-            LYRA_ETH_OPTIONS_MARKET
-        );
-        return (sUSDbalance * NORMALIZATION_FACTOR) / ETHPriceInsUSD;
+        uint256 usdcPriceInsUSD = _getUSDCPriceInsUSD();
+
+        return (sUSDbalance * NORMALIZATION_FACTOR) / usdcPriceInsUSD;
     }
 
     /*///////////////////////////////////////////////////////////////
