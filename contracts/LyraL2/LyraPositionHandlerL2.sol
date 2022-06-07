@@ -82,7 +82,11 @@ contract LyraPositionHandlerL2 is
         uint256 sUSDbalance = LyraController._positionInWantToken();
         uint256 usdcPriceInsUSD = _getUSDCPriceInsUSD();
 
-        return (sUSDbalance * NORMALIZATION_FACTOR) / usdcPriceInsUSD;
+        uint256 wantTokenBalance = IERC20(wantTokenL2).balanceOf(address(this));
+
+        return
+            ((sUSDbalance * NORMALIZATION_FACTOR) / usdcPriceInsUSD) +
+            wantTokenBalance;
     }
 
     /*///////////////////////////////////////////////////////////////
