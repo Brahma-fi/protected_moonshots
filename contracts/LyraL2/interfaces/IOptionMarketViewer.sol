@@ -2,7 +2,6 @@
 pragma solidity ^0.8;
 pragma experimental ABIEncoderV2;
 
-import "./ILyraGlobals.sol";
 import "./IOptionMarket.sol";
 
 interface IOptionMarketViewer {
