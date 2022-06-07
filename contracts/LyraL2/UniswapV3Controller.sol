@@ -1,10 +1,10 @@
 //SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.8.0;
 
-import "../../interfaces/IUniswapSwapRouter.sol";
-
-import "./interfaces/ILyraGlobals.sol";
 import "./interfaces/IPositionHandler.sol";
+
+import "../../interfaces/IUniswapSwapRouter.sol";
+import "../../interfaces/IAggregatorV3.sol";
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -17,17 +17,15 @@ contract UniswapV3Controller {
 
     /// @notice maximum basis points for all numeric operations
     uint256 public constant MAX_BPS = 10000;
-    /// @notice normalization factor for decimals
-    uint256 public constant NORMALIZATION_FACTOR = 1e18;
     /// @notice uniswap swap fee
-    uint24 public constant UNISWAP_FEE = 3000;
-    /// @notice address of lyra eth options market
-    address public constant LYRA_ETH_OPTIONS_MARKET =
-        0x1f6D98638Eee9f689684767C3021230Dd68df419;
+    uint24 public constant UNISWAP_FEE = 500;
 
-    /// @notice lyra globals contract
-    ILyraGlobals public constant lyraGlobals =
-        ILyraGlobals(0x3856c594D35A24f7435731F9F5d7835887f0B94b);
+    /// @notice chainlink price feed for sUSD/USD
+    IAggregatorV3 public constant sUSDPrice =
+        IAggregatorV3(0x7f99817d87baD03ea21E05112Ca799d715730efe);
+    /// @notice chainlink price feed for USDC/USD
+    IAggregatorV3 public constant usdcPrice =
+        IAggregatorV3(0x16a9FA2FDa030272Ce99B29CF780dFA30361E0f3);
 
     /// @notice uniswap router to swap tokens
     IUniswapSwapRouter public constant uniswapRouter =
@@ -47,7 +45,7 @@ contract UniswapV3Controller {
     function _estimateAndSwap(bool direction, uint256 amountToSwap) internal {
         require(amountToSwap > 0, "INVALID_AMOUNT");
 
-        // direction = true -> swap WETH -> USD else swap USD -> ETH
+        // direction = true -> swap USDC -> sUSD else swap sUSD -> USDC
         address srcToken = direction
             ? IPositionHandler(address(this)).wantTokenL2()
             : sUSDAddr;
@@ -60,13 +58,18 @@ contract UniswapV3Controller {
             "INSUFFICIENT_BALANCE"
         );
 
-        // get ETH price and estimate amount out to account for slippage
-        uint256 ETHPriceInsUSD = lyraGlobals.getSpotPriceForMarket(
-            LYRA_ETH_OPTIONS_MARKET
-        );
+        // get USDC price and estimate amount out to account for slippage, using chanlink price feeds
+        uint256 NORMALIZATION_FACTOR = usdcPrice.decimals();
+
+        (, int256 usdcPriceInUSD, , , ) = usdcPrice.latestRoundData();
+        (, int256 sUSDPriceInUSD, , , ) = sUSDPrice.latestRoundData();
+
+        uint256 usdcPriceInsUSD = (uint256(usdcPriceInUSD) *
+            NORMALIZATION_FACTOR) / uint256(sUSDPriceInUSD);
+
         uint256 amountOutExpected = direction
-            ? (amountToSwap * ETHPriceInsUSD) / NORMALIZATION_FACTOR
-            : (amountToSwap * NORMALIZATION_FACTOR) / ETHPriceInsUSD;
+            ? (amountToSwap * usdcPriceInsUSD) / NORMALIZATION_FACTOR
+            : (amountToSwap * NORMALIZATION_FACTOR) / usdcPriceInsUSD;
 
         IUniswapSwapRouter.ExactInputSingleParams
             memory params = IUniswapSwapRouter.ExactInputSingleParams({
