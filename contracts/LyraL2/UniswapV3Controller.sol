@@ -59,17 +59,14 @@ contract UniswapV3Controller {
         );
 
         // get USDC price and estimate amount out to account for slippage, using chanlink price feeds
-        uint256 NORMALIZATION_FACTOR = usdcPrice.decimals();
-
-        (, int256 usdcPriceInUSD, , , ) = usdcPrice.latestRoundData();
-        (, int256 sUSDPriceInUSD, , , ) = sUSDPrice.latestRoundData();
-
-        uint256 usdcPriceInsUSD = (uint256(usdcPriceInUSD) *
-            NORMALIZATION_FACTOR) / uint256(sUSDPriceInUSD);
+        (
+            uint256 normalizationFactor,
+            uint256 usdcPriceInsUSD
+        ) = _getUSDCPriceInsUSD();
 
         uint256 amountOutExpected = direction
-            ? (amountToSwap * usdcPriceInsUSD) / NORMALIZATION_FACTOR
-            : (amountToSwap * NORMALIZATION_FACTOR) / usdcPriceInsUSD;
+            ? (amountToSwap * usdcPriceInsUSD) / normalizationFactor
+            : (amountToSwap * normalizationFactor) / usdcPriceInsUSD;
 
         IUniswapSwapRouter.ExactInputSingleParams
             memory params = IUniswapSwapRouter.ExactInputSingleParams({
@@ -84,5 +81,20 @@ contract UniswapV3Controller {
                 sqrtPriceLimitX96: 0
             });
         uniswapRouter.exactInputSingle(params);
+    }
+
+    function _getUSDCPriceInsUSD()
+        internal
+        view
+        returns (uint256 normalizationFactor, uint256 usdcPriceInsUSD)
+    {
+        normalizationFactor = 10**usdcPrice.decimals();
+
+        (, int256 usdcPriceInUSD, , , ) = usdcPrice.latestRoundData();
+        (, int256 sUSDPriceInUSD, , , ) = sUSDPrice.latestRoundData();
+
+        usdcPriceInsUSD =
+            (uint256(usdcPriceInUSD) * normalizationFactor) /
+            uint256(sUSDPriceInUSD);
     }
 }
