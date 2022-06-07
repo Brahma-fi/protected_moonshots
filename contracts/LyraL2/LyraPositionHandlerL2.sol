@@ -8,7 +8,6 @@ import "./UniswapV3Controller.sol";
 
 import "./interfaces/IPositionHandler.sol";
 import "./interfaces/IOptionMarketViewer.sol";
-import "../../interfaces/IWETH9.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -93,11 +92,10 @@ contract LyraPositionHandlerL2 is
     /// @notice Converts the whole wantToken to sUSD.
     function deposit() public override onlyAuthorized {
         require(
-            address(this).balance > 0 ||
-                IWETH9(wantTokenL2).balanceOf(address(this)) > 0,
+            IERC20(wantTokenL2).balanceOf(address(this)) > 0,
             "INSUFFICIENT_BALANCE"
         );
-        IWETH9(wantTokenL2).deposit{value: address(this).balance}();
+
         UniswapV3Controller._estimateAndSwap(
             true,
             IERC20(wantTokenL2).balanceOf(address(this))
@@ -114,10 +112,10 @@ contract LyraPositionHandlerL2 is
         address _socketRegistry,
         bytes calldata socketData
     ) public override onlyAuthorized {
-        IWETH9(wantTokenL2).withdraw(
-            IWETH9(wantTokenL2).balanceOf(address(this))
+        require(
+            IERC20(wantTokenL2).balanceOf(address(this)) >= amountOut,
+            "NOT_ENOUGH_TOKENS"
         );
-        require(address(this).balance >= amountOut, "NOT_ENOUGH_TOKENS");
         require(socketRegistry == _socketRegistry, "INVALID_REGISTRY");
         SocketV1Controller.sendTokens(
             wantTokenL2,
@@ -192,7 +190,4 @@ contract LyraPositionHandlerL2 is
         );
         _;
     }
-
-    /// @notice Receive native ETH and do nothing
-    receive() external payable {}
 }

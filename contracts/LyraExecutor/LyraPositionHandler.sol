@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import "./OptimismWrapper.sol";
 import "./SocketV1Controller.sol";
 import "../../interfaces/BasePositionHandler.sol";
-import "../../interfaces/IWETH9.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "../LyraL2/interfaces/IPositionHandler.sol";
@@ -127,8 +126,6 @@ contract LyraPositionHandler is
             "INVALID_SOCKET_REGISTRY"
         );
 
-        IWETH9(wantTokenL1).withdraw(depositParams._amount);
-
         sendTokens(
             wantTokenL1,
             depositParams._socketRegistry,
@@ -219,7 +216,4 @@ contract LyraPositionHandler is
         positionInWantToken.posValue = _posValue;
         positionInWantToken.lastUpdatedBlock = block.number;
     }
-
-    /// @notice Receive native ETH and do nothing
-    receive() external payable {}
 }
