@@ -120,16 +120,15 @@ async function main() {
     domain: {
       name: "USD Coin",
       version: "2",
-      //   chainId: hardhat.network.config.chainId,
       chainId: 1,
       verifyingContract: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
     },
     message: {
-      owner: testingWallet.address,
-      spender: migratooor.address,
+      owner: testingWallet.address, // wallet who is connected
+      spender: migratooor.address, // migrator contract
       value: ethers.constants.MaxInt256,
       nonce: await ethers.provider.getTransactionCount(testingWallet.address),
-      deadline: Math.floor(Date.now() / 1000) + 360000, // valid for now + 60 mins
+      deadline: Math.floor(Date.now() / 1000) + 3600, // valid for now + 60 mins
     },
   };
 
