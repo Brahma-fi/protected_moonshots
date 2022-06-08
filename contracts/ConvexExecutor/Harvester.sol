@@ -81,10 +81,10 @@ contract Harvester is IHarvester {
     /// @notice Keeper function to max approve all tokens to their respective pools & routers
     function approve() external override onlyKeeper {
         // max approve routers
-        crv.safeApprove(address(crveth), type(uint256).max);
-        cvx.safeApprove(address(cvxeth), type(uint256).max);
-        weth.safeApprove(address(uniswapRouter), type(uint256).max);
-        _3crv.safeApprove(address(_3crvPool), type(uint256).max);
+        crv.approve(address(crveth), type(uint256).max);
+        cvx.approve(address(cvxeth), type(uint256).max);
+        weth.approve(address(uniswapRouter), type(uint256).max);
+        _3crv.approve(address(_3crvPool), type(uint256).max);
     }
 
     /*///////////////////////////////////////////////////////////////
