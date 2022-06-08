@@ -59,12 +59,12 @@ contract LyraPositionHandlerL2 is
         _configHandler(_lyraOptionMarket);
 
         // approve max want token L2 balance to uniV3 router
-        IERC20(wantTokenL2).safeApprove(
+        IERC20(wantTokenL2).approve(
             address(UniswapV3Controller.uniswapRouter),
             type(uint256).max
         );
         // approve max susd balance to uniV3 router
-        LyraController.sUSD.safeApprove(
+        LyraController.sUSD.approve(
             address(UniswapV3Controller.uniswapRouter),
             type(uint256).max
         );
