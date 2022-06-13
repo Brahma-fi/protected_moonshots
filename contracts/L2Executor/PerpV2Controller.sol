@@ -243,7 +243,7 @@ contract PerpV2Controller {
 
     /// @notice Returns the value of current position in wantToken value
     /// @return amount value of position in wantToken (USDC)
-    function _positionInWantToken() internal view returns (uint256) {
+    function _positionInWantToken() internal view virtual returns (uint256) {
         int256 posValue = clearingHouse.getAccountValue(address(this));
         uint256 amountOut = (posValue < 0)
             ? uint256(-1 * posValue)

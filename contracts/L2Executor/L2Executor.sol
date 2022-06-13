@@ -102,6 +102,15 @@ contract L2PositionHandler is
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
     function positionInWantToken() public view override returns (uint256) {
+        return _positionInWantToken();
+    }
+
+    function _positionInWantToken()
+        internal
+        view
+        override(LyraController, PerpV2Controller)
+        returns (uint256)
+    {
         // Get balance in sUSD and convert it into USDC
         uint256 sUSDbalance = LyraController._positionInWantToken();
         uint256 usdcPriceInsUSD = UniswapV3Controller._getUSDCPriceInsUSD();

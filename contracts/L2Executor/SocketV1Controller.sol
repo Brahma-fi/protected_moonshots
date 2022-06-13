@@ -1,5 +1,6 @@
 //SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.7.6;
+pragma experimental ABIEncoderV2;
 
 import "./interfaces/IERC20.sol";
 
@@ -53,9 +54,9 @@ contract SocketV1Controller {
         if (userRequest.receiverAddress != _receiverAddress) {
             revert("INVALID_RECEIVER_ADDRESS");
         }
-        // if (userRequest.bridgeRequest.inputToken != _inputToken) {
-        //     revert("INVALID_INPUT_TOKEN");
-        // }
+        if (userRequest.bridgeRequest.inputToken != _inputToken) {
+            revert("INVALID_INPUT_TOKEN");
+        }
     }
 
     /// @notice Sends tokens using Bungee middleware. Assumes tokens already present in contract. Manages allowance and transfer.

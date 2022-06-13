@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.7.6;
+pragma abicoder v2;
 
 import "./interfaces/IERC20.sol";
 import {IOptionMarket} from "./interfaces/IOptionMarket.sol";
@@ -129,7 +130,7 @@ contract LyraController {
 
     /// @notice Get the value of current active position on Lyra.
     /// @dev Gives the total value of position handler in susd.
-    function _positionInWantToken() internal view returns (uint256) {
+    function _positionInWantToken() internal view virtual returns (uint256) {
         if (currentPosition.isActive) {
             IOptionMarketViewer optionMarketViewer = IOptionMarketViewer(
                 0x43592bffCF14f1e0A096091E125f023B2ccC2525
