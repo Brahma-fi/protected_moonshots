@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.7.6;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./interfaces/IERC20.sol";
 
 /// @title SocketV1Controller
 /// @author 0xAd1

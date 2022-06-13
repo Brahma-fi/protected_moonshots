@@ -1,5 +1,6 @@
 //SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.7.6;
+pragma abicoder v2;
 
 import "./LyraController.sol";
 import "./OptimismL2Wrapper.sol";
@@ -31,16 +32,6 @@ contract L2PositionHandler is
         uint256 uniswapSlippage;
     }
 
-    struct PerpArgs {
-        address perpVault;
-        address clearingHouse;
-        address clearingHouseConfig;
-        address accountBalance;
-        address exchange;
-        address baseToken;
-        address quoteTokenvUSDC;
-    }
-
     /// @notice wantTokenL2 address
     address public override wantTokenL2;
 
@@ -60,10 +51,10 @@ contract L2PositionHandler is
     address public pendingGovernance;
 
     /// @notice Lyracontroller Arguments
-    LyraArgs lyraArgs;
+    LyraArgs public lyraArgs;
 
     /// @notice PerpController Arguments
-    PerpArgs perpArgs;
+    PerpArgs public perpArgs;
 
     /*///////////////////////////////////////////////////////////////
                             INITIALIZING
@@ -111,7 +102,7 @@ contract L2PositionHandler is
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
     function positionInWantToken() public view override returns (uint256) {
-        /// Get balance in sUSD and convert it into USDC
+        // Get balance in sUSD and convert it into USDC
         uint256 sUSDbalance = LyraController._positionInWantToken();
         uint256 usdcPriceInsUSD = UniswapV3Controller._getUSDCPriceInsUSD();
         uint256 lyraBalance = (sUSDbalance * NORMALIZATION_FACTOR) /

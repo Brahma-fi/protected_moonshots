@@ -1,22 +1,20 @@
 //SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.7.6;
+pragma abicoder v2;
 
 import "./interfaces/IPositionHandler.sol";
 
-import "../../interfaces/IUniswapSwapRouter.sol";
-import "../../interfaces/IAggregatorV3.sol";
+import "./interfaces/IUniswapSwapRouter.sol";
+import "./interfaces/IAggregatorV3.sol";
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "./interfaces/IERC20.sol";
 
 /// @title UniswapV3Controller
 /// @author Pradeep
 /// @notice Used to perform swaps for synthetix tokens
 contract UniswapV3Controller {
-    using SafeERC20 for IERC20;
-
     /// @notice maximum basis points for all numeric operations
-    uint256 public constant MAX_BPS = 10000;
+    uint256 public constant UNI_MAX_BPS = 10000;
     /// @notice normalization factor for all decimals
     uint256 public constant NORMALIZATION_FACTOR = 1e18;
     /// @notice uniswap swap fee
@@ -75,8 +73,8 @@ contract UniswapV3Controller {
                 recipient: address(this),
                 deadline: block.timestamp,
                 amountIn: amountToSwap,
-                amountOutMinimum: (amountOutExpected * (MAX_BPS - slippage)) /
-                    MAX_BPS,
+                amountOutMinimum: (amountOutExpected *
+                    (UNI_MAX_BPS - slippage)) / UNI_MAX_BPS,
                 sqrtPriceLimitX96: 0
             });
         uniswapRouter.exactInputSingle(params);

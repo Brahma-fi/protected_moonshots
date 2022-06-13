@@ -22,7 +22,7 @@ contract PerpV2Controller {
     /*///////////////////////////////////////////////////////////////
                             GLOBAL IMMUTABLES
     //////////////////////////////////////////////////////////////*/
-    uint256 public constant MAX_BPS = 1e4;
+    uint256 public constant PERP_MAX_BPS = 1e4;
 
     /*///////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -70,14 +70,16 @@ contract PerpV2Controller {
     /*///////////////////////////////////////////////////////////////
                         STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
-    function _configHandler(PerpArgs perpArgs) {
+    function _configHandler(PerpArgs memory perpArgs) internal {
         quoteTokenvUSDC = IERC20(perpArgs.quoteTokenvUSDC);
-        perpVault = IVault(_perpVault);
-        clearingHouse = IClearingHouse(_clearingHouse);
-        clearingHouseConfig = IClearingHouseConfig(_clearingHouseConfig);
-        accountBalance = IAccountBalance(_accountBalance);
-        exchange = IExchange(_exchange);
-        baseToken = IERC20(_baseToken);
+        perpVault = IVault(perpArgs.perpVault);
+        clearingHouse = IClearingHouse(perpArgs.clearingHouse);
+        clearingHouseConfig = IClearingHouseConfig(
+            perpArgs.clearingHouseConfig
+        );
+        accountBalance = IAccountBalance(perpArgs.accountBalance);
+        exchange = IExchange(perpArgs.exchange);
+        baseToken = IERC20(perpArgs.baseToken);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -114,16 +116,16 @@ contract PerpV2Controller {
         uint256 price = formatSqrtPriceX96(getMarkTwapPrice());
 
         uint256 amountOut;
-        if (slippage == MAX_BPS) {
+        if (slippage == PERP_MAX_BPS) {
             amountOut = 0;
         } else {
             // accounting for the slippage provided
             amountOut = short
-                ? amountIn.mul(MAX_BPS + slippage).div(MAX_BPS)
-                : amountIn.mul(MAX_BPS - slippage).div(MAX_BPS);
+                ? amountIn.mul(PERP_MAX_BPS + slippage).div(PERP_MAX_BPS)
+                : amountIn.mul(PERP_MAX_BPS - slippage).div(PERP_MAX_BPS);
 
             // As deposit is USDC, amountOut will always be in baseToken terms so division by price.
-            amountOut = amountOut.mul(MAX_BPS).div(price);
+            amountOut = amountOut.mul(PERP_MAX_BPS).div(price);
         }
 
         IClearingHouse.OpenPositionParams memory params = IClearingHouse
@@ -154,13 +156,13 @@ contract PerpV2Controller {
             ? uint256(-1 * getTotalPerpPositionSize())
             : uint256(getTotalPerpPositionSize());
 
-        if (slippage == MAX_BPS) {
+        if (slippage == PERP_MAX_BPS) {
             amountOut = 0;
         } else {
             amountOut = (getTotalPerpPositionSize() < 0)
-                ? amountOut.mul(MAX_BPS + slippage).div(MAX_BPS)
-                : amountOut.mul(MAX_BPS - slippage).div(MAX_BPS);
-            amountOut = amountOut.mul(price).div(MAX_BPS);
+                ? amountOut.mul(PERP_MAX_BPS + slippage).div(PERP_MAX_BPS)
+                : amountOut.mul(PERP_MAX_BPS - slippage).div(PERP_MAX_BPS);
+            amountOut = amountOut.mul(price).div(PERP_MAX_BPS);
         }
 
         IClearingHouse.ClosePositionParams memory params = IClearingHouse
@@ -186,7 +188,7 @@ contract PerpV2Controller {
         token.approve(address(perpVault), _value);
     }
 
-    /// @notice Formats SqrtX96 amount to regular price with MAX_BPS precision
+    /// @notice Formats SqrtX96 amount to regular price with PERP_MAX_BPS precision
     /// @param sqrtPriceX96 SqrtX96 amount
     /// @return price formatted output
     function formatSqrtPriceX96(uint160 sqrtPriceX96)
@@ -195,8 +197,9 @@ contract PerpV2Controller {
         returns (uint256 price)
     {
         return
-            uint256(sqrtPriceX96).mul(uint256(sqrtPriceX96).mul(MAX_BPS)) >>
-            (96 * 2);
+            uint256(sqrtPriceX96).mul(
+                uint256(sqrtPriceX96).mul(PERP_MAX_BPS)
+            ) >> (96 * 2);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -240,7 +243,7 @@ contract PerpV2Controller {
 
     /// @notice Returns the value of current position in wantToken value
     /// @return amount value of position in wantToken (USDC)
-    function _positionInWantToken() public view returns (uint256) {
+    function _positionInWantToken() internal view returns (uint256) {
         int256 posValue = clearingHouse.getAccountValue(address(this));
         uint256 amountOut = (posValue < 0)
             ? uint256(-1 * posValue)
