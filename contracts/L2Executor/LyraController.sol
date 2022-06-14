@@ -72,9 +72,11 @@ contract LyraController {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Purchases new option on lyra.
-    function openPosition(bytes memory data) internal {
-        LyraOpenParams memory params = abi.decode(data, (LyraOpenParams));
-
+    function openPosition(
+        uint256 listingId,
+        bool isCall,
+        uint256 amount
+    ) internal {
         /// Check if contract doesnt have a position on lyra
         require(lyraPosition.optionsPurchased == 0, "POSITION_ACTIVE");
 
@@ -83,24 +85,20 @@ contract LyraController {
 
         sUSD.approve(address(lyraOptionMarket), sUSDBal);
 
-        IOptionMarket.TradeType tradeType = params.isCall
+        IOptionMarket.TradeType tradeType = isCall
             ? IOptionMarket.TradeType.LONG_CALL
             : IOptionMarket.TradeType.LONG_PUT;
 
         /// Use params to open new position on lyra
-        lyraOptionMarket.openPosition(
-            params.listingId,
-            tradeType,
-            params.amount
-        );
+        lyraOptionMarket.openPosition(listingId, tradeType, amount);
 
         uint256 sUSDSent = sUSDBal - sUSD.balanceOf(address(this));
 
         lyraPosition = LyraPosition({
-            listingId: params.listingId,
+            listingId: listingId,
             tradeType: tradeType,
             amount: sUSDSent,
-            optionsPurchased: params.amount
+            optionsPurchased: amount
         });
     }
 
@@ -129,8 +127,7 @@ contract LyraController {
             listingId: 0,
             tradeType: IOptionMarket.TradeType.SHORT_CALL,
             amount: 0,
-            optionsPurchased: 0,
-            isActive: false
+            optionsPurchased: 0
         });
     }
 

@@ -185,7 +185,11 @@ contract L2PositionHandler is
         onlyAuthorized
     {
         if (isPerp) {
-            PerpV2Controller.openPosition(data);
+            (bool isShort, uint256 amountIn, uint24 slippage) = abi.decode(
+                data,
+                (bool, uint256, uint24)
+            );
+            PerpV2Controller.openPosition(isShort, amountIn, slippage);
         } else {
             (uint256 listingId, bool isCall, uint256 amount) = abi.decode(
                 data,

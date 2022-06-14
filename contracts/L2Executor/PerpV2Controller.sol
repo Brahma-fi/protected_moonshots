@@ -174,18 +174,21 @@ contract PerpV2Controller {
 
     /// @notice Creates a new position on Perp V2
     /// @dev Will deposit all USDC balance to Perp. Will close any existing position, then open a position with given amountIn on Perp.
-    function _openPosition(bytes memory data) internal virtual {
-        PerpOpenParams memory params = abi.decode(data, (PerpOpenParams));
+    function openPosition(
+        bool isShort,
+        uint256 amountIn,
+        uint24 slippage
+    ) internal virtual {
         uint256 wantTokenBalance = IERC20(perpVault.getSettlementToken())
             .balanceOf(address(this));
         _depositToPerp(wantTokenBalance);
         perpPosition = PerpPosition({
             entryMarkPrice: formatSqrtPriceX96(getMarkTwapPrice()),
             entryIndexPrice: getIndexTwapPrice(),
-            entryAmount: params.amountIn,
-            isShort: params.isShort
+            entryAmount: amountIn,
+            isShort: isShort
         });
-        _openPositionByAmount(params.isShort, params.amountIn, params.slippage);
+        _openPositionByAmount(isShort, amountIn, slippage);
     }
 
     /// @notice Closes short or long position on Perp against baseToken
