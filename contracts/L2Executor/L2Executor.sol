@@ -102,22 +102,18 @@ contract L2PositionHandler is
     /*///////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-    function positionInWantToken() public view override returns (uint256) {
-        return _positionInWantToken();
-    }
-
-    function _positionInWantToken()
-        internal
+    function positionInWantToken()
+        public
         view
         override(LyraController, PerpV2Controller)
         returns (uint256)
     {
         // Get balance in sUSD and convert it into USDC
-        uint256 sUSDbalance = LyraController._positionInWantToken();
+        uint256 sUSDbalance = LyraController.positionInWantToken();
         uint256 usdcPriceInsUSD = UniswapV3Controller._getUSDCPriceInsUSD();
         uint256 lyraBalance = (sUSDbalance * NORMALIZATION_FACTOR) /
             usdcPriceInsUSD;
-        uint256 perpBalance = PerpV2Controller._positionInWantToken();
+        uint256 perpBalance = PerpV2Controller.positionInWantToken();
         uint256 wantTokenBalance = IERC20(wantTokenL2).balanceOf(address(this));
 
         return lyraBalance + wantTokenBalance + perpBalance;

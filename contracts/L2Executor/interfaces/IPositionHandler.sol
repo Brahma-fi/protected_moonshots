@@ -6,8 +6,6 @@ import "./IERC20.sol";
 interface IPositionHandler {
     function wantTokenL2() external view returns (address);
 
-    function positionInWantToken() external view returns (uint256);
-
     function openPosition(bool isPerp, bytes memory data) external;
 
     function closePosition(bytes memory data) external;
