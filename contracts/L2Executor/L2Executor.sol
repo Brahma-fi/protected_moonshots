@@ -7,9 +7,7 @@ import "./OptimismL2Wrapper.sol";
 import "./SocketV1Controller.sol";
 import "./UniswapV3Controller.sol";
 import "./PerpV2Controller.sol";
-
 import "./interfaces/IPositionHandler.sol";
-import "./interfaces/IOptionMarketViewer.sol";
 import "./interfaces/IERC20.sol";
 
 /// @title LyraPositionHandlerL2
@@ -175,6 +173,8 @@ contract L2PositionHandler is
 
     /// @notice Purchases new option on lyra or takes leveraged position on Perp
     /// @dev Check LyraController for more details on implementation of option purchase and PerpContoller for leveraged position details
+    /// @param isPerp bool indicating position to be opened on perp or lyra
+    /// @param data encode bytes for openPosition
     function openPosition(bool isPerp, bytes memory data)
         public
         override

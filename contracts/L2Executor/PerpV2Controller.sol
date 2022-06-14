@@ -68,16 +68,6 @@ contract PerpV2Controller {
     }
 
     /// @notice open position parmeters
-    /// @param isShort true for short, false for long
-    /// @param amountIn the amountIn with respect to free collateral on perp for new position
-    /// @param slippage slippage while opening position, calculated out of 10000
-    struct PerpOpenParams {
-        bool isShort;
-        uint256 amountIn;
-        uint24 slippage;
-    }
-
-    /// @notice open position parmeters
     /// @param entryMarkPrice Market price at entry of position
     /// @param entryIndexPrice Index price at entry of position
     /// @param entryAmount Amount used to open position
@@ -173,7 +163,12 @@ contract PerpV2Controller {
     }
 
     /// @notice Creates a new position on Perp V2
-    /// @dev Will deposit all USDC balance to Perp. Will close any existing position, then open a position with given amountIn on Perp.
+    /// @dev Will deposit all USDC balance to Perp.
+    /// Will close any existing position, then open a position with given amountIn on Perp.
+    /// @param isShort true for short, false for long
+    /// @param amountIn the amountIn with respect to free collateral on perp for new position
+    /// @param slippage slippage while opening position, calculated out of 10000
+
     function openPosition(
         bool isShort,
         uint256 amountIn,
@@ -236,7 +231,7 @@ contract PerpV2Controller {
     /// @return price formatted output
     function formatSqrtPriceX96(uint160 sqrtPriceX96)
         internal
-        view
+        pure
         returns (uint256 price)
     {
         return

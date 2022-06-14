@@ -14,13 +14,6 @@ contract LyraController {
                           STRUCTS FOR STORAGE
   //////////////////////////////////////////////////////////////*/
 
-    /// @notice Params required to close a position
-    /// @dev send these params encoded in bytes
-    /// @param toSettle boolean if true settle position, else close position
-    struct ClosePositionParams {
-        bool toSettle;
-    }
-
     /// @notice struct indicating the lyra position
     /// @param listingId Listing ID of the option based on strike price
     /// @param tradeType call or put option
@@ -30,17 +23,6 @@ contract LyraController {
         IOptionMarket.TradeType tradeType;
         uint256 amount;
         uint256 optionsPurchased;
-    }
-
-    /// @notice struct indicating the open position
-    /// @dev Will use all sUSD balance to purchase option on Lyra.
-    /// @param listingId Listing ID of the option based on strike price
-    /// @param isCall boolean indication call or put option
-    /// @param amount amount of options to buy
-    struct LyraOpenParams {
-        uint256 listingId;
-        bool isCall;
-        uint256 amount;
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -72,6 +54,10 @@ contract LyraController {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Purchases new option on lyra.
+    /// @dev Will use all sUSD balance to purchase option on Lyra.
+    /// @param listingId Listing ID of the option based on strike price
+    /// @param isCall boolean indication call or put option
+    /// @param amount amount of options to buy
     function openPosition(
         uint256 listingId,
         bool isCall,
