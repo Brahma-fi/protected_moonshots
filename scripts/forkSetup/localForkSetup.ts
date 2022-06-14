@@ -10,6 +10,7 @@ import {
   IERC20,
   PerpTradeExecutor,
 } from "../../src/types";
+import { getSigner } from "../../test/utils";
 
 async function main() {
   const oldVaultAddress = "0x1C4ceb52ab54a35F9d03FcC156a7c57F965e081e";
@@ -39,7 +40,7 @@ async function main() {
     oldConvexTEAddress
   )) as IOldConvexTE;
 
-  const keeper = (await ethers.getSigners())[0];
+  const keeper = await getSigner("0xAE75B29ADe678372D77A8B41225654138a7E6ff1");
 
   console.log("Keeper address", keeper.address);
 
