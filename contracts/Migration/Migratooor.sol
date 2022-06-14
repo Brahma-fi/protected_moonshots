@@ -4,6 +4,9 @@ pragma solidity ^0.8.0;
 import "./interfaces/IUSDC.sol";
 import "./interfaces/IHauler.sol";
 import "./interfaces/IBatcherOld.sol";
+import "./interfaces/IVaultOld.sol";
+import "./interfaces/IOldConvexTE.sol";
+import "./interfaces/IOldPerpTEL2.sol";
 import "../Batcher/interfaces/IBatcher.sol";
 import "hardhat/console.sol";
 
