@@ -110,6 +110,10 @@ async function main() {
   await migratooor.deployed();
 
   console.log("Migrator", migratooor.address);
+
+  await vault.connect(keeper).setBatcher(batcher.address);
+
+  await batcher.connect(keeper).setDepositSignatureCheck(false);
 }
 
 export const waitFor = (ms: number) => new Promise((r) => setTimeout(r, ms));
