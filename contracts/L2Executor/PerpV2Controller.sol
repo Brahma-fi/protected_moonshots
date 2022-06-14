@@ -67,6 +67,30 @@ contract PerpV2Controller {
         address quoteTokenvUSDC;
     }
 
+    /// @notice open position parmeters
+    /// @param isShort true for short, false for long
+    /// @param amountIn the amountIn with respect to free collateral on perp for new position
+    /// @param slippage slippage while opening position, calculated out of 10000
+    struct PerpOpenParams {
+        bool isShort;
+        uint256 amountIn;
+        uint24 slippage;
+    }
+
+    /// @notice open position parmeters
+    /// @param entryMarkPrice Market price at entry of position
+    /// @param entryIndexPrice Index price at entry of position
+    /// @param entryAmount Amount used to open position
+    /// @param isShort bool indicating direction of position taken
+    struct PerpPosition {
+        uint256 entryMarkPrice;
+        uint256 entryIndexPrice;
+        uint256 entryAmount;
+        bool isShort;
+    }
+
+    PerpPosition public perpPosition;
+
     /*///////////////////////////////////////////////////////////////
                         STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
@@ -146,6 +170,22 @@ contract PerpV2Controller {
                 address(this),
                 address(baseToken)
             );
+    }
+
+    /// @notice Creates a new position on Perp V2
+    /// @dev Will deposit all USDC balance to Perp. Will close any existing position, then open a position with given amountIn on Perp.
+    function _openPosition(bytes memory data) internal virtual {
+        PerpOpenParams memory params = abi.decode(data, (PerpOpenParams));
+        uint256 wantTokenBalance = IERC20(perpVault.getSettlementToken())
+            .balanceOf(address(this));
+        _depositToPerp(wantTokenBalance);
+        perpPosition = PerpPosition({
+            entryMarkPrice: formatSqrtPriceX96(getMarkTwapPrice()),
+            entryIndexPrice: getIndexTwapPrice(),
+            entryAmount: params.amountIn,
+            isShort: params.isShort
+        });
+        _openPositionByAmount(params.isShort, params.amountIn, params.slippage);
     }
 
     /// @notice Closes short or long position on Perp against baseToken

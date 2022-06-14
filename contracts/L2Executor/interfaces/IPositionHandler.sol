@@ -8,13 +8,9 @@ interface IPositionHandler {
 
     function positionInWantToken() external view returns (uint256);
 
-    function openPosition(
-        uint256 listingId,
-        bool isCall,
-        uint256 amount
-    ) external;
+    function openPosition(bool isPerp, bytes memory data) external;
 
-    function closePosition(bool toSettle) external;
+    function closePosition(bytes memory data) external;
 
     function deposit() external;
 

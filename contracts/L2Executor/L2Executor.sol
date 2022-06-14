@@ -78,6 +78,7 @@ contract L2PositionHandler is
 
         // Setting up LyraController
         LyraController._configHandler(lyraArgs.lyraOptionMarket);
+        slippage = lyraArgs.uniswapSlippage;
 
         // approve max want token L2 balance to uniV3 router
         IERC20(wantTokenL2).approve(
@@ -168,28 +169,56 @@ contract L2PositionHandler is
                         OPEN / CLOSE LOGIC
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Purchases new option on lyra.
-    /// @dev Will use all sUSD balance to purchase option on Lyra.
-    /// @param listingId Listing ID of the option based on strike price
-    /// @param isCall boolean indication call or put option to purchase.
-    /// @param amount amount of options to buy
-    function openPosition(
-        uint256 listingId,
-        bool isCall,
-        uint256 amount
-    ) public override onlyAuthorized {
-        LyraController._openPosition(listingId, isCall, amount);
+    struct CurrentPosition {
+        bool isPerp;
+        bool isActive;
     }
 
-    /// @notice Exercises/Sell option on lyra.
-    /// @dev Will sell back or settle the option on Lyra.
-    /// @param toSettle boolean if true settle position, else close position
-    function closePosition(bool toSettle) public override onlyAuthorized {
-        LyraController._closePosition(toSettle);
-        UniswapV3Controller._estimateAndSwap(
-            false,
-            LyraController.sUSD.balanceOf(address(this))
-        );
+    /// @notice Gets the current position of the executor
+    CurrentPosition public currentPosition;
+
+    /// @notice Purchases new option on lyra or takes leveraged position on Perp
+    /// @dev Check LyraController for more details on implementation of option purchase and PerpContoller for leveraged position details
+    function openPosition(bool isPerp, bytes memory data)
+        public
+        override
+        onlyAuthorized
+    {
+        if (isPerp) {
+            PerpV2Controller.openPosition(data);
+        } else {
+            (uint256 listingId, bool isCall, uint256 amount) = abi.decode(
+                data,
+                (uint256, bool, uint256)
+            );
+            LyraController.openPosition(listingId, isCall, amount);
+        }
+        currentPosition.isPerp = isPerp;
+        currentPosition.isActive = true;
+    }
+
+    /// @notice Reduce existing position by selling option on lyra or .
+    /// @dev Will sell back or settle the option on Lyra and coverts sUSD to USDC.
+    /// @dev Closes the position, withdraws all the funds from perp as well.
+    /// @param data bytes data to be sent to the position handler
+    function closePosition(bytes memory data) public override onlyAuthorized {
+        if (currentPosition.isActive == true) {
+            if (currentPosition.isPerp == true) {
+                uint24 slippage = abi.decode(data, (uint24));
+                PerpV2Controller._closePosition(slippage);
+                PerpV2Controller._withdrawFromPerp(
+                    PerpV2Controller.getFreeCollateral()
+                );
+            } else {
+                bool toSettle = abi.decode(data, (bool));
+                LyraController._closePosition(toSettle);
+                UniswapV3Controller._estimateAndSwap(
+                    false,
+                    LyraController.sUSD.balanceOf(address(this))
+                );
+            }
+            currentPosition.isActive = false;
+        }
     }
 
     /*///////////////////////////////////////////////////////////////
