@@ -170,6 +170,39 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     }
 
     /**
+     * @notice User deposits vault LP tokens to be withdrawn. Stores the deposits for future batching via periphery
+     * @param cancellationAmount Value of token to be cancelled for withdrawal
+     */
+    function cancelWithdrawal(uint256 cancellationAmount)
+        external
+        override
+        nonReentrant
+    {
+        require(cancellationAmount > 0, "AMOUNT_IN_ZERO");
+
+        require(
+            withdrawLedger[msg.sender] >= cancellationAmount,
+            "NO_WITHDRAWAL_PENDING"
+        );
+
+        withdrawLedger[msg.sender] =
+            withdrawLedger[msg.sender] -
+            cancellationAmount;
+
+        userLPTokens[msg.sender] =
+            userLPTokens[msg.sender] +
+            (cancellationAmount);
+
+        pendingWithdrawal = pendingWithdrawal - cancellationAmount;
+
+        emit WithdrawRescinded(
+            msg.sender,
+            vaultInfo.vaultAddress,
+            cancellationAmount
+        );
+    }
+
+    /**
      * @notice Can be used to send LP tokens owed to the recipient
      * @param amount Amount of LP tokens to withdraw
      * @param recipient Address to receive the LP tokens
