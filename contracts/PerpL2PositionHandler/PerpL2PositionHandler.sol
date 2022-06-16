@@ -2,7 +2,6 @@
 pragma solidity ^0.7.6;
 pragma abicoder v2;
 
-import "./LyraController.sol";
 import "./OptimismL2Wrapper.sol";
 import "./SocketV1Controller.sol";
 import "./UniswapV3Controller.sol";
@@ -10,25 +9,19 @@ import "./PerpV2Controller.sol";
 import "./interfaces/IPositionHandler.sol";
 import "./interfaces/IERC20.sol";
 
-/// @title LyraPositionHandlerL2
+/// @title PerpPositionHandlerL2
 /// @author Bapireddy and 0xAd1
 /// @notice Acts as positon handler and token bridger on L2 Optimism
-contract L2PositionHandler is
-    IPositionHandler,
-    LyraController,
+contract PerpL2PositionHandler is
     SocketV1Controller,
     OptimismL2Wrapper,
     UniswapV3Controller,
-    PerpV2Controller
+    PerpV2Controller,
+    IPositionHandler
 {
     /*///////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
-
-    struct LyraArgs {
-        address lyraOptionMarket;
-        uint256 uniswapSlippage;
-    }
 
     /// @notice wantTokenL2 address
     address public override wantTokenL2;
@@ -48,9 +41,6 @@ contract L2PositionHandler is
     /// @notice Pengin governance address
     address public pendingGovernance;
 
-    /// @notice Lyracontroller Arguments
-    LyraArgs public lyraArgs;
-
     /// @notice PerpController Arguments
     PerpArgs public perpArgs;
 
@@ -63,7 +53,6 @@ contract L2PositionHandler is
         address _keeper,
         address _governance,
         address _socketRegistry,
-        LyraArgs memory _lyraArgs,
         PerpArgs memory _perpArgs
     ) {
         wantTokenL2 = _wantTokenL2;
@@ -71,20 +60,10 @@ contract L2PositionHandler is
         keeper = _keeper;
         socketRegistry = _socketRegistry;
         governance = _governance;
-        lyraArgs = _lyraArgs;
         perpArgs = _perpArgs;
-
-        // Setting up LyraController
-        LyraController._configHandler(lyraArgs.lyraOptionMarket);
-        slippage = lyraArgs.uniswapSlippage;
 
         // approve max want token L2 balance to uniV3 router
         IERC20(wantTokenL2).approve(
-            address(UniswapV3Controller.uniswapRouter),
-            type(uint256).max
-        );
-        // approve max susd balance to uniV3 router
-        LyraController.sUSD.approve(
             address(UniswapV3Controller.uniswapRouter),
             type(uint256).max
         );
@@ -103,36 +82,20 @@ contract L2PositionHandler is
     function positionInWantToken()
         public
         view
-        override(LyraController, PerpV2Controller)
+        override(PerpV2Controller)
         returns (uint256)
     {
-        // Get balance in sUSD and convert it into USDC
-        uint256 sUSDbalance = LyraController.positionInWantToken();
-        uint256 usdcPriceInsUSD = UniswapV3Controller._getUSDCPriceInsUSD();
-        uint256 lyraBalance = (sUSDbalance * NORMALIZATION_FACTOR) /
-            usdcPriceInsUSD;
         uint256 perpBalance = PerpV2Controller.positionInWantToken();
         uint256 wantTokenBalance = IERC20(wantTokenL2).balanceOf(address(this));
 
-        return lyraBalance + wantTokenBalance + perpBalance;
+        return wantTokenBalance + perpBalance;
     }
 
     /*///////////////////////////////////////////////////////////////
                         DEPOSIT / WITHDRAW LOGIC
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Converts the whole wantToken to sUSD.
-    function deposit() public override onlyAuthorized {
-        require(
-            IERC20(wantTokenL2).balanceOf(address(this)) > 0,
-            "INSUFFICIENT_BALANCE"
-        );
-
-        UniswapV3Controller._estimateAndSwap(
-            true,
-            IERC20(wantTokenL2).balanceOf(address(this))
-        );
-    }
+    // function deposit() public override onlyAuthorized {}
 
     /// @notice Bridges wantToken back to strategy on L1
     /// @dev Check MovrV1Controller for more details on implementation of token bridging
@@ -164,60 +127,39 @@ contract L2PositionHandler is
     //////////////////////////////////////////////////////////////*/
 
     struct CurrentPosition {
-        bool isPerp;
         bool isActive;
     }
 
     /// @notice Gets the current position of the executor
     CurrentPosition public currentPosition;
 
-    /// @notice Purchases new option on lyra or takes leveraged position on Perp
-    /// @dev Check LyraController for more details on implementation of option purchase and PerpContoller for leveraged position details
-    /// @param isPerp bool indicating position to be opened on perp or lyra
-    /// @param data encode bytes for openPosition
-    function openPosition(bool isPerp, bytes memory data)
-        public
-        override
-        onlyAuthorized
-    {
-        if (isPerp) {
-            (bool isShort, uint256 amountIn, uint24 slippage) = abi.decode(
-                data,
-                (bool, uint256, uint24)
-            );
+    /// @notice Takes leveraged position on Perp
+    /// @dev Check PerpContoller for leveraged position details
+    /// @param isShort bool indicating position to be short or long
+    /// @param amountIn amountIn for Perp position
+    /// @param slippage slippage for opening position
+    function openPosition(
+        bool isShort,
+        uint256 amountIn,
+        uint24 slippage
+    ) public override(IPositionHandler, PerpV2Controller) onlyAuthorized {
+        if (currentPosition.isActive == false) {
+            currentPosition.isActive = true;
             PerpV2Controller.openPosition(isShort, amountIn, slippage);
-        } else {
-            (uint256 listingId, bool isCall, uint256 amount) = abi.decode(
-                data,
-                (uint256, bool, uint256)
-            );
-            LyraController.openPosition(listingId, isCall, amount);
         }
-        currentPosition.isPerp = isPerp;
-        currentPosition.isActive = true;
     }
 
-    /// @notice Reduce existing position by selling option on lyra or .
-    /// @dev Will sell back or settle the option on Lyra and coverts sUSD to USDC.
-    /// @dev Closes the position, withdraws all the funds from perp as well.
-    /// @param data bytes data to be sent to the position handler
-    function closePosition(bytes memory data) public override onlyAuthorized {
+    /// @notice Reduce existing position by closing position on Perp.
+    /// @dev Closes the position, withdraws all the funds from perp
+    /// @param slippage max slippage while closing position
+    function closePosition(uint24 slippage)
+        public
+        override(IPositionHandler, PerpV2Controller)
+        onlyAuthorized
+    {
         if (currentPosition.isActive == true) {
-            if (currentPosition.isPerp == true) {
-                uint24 slippage = abi.decode(data, (uint24));
-                PerpV2Controller._closePosition(slippage);
-                PerpV2Controller._withdrawFromPerp(
-                    PerpV2Controller.getFreeCollateral()
-                );
-            } else {
-                bool toSettle = abi.decode(data, (bool));
-                LyraController._closePosition(toSettle);
-                UniswapV3Controller._estimateAndSwap(
-                    false,
-                    LyraController.sUSD.balanceOf(address(this))
-                );
-            }
             currentPosition.isActive = false;
+            PerpV2Controller.closePosition(slippage);
         }
     }
 
@@ -246,7 +188,7 @@ contract L2PositionHandler is
         keeper = _keeper;
     }
 
-    /// @notice checks wether txn sender is keeper address or LyraTradeExecutor using optimism gateway
+    /// @notice checks wether txn sender is keeper address or L1TradeExecutor using optimism gateway
     modifier onlyAuthorized() {
         require(
             ((msg.sender == L2CrossDomainMessenger &&

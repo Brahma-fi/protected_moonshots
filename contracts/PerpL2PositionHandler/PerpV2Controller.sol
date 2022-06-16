@@ -118,6 +118,35 @@ contract PerpV2Controller {
     /*///////////////////////////////////////////////////////////////
                         OPEN / CLOSE LOGIC
     //////////////////////////////////////////////////////////////*/
+    /// @notice Creates a new position on Perp V2
+    /// @dev Will deposit all USDC balance to Perp.
+    /// Will close any existing position, then open a position with given amountIn on Perp.
+    /// @param isShort true for short, false for long
+    /// @param amountIn the amountIn with respect to free collateral on perp for new position
+    /// @param slippage slippage while opening position, calculated out of 10000
+
+    function openPosition(
+        bool isShort,
+        uint256 amountIn,
+        uint24 slippage
+    ) public virtual {
+        uint256 wantTokenBalance = IERC20(perpVault.getSettlementToken())
+            .balanceOf(address(this));
+        _depositToPerp(wantTokenBalance);
+        perpPosition = PerpPosition({
+            entryMarkPrice: formatSqrtPriceX96(getMarkTwapPrice()),
+            entryIndexPrice: getIndexTwapPrice(),
+            entryAmount: amountIn,
+            isShort: isShort
+        });
+        _openPositionByAmount(isShort, amountIn, slippage);
+    }
+
+    function closePosition(uint24 slippage) public virtual {
+        _closePosition(slippage);
+        _withdrawFromPerp(getFreeCollateral());
+    }
+
     /// @notice Opens short or long position on Perp against baseToken
     /// @param short bool true for short position, false for long position
     /// @param amountIn amount of quoteToken to open position with
@@ -160,30 +189,6 @@ contract PerpV2Controller {
                 address(this),
                 address(baseToken)
             );
-    }
-
-    /// @notice Creates a new position on Perp V2
-    /// @dev Will deposit all USDC balance to Perp.
-    /// Will close any existing position, then open a position with given amountIn on Perp.
-    /// @param isShort true for short, false for long
-    /// @param amountIn the amountIn with respect to free collateral on perp for new position
-    /// @param slippage slippage while opening position, calculated out of 10000
-
-    function openPosition(
-        bool isShort,
-        uint256 amountIn,
-        uint24 slippage
-    ) internal virtual {
-        uint256 wantTokenBalance = IERC20(perpVault.getSettlementToken())
-            .balanceOf(address(this));
-        _depositToPerp(wantTokenBalance);
-        perpPosition = PerpPosition({
-            entryMarkPrice: formatSqrtPriceX96(getMarkTwapPrice()),
-            entryIndexPrice: getIndexTwapPrice(),
-            entryAmount: amountIn,
-            isShort: isShort
-        });
-        _openPositionByAmount(isShort, amountIn, slippage);
     }
 
     /// @notice Closes short or long position on Perp against baseToken
