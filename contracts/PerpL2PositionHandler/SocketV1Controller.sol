@@ -1,6 +1,7 @@
 //SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.7.6;
 pragma experimental ABIEncoderV2;
+
 import "./interfaces/IERC20.sol";
 
 /// @title SocketV1Controller
@@ -48,20 +49,20 @@ contract SocketV1Controller {
         UserRequest memory userRequest;
         (userRequest) = decodeSocketRegistryCalldata(_data);
         if (userRequest.toChainId != _chainId) {
-            revert("Invalid chainId");
+            revert("INVALID_CHAINID");
         }
         if (userRequest.receiverAddress != _receiverAddress) {
-            revert("Invalid receiver address");
+            revert("INVALID_RECEIVER_ADDRESS");
         }
         if (userRequest.bridgeRequest.inputToken != _inputToken) {
-            revert("Invalid input token");
+            revert("INVALID_INPUT_TOKEN");
         }
     }
 
     /// @notice Sends tokens using Bungee middleware. Assumes tokens already present in contract. Manages allowance and transfer.
     /// @dev Currently not verifying the middleware request calldata. Use very carefully
     /// @param token address of IERC20 token to be sent
-    /// @param allowanceTarget address to allow tokens to swipe
+    // / @param allowanceTarget address to allow tokens to swipe
     /// @param socketRegistry address to send bridge txn to
     /// @param destinationAddress address of receiver
     /// @param amount amount of tokens to bridge
@@ -69,7 +70,6 @@ contract SocketV1Controller {
     /// @param data calldata of txn to be sent
     function sendTokens(
         address token,
-        address allowanceTarget,
         address socketRegistry,
         address destinationAddress,
         uint256 amount,
@@ -82,8 +82,8 @@ contract SocketV1Controller {
             token,
             destinationAddress
         );
-        IERC20(token).approve(allowanceTarget, amount);
-        (bool success, ) = socketRegistry.call(data);
-        require(success, "Failed to call socketRegistry");
+        // IERC20(token).approve(allowanceTarget, amount);
+        (bool success, ) = socketRegistry.call{value: amount}(data);
+        require(success, "FAILED_SOCKET_CALL");
     }
 }

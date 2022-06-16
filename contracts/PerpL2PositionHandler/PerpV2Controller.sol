@@ -22,7 +22,7 @@ contract PerpV2Controller {
     /*///////////////////////////////////////////////////////////////
                             GLOBAL IMMUTABLES
     //////////////////////////////////////////////////////////////*/
-    uint256 public constant MAX_BPS = 1e4;
+    uint256 public constant PERP_MAX_BPS = 1e4;
 
     /*///////////////////////////////////////////////////////////////
                             STATE VARIABLES
@@ -56,6 +56,46 @@ contract PerpV2Controller {
     /// @notice Address of exchange contract on Perp
     IExchange public exchange;
 
+    struct PerpArgs {
+        address wantTokenL1;
+        address perpVault;
+        address clearingHouse;
+        address clearingHouseConfig;
+        address accountBalance;
+        address exchange;
+        address baseToken;
+        address quoteTokenvUSDC;
+    }
+
+    /// @notice open position parmeters
+    /// @param entryMarkPrice Market price at entry of position
+    /// @param entryIndexPrice Index price at entry of position
+    /// @param entryAmount Amount used to open position
+    /// @param isShort bool indicating direction of position taken
+    struct PerpPosition {
+        uint256 entryMarkPrice;
+        uint256 entryIndexPrice;
+        uint256 entryAmount;
+        bool isShort;
+    }
+
+    PerpPosition public perpPosition;
+
+    /*///////////////////////////////////////////////////////////////
+                        STATE VARIABLES
+    //////////////////////////////////////////////////////////////*/
+    function _configHandler(PerpArgs memory perpArgs) internal {
+        quoteTokenvUSDC = IERC20(perpArgs.quoteTokenvUSDC);
+        perpVault = IVault(perpArgs.perpVault);
+        clearingHouse = IClearingHouse(perpArgs.clearingHouse);
+        clearingHouseConfig = IClearingHouseConfig(
+            perpArgs.clearingHouseConfig
+        );
+        accountBalance = IAccountBalance(perpArgs.accountBalance);
+        exchange = IExchange(perpArgs.exchange);
+        baseToken = IERC20(perpArgs.baseToken);
+    }
+
     /*///////////////////////////////////////////////////////////////
                         DEPOSIT / WITHDRAW LOGIC
     //////////////////////////////////////////////////////////////*/
@@ -78,6 +118,35 @@ contract PerpV2Controller {
     /*///////////////////////////////////////////////////////////////
                         OPEN / CLOSE LOGIC
     //////////////////////////////////////////////////////////////*/
+    /// @notice Creates a new position on Perp V2
+    /// @dev Will deposit all USDC balance to Perp.
+    /// Will close any existing position, then open a position with given amountIn on Perp.
+    /// @param isShort true for short, false for long
+    /// @param amountIn the amountIn with respect to free collateral on perp for new position
+    /// @param slippage slippage while opening position, calculated out of 10000
+
+    function openPosition(
+        bool isShort,
+        uint256 amountIn,
+        uint24 slippage
+    ) public virtual {
+        uint256 wantTokenBalance = IERC20(perpVault.getSettlementToken())
+            .balanceOf(address(this));
+        _depositToPerp(wantTokenBalance);
+        perpPosition = PerpPosition({
+            entryMarkPrice: formatSqrtPriceX96(getMarkTwapPrice()),
+            entryIndexPrice: getIndexTwapPrice(),
+            entryAmount: amountIn,
+            isShort: isShort
+        });
+        _openPositionByAmount(isShort, amountIn, slippage);
+    }
+
+    function closePosition(uint24 slippage) public virtual {
+        _closePosition(slippage);
+        _withdrawFromPerp(getFreeCollateral());
+    }
+
     /// @notice Opens short or long position on Perp against baseToken
     /// @param short bool true for short position, false for long position
     /// @param amountIn amount of quoteToken to open position with
@@ -90,16 +159,16 @@ contract PerpV2Controller {
         uint256 price = formatSqrtPriceX96(getMarkTwapPrice());
 
         uint256 amountOut;
-        if (slippage == MAX_BPS) {
+        if (slippage == PERP_MAX_BPS) {
             amountOut = 0;
         } else {
             // accounting for the slippage provided
             amountOut = short
-                ? amountIn.mul(MAX_BPS + slippage).div(MAX_BPS)
-                : amountIn.mul(MAX_BPS - slippage).div(MAX_BPS);
+                ? amountIn.mul(PERP_MAX_BPS + slippage).div(PERP_MAX_BPS)
+                : amountIn.mul(PERP_MAX_BPS - slippage).div(PERP_MAX_BPS);
 
             // As deposit is USDC, amountOut will always be in baseToken terms so division by price.
-            amountOut = amountOut.mul(MAX_BPS).div(price);
+            amountOut = amountOut.mul(PERP_MAX_BPS).div(price);
         }
 
         IClearingHouse.OpenPositionParams memory params = IClearingHouse
@@ -130,13 +199,13 @@ contract PerpV2Controller {
             ? uint256(-1 * getTotalPerpPositionSize())
             : uint256(getTotalPerpPositionSize());
 
-        if (slippage == MAX_BPS) {
+        if (slippage == PERP_MAX_BPS) {
             amountOut = 0;
         } else {
             amountOut = (getTotalPerpPositionSize() < 0)
-                ? amountOut.mul(MAX_BPS + slippage).div(MAX_BPS)
-                : amountOut.mul(MAX_BPS - slippage).div(MAX_BPS);
-            amountOut = amountOut.mul(price).div(MAX_BPS);
+                ? amountOut.mul(PERP_MAX_BPS + slippage).div(PERP_MAX_BPS)
+                : amountOut.mul(PERP_MAX_BPS - slippage).div(PERP_MAX_BPS);
+            amountOut = amountOut.mul(price).div(PERP_MAX_BPS);
         }
 
         IClearingHouse.ClosePositionParams memory params = IClearingHouse
@@ -162,17 +231,18 @@ contract PerpV2Controller {
         token.approve(address(perpVault), _value);
     }
 
-    /// @notice Formats SqrtX96 amount to regular price with MAX_BPS precision
+    /// @notice Formats SqrtX96 amount to regular price with PERP_MAX_BPS precision
     /// @param sqrtPriceX96 SqrtX96 amount
     /// @return price formatted output
     function formatSqrtPriceX96(uint160 sqrtPriceX96)
         internal
-        view
+        pure
         returns (uint256 price)
     {
         return
-            uint256(sqrtPriceX96).mul(uint256(sqrtPriceX96).mul(MAX_BPS)) >>
-            (96 * 2);
+            uint256(sqrtPriceX96).mul(
+                uint256(sqrtPriceX96).mul(PERP_MAX_BPS)
+            ) >> (96 * 2);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -216,13 +286,11 @@ contract PerpV2Controller {
 
     /// @notice Returns the value of current position in wantToken value
     /// @return amount value of position in wantToken (USDC)
-    function positionInUSDC() public view returns (uint256) {
+    function positionInWantToken() public view virtual returns (uint256) {
         int256 posValue = clearingHouse.getAccountValue(address(this));
         uint256 amountOut = (posValue < 0)
             ? uint256(-1 * posValue)
             : uint256(posValue);
-        return
-            amountOut.div(1e12) +
-            IERC20(perpVault.getSettlementToken()).balanceOf(address(this));
+        return amountOut.div(1e12);
     }
 }

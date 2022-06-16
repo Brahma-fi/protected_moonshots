@@ -1,7 +1,7 @@
 //SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.7.6;
 
-import "./interfaces/CrossDomainMessenger.interface.sol";
+import "./interfaces/ICrossDomainMessenger.sol";
 
 contract OptimismL2Wrapper {
     /// @notice Address of Optimism L2CrossDomainMessenger
