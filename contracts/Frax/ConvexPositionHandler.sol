@@ -54,6 +54,9 @@ contract ConvexPositionHandler is BasePositionHandler {
     uint256 public latestHarvestedRewards;
     /// @notice the total cummulative rewards earned so far
     uint256 public totalCummulativeRewards;
+    /// @notice governance handled variable, that tells how to calculate position in want token
+    /// @dev this is done to account for cases of depeg
+    bool public useVirtualPriceForPosValue = true;
 
     /*///////////////////////////////////////////////////////////////
                             EXTERNAL CONTRACTS
@@ -121,7 +124,7 @@ contract ConvexPositionHandler is BasePositionHandler {
             uint256 stakedLpBalance,
             uint256 lpTokenBalance,
             uint256 usdcBalance
-        ) = _getTotalBalancesInWantToken(false);
+        ) = _getTotalBalancesInWantToken(useVirtualPriceForPosValue);
 
         return (stakedLpBalance + lpTokenBalance + usdcBalance, block.number);
     }
@@ -476,5 +479,13 @@ contract ConvexPositionHandler is BasePositionHandler {
    */
     function _setSlippage(uint256 _slippage) internal {
         maxSlippage = _slippage;
+    }
+
+    /// @notice Governance function to set how position value should be calculated, i.e using virtual price or calc withdraw
+    /// @param _useVirtualPriceForPosValue bool signifying if virtual price should be used to calculate position value
+    function _setUseVirtualPriceForPosValue(bool _useVirtualPriceForPosValue)
+        internal
+    {
+        useVirtualPriceForPosValue = _useVirtualPriceForPosValue;
     }
 }

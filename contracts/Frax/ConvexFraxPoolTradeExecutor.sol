@@ -41,6 +41,17 @@ contract ConvexFraxPoolTradeExecutor is
         ConvexPositionHandler._setSlippage(_slippage);
     }
 
+    /// @notice Governance function to set how position value should be calculated, i.e using virtual price or calc withdraw
+    /// @param _useVirtualPriceForPosValue bool signifying if virtual price should be used to calculate position value
+    function setUseVirtualPriceForPosValue(bool _useVirtualPriceForPosValue)
+        external
+        onlyGovernance
+    {
+        ConvexPositionHandler._setUseVirtualPriceForPosValue(
+            _useVirtualPriceForPosValue
+        );
+    }
+
     /// @param _harvester address of harvester
     function setHandler(address _harvester) external onlyGovernance {
         ConvexPositionHandler._configHandler(_harvester, vaultWantToken());
