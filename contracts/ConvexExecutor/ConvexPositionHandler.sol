@@ -96,13 +96,13 @@ contract ConvexPositionHandler is BasePositionHandler {
         prevSharePrice = fraxPool.get_virtual_price();
 
         // Approve max LP tokens to convex booster
-        lpToken.safeApprove(address(convexBooster), type(uint256).max);
+        lpToken.approve(address(convexBooster), type(uint256).max);
 
         // Approve max want tokens to zapper.
-        wantToken.safeApprove(address(curve3PoolZap), type(uint256).max);
+        wantToken.approve(address(curve3PoolZap), type(uint256).max);
 
         // Approve max lp tokens to zapper
-        lpToken.safeApprove(address(curve3PoolZap), type(uint256).max);
+        lpToken.approve(address(curve3PoolZap), type(uint256).max);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -162,7 +162,7 @@ contract ConvexPositionHandler is BasePositionHandler {
             uint256 stakedLpBalance,
             uint256 lpTokenBalance,
             uint256 usdcBalance
-        ) = _getTotalBalancesInWantToken(true);
+        ) = _getTotalBalancesInWantToken(false);
         uint256 totalBalance = (stakedLpBalance + lpTokenBalance + usdcBalance);
 
         // if _amount is more than balance, then withdraw entire balance
