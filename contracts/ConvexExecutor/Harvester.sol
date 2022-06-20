@@ -5,6 +5,8 @@ import "./interfaces/IHarvester.sol";
 import "../../interfaces/IVault.sol";
 import "./interfaces/IUniswapV3Router.sol";
 import "./interfaces/ICurveV2Pool.sol";
+import "../../interfaces/IAggregatorV3.sol";
+
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -16,48 +18,74 @@ contract Harvester is IHarvester {
     using SafeERC20 for IERC20Metadata;
 
     /*///////////////////////////////////////////////////////////////
-                          GLOBAL IMMUTABLES
+                        GLOBAL CONSTANTS
   //////////////////////////////////////////////////////////////*/
+    /// @notice desired uniswap fee
+    uint24 public constant UNISWAP_FEE = 500;
+    /// @notice the max basis points used as normalizing factor
+    uint256 public constant MAX_BPS = 1000;
+    /// @notice normalization factor for decimals (USD)
+    uint256 public constant USD_NORMALIZATION_FACTOR = 1e8;
+    /// @notice normalization factor for decimals (ETH)
+    uint256 public constant ETH_NORMALIZATION_FACTOR = 1e18;
 
     /// @notice address of crv token
-    IERC20 public immutable override crv =
+    IERC20 public constant override crv =
         IERC20(0xD533a949740bb3306d119CC777fa900bA034cd52);
     /// @notice address of cvx token
-    IERC20 public immutable override cvx =
+    IERC20 public constant override cvx =
         IERC20(0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B);
     /// @notice address of 3CRV LP token
-    IERC20 public immutable override _3crv =
+    IERC20 public constant override _3crv =
         IERC20(0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490);
     /// @notice address of WETH token
-    IERC20 private immutable weth =
+    IERC20 private constant weth =
         IERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
 
     /// @notice address of Curve's CRV/ETH pool
-    ICurveV2Pool private immutable crveth =
+    ICurveV2Pool private constant crveth =
         ICurveV2Pool(0x8301AE4fc9c624d1D396cbDAa1ed877821D7C511);
-
     /// @notice address of Curve's CVX/ETH pool
-    ICurveV2Pool private immutable cvxeth =
+    ICurveV2Pool private constant cvxeth =
         ICurveV2Pool(0xB576491F1E6e5E62f1d8F26062Ee822B40B0E0d4);
-
     /// @notice address of Curve's 3CRV metapool
-    ICurveV2Pool private immutable _3crvPool =
+    ICurveV2Pool private constant _3crvPool =
         ICurveV2Pool(0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7);
-
     /// @notice address of uniswap router
-    IUniswapV3Router private immutable uniswapRouter =
+    IUniswapV3Router private constant uniswapRouter =
         IUniswapV3Router(0xE592427A0AEce92De3Edee1F18E0157C05861564);
+
+    /// @notice chainlink data feed for CRV/ETH
+    IAggregatorV3 public constant crvEthPrice =
+        IAggregatorV3(0x8a12Be339B0cD1829b91Adc01977caa5E9ac121e);
+    /// @notice chainlink data feed for CVX/ETH
+    IAggregatorV3 public constant cvxEthPrice =
+        IAggregatorV3(0x231e764B44b2C1b7Ca171fa8021A24ed520Cde10);
+    /// @notice chainlink data feed for ETH/USD
+    IAggregatorV3 public constant ethUsdPrice =
+        IAggregatorV3(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419);
 
     /*///////////////////////////////////////////////////////////////
                         MUTABLE ACCESS MODFIERS
   //////////////////////////////////////////////////////////////*/
     /// @notice instance of vault
     IVault public override vault;
+    /// @notice maximum acceptable slippage
+    uint256 public maxSlippage = 1000;
 
     /// @notice creates a new Harvester
     /// @param _vault address of vault
     constructor(address _vault) {
         vault = IVault(_vault);
+
+        // max approve CRV to CRV/ETH pool on curve
+        crv.approve(address(crveth), type(uint256).max);
+        // max approve CVX to CVX/ETH pool on curve
+        cvx.approve(address(cvxeth), type(uint256).max);
+        // max approve _3CRV to 3 CRV pool on curve
+        _3crv.approve(address(_3crvPool), type(uint256).max);
+        // max approve WETH to uniswap router
+        weth.approve(address(uniswapRouter), type(uint256).max);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -66,7 +94,7 @@ contract Harvester is IHarvester {
 
     /// @notice Function which returns address of reward tokens
     /// @return rewardTokens array of reward token addresses
-    function rewardTokens() external view override returns (address[] memory) {
+    function rewardTokens() external pure override returns (address[] memory) {
         address[] memory rewards = new address[](3);
         rewards[0] = address(crv);
         rewards[1] = address(cvx);
@@ -77,14 +105,10 @@ contract Harvester is IHarvester {
     /*///////////////////////////////////////////////////////////////
                     KEEPER FUNCTONS
   //////////////////////////////////////////////////////////////*/
-
-    /// @notice Keeper function to max approve all tokens to their respective pools & routers
-    function approve() external override onlyKeeper {
-        // max approve routers
-        crv.approve(address(crveth), type(uint256).max);
-        cvx.approve(address(cvxeth), type(uint256).max);
-        weth.approve(address(uniswapRouter), type(uint256).max);
-        _3crv.approve(address(_3crvPool), type(uint256).max);
+    /// @notice Keeper function to set maximum slippage
+    /// @param _slippage new maximum slippage
+    function setSlippage(uint256 _slippage) external override onlyKeeper {
+        maxSlippage = _slippage;
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -111,27 +135,46 @@ contract Harvester is IHarvester {
         uint256 _3crvBalance = _3crv.balanceOf(address(this));
         // swap convex to eth
         if (cvxBalance > 0) {
-            cvxeth.exchange(1, 0, cvxBalance, 0, false);
+            uint256 expectedOut = (_getPrice(crvEthPrice) * crvBalance) /
+                ETH_NORMALIZATION_FACTOR;
+            cvxeth.exchange(
+                1,
+                0,
+                cvxBalance,
+                _getMinReceived(expectedOut),
+                false
+            );
         }
         // swap crv to eth
         if (crv.balanceOf(address(this)) > 0) {
-            crveth.exchange(1, 0, crvBalance, 0, false);
+            uint256 expectedOut = (_getPrice(crvEthPrice) * crvBalance) /
+                ETH_NORMALIZATION_FACTOR;
+            crveth.exchange(
+                1,
+                0,
+                crvBalance,
+                _getMinReceived(expectedOut),
+                false
+            );
         }
         uint256 wethBalance = weth.balanceOf(address(this));
 
         // swap eth to USDC using 0.5% pool
         if (wethBalance > 0) {
+            uint256 expectedOut = (_getPrice(ethUsdPrice) * wethBalance) /
+                ETH_NORMALIZATION_FACTOR;
+
             uniswapRouter.exactInput(
                 IUniswapV3Router.ExactInputParams(
                     abi.encodePacked(
                         address(weth),
-                        uint24(500),
+                        uint24(UNISWAP_FEE),
                         address(vault.wantToken())
                     ),
                     address(this),
                     block.timestamp,
                     wethBalance,
-                    0
+                    _getMinReceived(expectedOut)
                 )
             );
         }
@@ -146,6 +189,22 @@ contract Harvester is IHarvester {
             msg.sender,
             IERC20(vault.wantToken()).balanceOf(address(this))
         );
+    }
+
+    /// @notice helper to get price of tokens in ETH, from chainlink
+    /// @param priceFeed the price feed to fetch latest price from
+    function _getPrice(IAggregatorV3 priceFeed)
+        internal
+        view
+        returns (uint256)
+    {
+        (, int256 latestPrice, , , ) = priceFeed.latestRoundData();
+        return (uint256(latestPrice) / 10**priceFeed.decimals());
+    }
+
+    /// @notice helper to get minimum amount to receive from swap
+    function _getMinReceived(uint256 amount) internal view returns (uint256) {
+        return (amount * maxSlippage) / MAX_BPS;
     }
 
     /*///////////////////////////////////////////////////////////////
