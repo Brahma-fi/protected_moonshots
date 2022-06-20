@@ -24,8 +24,6 @@ contract Harvester is IHarvester {
     uint24 public constant UNISWAP_FEE = 500;
     /// @notice the max basis points used as normalizing factor
     uint256 public constant MAX_BPS = 1000;
-    /// @notice maximum acceptable slippage
-    uint256 public constant MAX_SLIPPAGE = 500;
     /// @notice normalization factor for decimals
     uint256 public constant USD_NORMALIZATION_FACTOR = 1e8;
     /// @notice normalization factor for decimals
@@ -72,6 +70,8 @@ contract Harvester is IHarvester {
   //////////////////////////////////////////////////////////////*/
     /// @notice instance of vault
     IVault public override vault;
+    /// @notice maximum acceptable slippage
+    uint256 public maxSlippage = 500;
 
     /// @notice creates a new Harvester
     /// @param _vault address of vault
@@ -103,6 +103,11 @@ contract Harvester is IHarvester {
     /*///////////////////////////////////////////////////////////////
                     KEEPER FUNCTONS
   //////////////////////////////////////////////////////////////*/
+    /// @notice Keeper function to set maximum slippage
+    /// @param _slippage new maximum slippage
+    function setSlippage(uint256 _slippage) external override onlyKeeper {
+        maxSlippage = _slippage;
+    }
 
     /*///////////////////////////////////////////////////////////////
                       GOVERNANCE FUNCTIONS
@@ -167,7 +172,7 @@ contract Harvester is IHarvester {
                     block.timestamp,
                     wethBalance,
                     (((_getPrice(ethUsdPrice) * wethBalance) /
-                        ETH_NORMALIZATION_FACTOR) * MAX_SLIPPAGE) / MAX_BPS
+                        ETH_NORMALIZATION_FACTOR) * maxSlippage) / MAX_BPS
                 )
             );
         }
@@ -196,8 +201,8 @@ contract Harvester is IHarvester {
     }
 
     /// @notice helper to get minimum amount to receive from swap
-    function _getMinReceived(uint256 amount) internal pure returns (uint256) {
-        return (amount * MAX_SLIPPAGE) / MAX_BPS;
+    function _getMinReceived(uint256 amount) internal view returns (uint256) {
+        return (amount * maxSlippage) / MAX_BPS;
     }
 
     /*///////////////////////////////////////////////////////////////
