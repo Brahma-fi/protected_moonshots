@@ -5,6 +5,8 @@ import "./interfaces/IHarvester.sol";
 import "../../interfaces/IVault.sol";
 import "./interfaces/IUniswapV3Router.sol";
 import "./interfaces/ICurveV2Pool.sol";
+import "../../interfaces/IAggregatorV3.sol";
+
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
@@ -18,6 +20,16 @@ contract Harvester is IHarvester {
     /*///////////////////////////////////////////////////////////////
                         GLOBAL CONSTANTS
   //////////////////////////////////////////////////////////////*/
+    /// @notice desired uniswap fee
+    uint24 public constant UNISWAP_FEE = 500;
+    /// @notice the max basis points used as normalizing factor
+    uint256 public constant MAX_BPS = 1000;
+    /// @notice maximum acceptable slippage
+    uint256 public constant MAX_SLIPPAGE = 500;
+    /// @notice normalization factor for decimals
+    uint256 public constant USD_NORMALIZATION_FACTOR = 1e8;
+    /// @notice normalization factor for decimals
+    uint256 public constant ETH_NORMALIZATION_FACTOR = 1e18;
 
     /// @notice address of crv token
     IERC20 public constant override crv =
@@ -35,18 +47,25 @@ contract Harvester is IHarvester {
     /// @notice address of Curve's CRV/ETH pool
     ICurveV2Pool private constant crveth =
         ICurveV2Pool(0x8301AE4fc9c624d1D396cbDAa1ed877821D7C511);
-
     /// @notice address of Curve's CVX/ETH pool
     ICurveV2Pool private constant cvxeth =
         ICurveV2Pool(0xB576491F1E6e5E62f1d8F26062Ee822B40B0E0d4);
-
     /// @notice address of Curve's 3CRV metapool
     ICurveV2Pool private constant _3crvPool =
         ICurveV2Pool(0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7);
-
     /// @notice address of uniswap router
     IUniswapV3Router private constant uniswapRouter =
         IUniswapV3Router(0xE592427A0AEce92De3Edee1F18E0157C05861564);
+
+    /// @notice chainlink data feed for CRV/USD
+    IAggregatorV3 public constant crvUsdPrice =
+        IAggregatorV3(0xCd627aA160A6fA45Eb793D19Ef54f5062F20f33f);
+    /// @notice chainlink data feed for CVX/USD
+    IAggregatorV3 public constant cvxUsdPrice =
+        IAggregatorV3(0xd962fC30A72A84cE50161031391756Bf2876Af5D);
+    /// @notice chainlink data feed for LDO/USD
+    IAggregatorV3 public constant ethUsdPrice =
+        IAggregatorV3(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419);
 
     /*///////////////////////////////////////////////////////////////
                         MUTABLE ACCESS MODFIERS
@@ -109,11 +128,29 @@ contract Harvester is IHarvester {
         uint256 _3crvBalance = _3crv.balanceOf(address(this));
         // swap convex to eth
         if (cvxBalance > 0) {
-            cvxeth.exchange(1, 0, cvxBalance, 0, false);
+            uint256 expectedEth = (cvxBalance * _getPrice(cvxUsdPrice)) /
+                USD_NORMALIZATION_FACTOR;
+
+            cvxeth.exchange(
+                1,
+                0,
+                cvxBalance,
+                _getMinReceived(expectedEth),
+                false
+            );
         }
         // swap crv to eth
         if (crv.balanceOf(address(this)) > 0) {
-            crveth.exchange(1, 0, crvBalance, 0, false);
+            uint256 expectedEth = (crvBalance * _getPrice(crvUsdPrice)) /
+                USD_NORMALIZATION_FACTOR;
+
+            crveth.exchange(
+                1,
+                0,
+                crvBalance,
+                _getMinReceived(expectedEth),
+                false
+            );
         }
         uint256 wethBalance = weth.balanceOf(address(this));
 
@@ -123,13 +160,14 @@ contract Harvester is IHarvester {
                 IUniswapV3Router.ExactInputParams(
                     abi.encodePacked(
                         address(weth),
-                        uint24(500),
+                        uint24(UNISWAP_FEE),
                         address(vault.wantToken())
                     ),
                     address(this),
                     block.timestamp,
                     wethBalance,
-                    0
+                    (((_getPrice(ethUsdPrice) * wethBalance) /
+                        ETH_NORMALIZATION_FACTOR) * MAX_SLIPPAGE) / MAX_BPS
                 )
             );
         }
@@ -144,6 +182,22 @@ contract Harvester is IHarvester {
             msg.sender,
             IERC20(vault.wantToken()).balanceOf(address(this))
         );
+    }
+
+    /// @notice helper to get price of tokens from chainlink
+    /// @param priceFeed the price feed to fetch latest price from
+    function _getPrice(IAggregatorV3 priceFeed)
+        internal
+        view
+        returns (uint256)
+    {
+        (, int256 latestPrice, , , ) = priceFeed.latestRoundData();
+        return uint256(latestPrice);
+    }
+
+    /// @notice helper to get minimum amount to receive from swap
+    function _getMinReceived(uint256 amount) internal pure returns (uint256) {
+        return (amount * MAX_SLIPPAGE) / MAX_BPS;
     }
 
     /*///////////////////////////////////////////////////////////////
