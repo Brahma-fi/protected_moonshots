@@ -71,7 +71,7 @@ contract Harvester is IHarvester {
     /// @notice instance of vault
     IVault public override vault;
     /// @notice maximum acceptable slippage
-    uint256 public maxSlippage = 500;
+    uint256 public maxSlippage = 1000;
 
     /// @notice creates a new Harvester
     /// @param _vault address of vault
