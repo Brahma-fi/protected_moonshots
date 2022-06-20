@@ -39,11 +39,43 @@ contract PerpPositionHandlerL2 is
     /// @notice Keeper address
     address public keeper;
 
-    /// @notice Strategist address
-    address public strategist;
+    /// @notice Governance address
+    address public governance;
+
+    address public pendingGovernance;
 
     /// @notice Details of current position on Perp
     PerpPosition public perpPosition;
+
+    /*///////////////////////////////////////////////////////////////
+                            EVENT LOGS
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice Emitted when keeper is updated.
+    /// @param oldKeeper The address of the current keeper.
+    /// @param newKeeper The address of new keeper.
+    event UpdatedKeeper(address indexed oldKeeper, address indexed newKeeper);
+
+    /// @notice Emitted when governance is updated.
+    /// @param oldGovernance The address of the current governance.
+    /// @param newGovernance The address of new governance.
+    event UpdatedGovernance(
+        address indexed oldGovernance,
+        address indexed newGovernance
+    );
+
+    /// @notice Emitted when socket registry is updated.
+    /// @param oldRegistry The address of the current Registry.
+    /// @param newRegistry The address of new Registry.
+    event UpdatedSocketRegistry(
+        address indexed oldRegistry,
+        address indexed newRegistry
+    );
+
+    /// @notice Emitted when Perp V2 referral code is updated.
+    /// @param oldReferral Old Perp V2 Referral code
+    /// @param newReferral New Perp V2 Referral code
+    event UpdatedPerpReferral(bytes32 oldReferral, bytes32 newReferral);
 
     /*///////////////////////////////////////////////////////////////
                             INITIALIZING
@@ -60,7 +92,7 @@ contract PerpPositionHandlerL2 is
         address _baseToken,
         address _quoteTokenvUSDC,
         address _keeper,
-        address _strategist,
+        address _governance,
         address _socketRegistry
     ) {
         wantTokenL1 = _wantTokenL1;
@@ -74,7 +106,7 @@ contract PerpPositionHandlerL2 is
         baseToken = IERC20(_baseToken);
         quoteTokenvUSDC = IERC20(_quoteTokenvUSDC);
         keeper = _keeper;
-        strategist = _strategist;
+        governance = _governance;
         socketRegistry = _socketRegistry;
     }
 
@@ -153,7 +185,7 @@ contract PerpPositionHandlerL2 is
 
     /// @notice Sweep tokens
     /// @param _token Address of the token to sweepr
-    function sweep(address _token) public override onlyStrategist {
+    function sweep(address _token) public override onlyGovernance {
         IERC20(_token).transfer(
             msg.sender,
             IERC20(_token).balanceOf(address(this))
@@ -162,26 +194,36 @@ contract PerpPositionHandlerL2 is
 
     /// @notice referral code setter
     /// @param _referralCode updated referral code
-    function setReferralCode(bytes32 _referralCode) public onlyStrategist {
+    function setReferralCode(bytes32 _referralCode) public onlyGovernance {
+        emit UpdatedPerpReferral(referralCode, _referralCode);
         referralCode = _referralCode;
     }
 
     /// @notice socket registry setter
     /// @param _socketRegistry new address of socket registry
-    function setSocketRegistry(address _socketRegistry) public onlyStrategist {
+    function setSocketRegistry(address _socketRegistry) public onlyGovernance {
+        emit UpdatedSocketRegistry(socketRegistry, _socketRegistry);
         socketRegistry = _socketRegistry;
     }
 
     /// @notice keeper setter
     /// @param _keeper new keeper address
-    function setKeeper(address _keeper) public onlyStrategist {
+    function setKeeper(address _keeper) public onlyGovernance {
+        emit UpdatedKeeper(keeper, _keeper);
         keeper = _keeper;
     }
 
-    /// @notice strategist setter
-    /// @param _strategist new strategist address
-    function setStrategist(address _strategist) public onlyStrategist {
-        strategist = _strategist;
+    /// @notice governance setter
+    /// @param _newGovernance new governance address
+    function setGovernance(address _newGovernance) public onlyGovernance {
+        pendingGovernance = _newGovernance;
+    }
+
+    /// @notice governance accepter
+    function acceptGovernance() public {
+        emit UpdatedGovernance(governance, pendingGovernance);
+        require(msg.sender == pendingGovernance, "INVALID_ADDRESS");
+        governance = pendingGovernance;
     }
 
     /// @notice checks wether txn sender is keeper address or PerpTradeExecutor using optimism gateway
@@ -194,9 +236,15 @@ contract PerpPositionHandlerL2 is
         _;
     }
 
-    /// @notice checks wether txn sender is strategist address
-    modifier onlyStrategist() {
-        require(msg.sender == strategist, "ONLY_STRATEGIST");
+    /// @notice checks wether txn sender is keeper address
+    modifier onlyKeeper() {
+        require(msg.sender == keeper, "ONLY_KEEPER");
+        _;
+    }
+
+    /// @notice checks wether txn sender is governance address
+    modifier onlyGovernance() {
+        require(msg.sender == governance, "ONLY_GOVERNANCE");
         _;
     }
 }

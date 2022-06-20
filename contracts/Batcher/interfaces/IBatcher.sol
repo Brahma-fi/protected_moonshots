@@ -11,6 +11,7 @@ interface IBatcher {
     /// @param vaultAddress Address of the vault
     /// @param tokenAddress Address vault's want token
     /// @param maxAmount Max amount of tokens to deposit in vault
+    /// @param currentAmount Current amount of wantTokens deposited in the vault
     struct VaultInfo {
         address vaultAddress;
         address tokenAddress;
@@ -51,6 +52,16 @@ interface IBatcher {
         uint256 amountOut
     );
 
+    /// @notice Withdraw rescinded/cancelled event
+    /// @param sender Address of the withdawer
+    /// @param vault Address of the vault
+    /// @param amountCancelled Amount requested to be cancelled
+    event WithdrawRescinded(
+        address indexed sender,
+        address indexed vault,
+        uint256 amountCancelled
+    );
+
     /// @notice Batch Deposit event
     /// @param amountIn Tokens deposited
     /// @param totalUsers Total number of users in the batch
@@ -79,16 +90,28 @@ interface IBatcher {
         address indexed newVerificationAuthority
     );
 
+    /// @notice Vault limit update event
+    /// @param vaultAddress address of vault
+    /// @param oldMaxAmount old vault max deposit limit
+    /// @param newMaxAmount new vault max deposit limit
+    event VaultLimitUpdated(
+        address indexed vaultAddress,
+        uint256 oldMaxAmount,
+        uint256 newMaxAmount
+    );
+
     function depositFunds(
         uint256 amountIn,
         bytes memory signature,
         address recipient,
-        PermitParams memory permit
+        PermitParams memory params
     ) external;
 
     function claimTokens(uint256 amount, address recipient) external;
 
     function initiateWithdrawal(uint256 amountIn) external;
+
+    function cancelWithdrawal(uint256 amountIn) external;
 
     function completeWithdrawal(uint256 amountOut, address recipient) external;
 
