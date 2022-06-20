@@ -18,6 +18,20 @@ interface IBatcher {
         uint256 maxAmount;
     }
 
+    /// @notice PermitParams to provide permit for want token deposit approval
+    /// @param value Amount of want tokens to approve
+    /// @param deadline unix timestamp of permit validity
+    /// @param v signarure param
+    /// @param r signarure param
+    /// @param s signarure param
+    struct PermitParams {
+        uint256 value;
+        uint256 deadline;
+        uint8 v;
+        bytes32 r;
+        bytes32 s;
+    }
+
     /// @notice Deposit event
     /// @param sender Address of the depositor
     /// @param vault Address of the vault
@@ -36,6 +50,16 @@ interface IBatcher {
         address indexed sender,
         address indexed vault,
         uint256 amountOut
+    );
+
+    /// @notice Withdraw rescinded/cancelled event
+    /// @param sender Address of the withdawer
+    /// @param vault Address of the vault
+    /// @param amountCancelled Amount requested to be cancelled
+    event WithdrawRescinded(
+        address indexed sender,
+        address indexed vault,
+        uint256 amountCancelled
     );
 
     /// @notice Batch Deposit event
@@ -66,11 +90,28 @@ interface IBatcher {
         address indexed newVerificationAuthority
     );
 
-    function depositFunds(uint256 amountIn, bytes memory signature, address recipient) external;
+    /// @notice Vault limit update event
+    /// @param vaultAddress address of vault
+    /// @param oldMaxAmount old vault max deposit limit
+    /// @param newMaxAmount new vault max deposit limit
+    event VaultLimitUpdated(
+        address indexed vaultAddress,
+        uint256 oldMaxAmount,
+        uint256 newMaxAmount
+    );
+
+    function depositFunds(
+        uint256 amountIn,
+        bytes memory signature,
+        address recipient,
+        PermitParams memory params
+    ) external;
 
     function claimTokens(uint256 amount, address recipient) external;
 
     function initiateWithdrawal(uint256 amountIn) external;
+
+    function cancelWithdrawal(uint256 amountIn) external;
 
     function completeWithdrawal(uint256 amountOut, address recipient) external;
 

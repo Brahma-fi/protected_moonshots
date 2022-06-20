@@ -23,7 +23,6 @@ library AddrArrayLib {
     /**
      * @notice remove an address from the array
      * @dev finds the element, swaps it with the last element, and then deletes it;
-     *      returns a boolean whether the element was found and deleted
      * @param self Storage array containing address type variables
      * @param element the element to remove from the array
      */

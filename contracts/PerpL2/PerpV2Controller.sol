@@ -221,6 +221,8 @@ contract PerpV2Controller {
         uint256 amountOut = (posValue < 0)
             ? uint256(-1 * posValue)
             : uint256(posValue);
-        return amountOut.div(1e12);
+        return
+            amountOut.div(1e12) +
+            IERC20(perpVault.getSettlementToken()).balanceOf(address(this));
     }
 }
