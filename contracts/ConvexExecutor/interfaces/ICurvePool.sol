@@ -16,7 +16,7 @@ interface ICurvePool {
         uint256 min_amount
     ) external returns (uint256);
 
-    function add_liquidity(uint256[3] memory amounts, uint256 min_mint_amount)
+    function add_liquidity(uint256[4] memory amounts, uint256 min_mint_amount)
         external
         returns (uint256);
 
@@ -25,6 +25,11 @@ interface ICurvePool {
         int128 j,
         uint256 _dx
     ) external view returns (uint256);
+
+    function calc_token_amount(uint256[4] memory _amounts, bool _is_deposit)
+        external
+        view
+        returns (uint256);
 
     function get_virtual_price() external view returns (uint256);
 
