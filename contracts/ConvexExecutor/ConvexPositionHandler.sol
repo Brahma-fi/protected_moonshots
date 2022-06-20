@@ -309,7 +309,7 @@ contract ConvexPositionHandler is BasePositionHandler {
             uint256 yieldEarned = (currentSharePrice - prevSharePrice) *
                 totalLpBalance;
 
-            uint256 lpTokenEarned = yieldEarned / 1e18; // 18 decimal from virtual price
+            uint256 lpTokenEarned = yieldEarned / currentSharePrice;
 
             // If lpTokenEarned is more than lpToken balance in contract, unstake the difference
             if (lpTokenEarned > contractLpTokenBalance) {
