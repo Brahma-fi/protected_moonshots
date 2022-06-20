@@ -125,6 +125,12 @@ contract Vault is IVault, ERC20Permit, ReentrancyGuard {
         amountOut = (sharesIn * totalVaultFunds()) / totalSupply();
         // burn shares of msg.sender
         _burn(msg.sender, sharesIn);
+        /// charging exitFee
+        if (exitFee > 0) {
+            uint256 fee = (amountOut * exitFee) / MAX_BPS;
+            IERC20(wantToken).transfer(governance, fee);
+            amountOut = amountOut - fee;
+        }
         IERC20(wantToken).safeTransfer(receiver, amountOut);
     }
 
@@ -133,6 +139,54 @@ contract Vault is IVault, ERC20Permit, ReentrancyGuard {
     function totalVaultFunds() public view returns (uint256) {
         return
             IERC20(wantToken).balanceOf(address(this)) + totalExecutorFunds();
+    }
+
+    /*///////////////////////////////////////////////////////////////
+                    EXECUTOR DEPOSIT/WITHDRAWAL LOGIC
+    //////////////////////////////////////////////////////////////*/
+
+    /// @notice list of trade executors connected to vault.
+    AddrArrayLib.Addresses tradeExecutorsList;
+
+    /// @notice Emitted after the vault deposits into a executor contract.
+    /// @param executor The executor that was deposited into.
+    /// @param underlyingAmount The amount of underlying tokens that were deposited.
+    event ExecutorDeposit(address indexed executor, uint256 underlyingAmount);
+
+    /// @notice Emitted after the vault withdraws funds from a executor contract.
+    /// @param executor The executor that was withdrawn from.
+    /// @param underlyingAmount The amount of underlying tokens that were withdrawn.
+    event ExecutorWithdrawal(
+        address indexed executor,
+        uint256 underlyingAmount
+    );
+
+    /// @notice Deposit given amount of want tokens into valid executor.
+    /// @param _executor The executor to deposit into.
+    /// @param _amount The amount of want tokens to deposit.
+    function depositIntoExecutor(address _executor, uint256 _amount)
+        public
+        nonReentrant
+    {
+        isActiveExecutor(_executor);
+        onlyKeeper();
+        require(_amount > 0, "ZERO_AMOUNT");
+        IERC20(wantToken).safeTransfer(_executor, _amount);
+        emit ExecutorDeposit(_executor, _amount);
+    }
+
+    /// @notice Withdraw given amount of want tokens into valid executor.
+    /// @param _executor The executor to withdraw tokens from.
+    /// @param _amount The amount of want tokens to withdraw.
+    function withdrawFromExecutor(address _executor, uint256 _amount)
+        public
+        nonReentrant
+    {
+        isActiveExecutor(_executor);
+        onlyKeeper();
+        require(_amount > 0, "ZERO_AMOUNT");
+        IERC20(wantToken).safeTransferFrom(_executor, address(this), _amount);
+        emit ExecutorWithdrawal(_executor, _amount);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -230,54 +284,6 @@ contract Vault is IVault, ERC20Permit, ReentrancyGuard {
         prevVaultFunds = totalVaultFunds();
         // update lastReportedTime after fees are collected.
         lastReportedTime = block.timestamp;
-    }
-
-    /*///////////////////////////////////////////////////////////////
-                    EXECUTOR DEPOSIT/WITHDRAWAL LOGIC
-    //////////////////////////////////////////////////////////////*/
-
-    /// @notice list of trade executors connected to vault.
-    AddrArrayLib.Addresses tradeExecutorsList;
-
-    /// @notice Emitted after the vault deposits into a executor contract.
-    /// @param executor The executor that was deposited into.
-    /// @param underlyingAmount The amount of underlying tokens that were deposited.
-    event ExecutorDeposit(address indexed executor, uint256 underlyingAmount);
-
-    /// @notice Emitted after the vault withdraws funds from a executor contract.
-    /// @param executor The executor that was withdrawn from.
-    /// @param underlyingAmount The amount of underlying tokens that were withdrawn.
-    event ExecutorWithdrawal(
-        address indexed executor,
-        uint256 underlyingAmount
-    );
-
-    /// @notice Deposit given amount of want tokens into valid executor.
-    /// @param _executor The executor to deposit into.
-    /// @param _amount The amount of want tokens to deposit.
-    function depositIntoExecutor(address _executor, uint256 _amount)
-        public
-        nonReentrant
-    {
-        isActiveExecutor(_executor);
-        onlyKeeper();
-        require(_amount > 0, "ZERO_AMOUNT");
-        IERC20(wantToken).safeTransfer(_executor, _amount);
-        emit ExecutorDeposit(_executor, _amount);
-    }
-
-    /// @notice Withdraw given amount of want tokens into valid executor.
-    /// @param _executor The executor to withdraw tokens from.
-    /// @param _amount The amount of want tokens to withdraw.
-    function withdrawFromExecutor(address _executor, uint256 _amount)
-        public
-        nonReentrant
-    {
-        isActiveExecutor(_executor);
-        onlyKeeper();
-        require(_amount > 0, "ZERO_AMOUNT");
-        IERC20(wantToken).safeTransferFrom(_executor, address(this), _amount);
-        emit ExecutorWithdrawal(_executor, _amount);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -412,16 +418,17 @@ contract Vault is IVault, ERC20Permit, ReentrancyGuard {
     }
 
     /// @notice Emitted when keeper is updated.
-    /// @param keeper The address of the new keeper.
-    event UpdatedKeeper(address indexed keeper);
+    /// @param oldKeeper The address of the old keeper.
+    /// @param newKeeper The address of the new keeper.
+    event UpdatedKeeper(address indexed oldKeeper, address indexed newKeeper);
 
     /// @notice Sets new keeper address.
     /// @dev  This can only be called by governance.
     /// @param _keeper The address of new keeper.
     function setKeeper(address _keeper) public {
         onlyGovernance();
+        emit UpdatedKeeper(keeper, _keeper);
         keeper = _keeper;
-        emit UpdatedKeeper(_keeper);
     }
 
     /// @notice Emitted when emergencyMode status is updated.
