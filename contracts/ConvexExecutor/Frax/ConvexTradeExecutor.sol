@@ -1,13 +1,16 @@
 //SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.8.0;
 
-import "./BaseTradeExecutor.sol";
-import {ConvexPositionHandler} from "./ConvexExecutor/ConvexPositionHandler.sol";
+import "../../BaseTradeExecutor.sol";
+import {ConvexPositionHandler} from "./ConvexPositionHandler.sol";
 
 /// @title ConvexTradeExecutor
 /// @author PradeepSelva
 /// @notice A contract to execute strategy's trade, on Convex
-contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
+contract ConvexFraxPoolTradeExecutor is
+    BaseTradeExecutor,
+    ConvexPositionHandler
+{
     /// @notice event emitted when harvester is updated
     event UpdatedHarvester(
         address indexed oldHandler,

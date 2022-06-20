@@ -2,14 +2,14 @@
 pragma solidity ^0.8.0;
 pragma abicoder v2;
 
-import "../../interfaces/BasePositionHandler.sol";
-import "../../library/Math.sol";
+import "../../../interfaces/BasePositionHandler.sol";
+import "../../../library/Math.sol";
 
-import "./interfaces/IConvexRewards.sol";
-import "./interfaces/IConvexBooster.sol";
-import "./interfaces/ICurvePool.sol";
-import "./interfaces/ICurveDepositZapper.sol";
-import "./interfaces/IHarvester.sol";
+import "../interfaces/IConvexRewards.sol";
+import "../interfaces/IConvexBooster.sol";
+import "../interfaces/ICurvePool.sol";
+import "../interfaces/ICurveDepositZapper.sol";
+import "../interfaces/IHarvester.sol";
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";

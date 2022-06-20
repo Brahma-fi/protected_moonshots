@@ -1,11 +1,11 @@
 /// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
-import "./interfaces/IHarvester.sol";
-import "../../interfaces/IVault.sol";
-import "./interfaces/IUniswapV3Router.sol";
-import "./interfaces/ICurveV2Pool.sol";
-import "../../interfaces/IAggregatorV3.sol";
+import "../interfaces/IHarvester.sol";
+import "../interfaces/IUniswapV3Router.sol";
+import "../interfaces/ICurveV2Pool.sol";
+import "../../../interfaces/IVault.sol";
+import "../../../interfaces/IAggregatorV3.sol";
 
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
