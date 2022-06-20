@@ -26,8 +26,10 @@ contract Harvester is IHarvester {
     uint24 public constant UNISWAP_FEE = 500;
     /// @notice the max basis points used as normalizing factor
     uint256 public constant MAX_BPS = 1000;
-    /// @notice normalization factor for decimals
-    uint256 public constant NORMALIZATION_FACTOR = 1e8;
+    /// @notice normalization factor for decimals (USD)
+    uint256 public constant USD_NORMALIZATION_FACTOR = 1e8;
+    /// @notice normalization factor for decimals (ETH)
+    uint256 public constant ETH_NORMALIZATION_FACTOR = 1e18;
 
     /// @notice address of crv token
     IERC20 public constant override crv =
@@ -55,12 +57,12 @@ contract Harvester is IHarvester {
     IUniswapV3Router private constant uniswapRouter =
         IUniswapV3Router(0xE592427A0AEce92De3Edee1F18E0157C05861564);
 
-    /// @notice chainlink data feed for CRV/USD
-    IAggregatorV3 public constant crvUsdPrice =
-        IAggregatorV3(0xCd627aA160A6fA45Eb793D19Ef54f5062F20f33f);
-    /// @notice chainlink data feed for CVX/USD
-    IAggregatorV3 public constant cvxUsdPrice =
-        IAggregatorV3(0xd962fC30A72A84cE50161031391756Bf2876Af5D);
+    /// @notice chainlink data feed for CRV/ETH
+    IAggregatorV3 public constant crvEthPrice =
+        IAggregatorV3(0x8a12Be339B0cD1829b91Adc01977caa5E9ac121e);
+    /// @notice chainlink data feed for CVX/ETH
+    IAggregatorV3 public constant cvxEthPrice =
+        IAggregatorV3(0x231e764B44b2C1b7Ca171fa8021A24ed520Cde10);
     /// @notice chainlink data feed for ETH/USD
     IAggregatorV3 public constant ethUsdPrice =
         IAggregatorV3(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419);
@@ -135,21 +137,25 @@ contract Harvester is IHarvester {
         uint256 _3crvBalance = _3crv.balanceOf(address(this));
         // swap convex to eth
         if (cvxBalance > 0) {
+            uint256 expectedOut = (_getPrice(crvEthPrice) * crvBalance) /
+                ETH_NORMALIZATION_FACTOR;
             cvxeth.exchange(
                 1,
                 0,
                 cvxBalance,
-                _getMinReceived(_getPriceInUSD(cvxBalance, cvxUsdPrice)),
+                _getMinReceived(expectedOut),
                 false
             );
         }
         // swap crv to eth
         if (crv.balanceOf(address(this)) > 0) {
+            uint256 expectedOut = (_getPrice(crvEthPrice) * crvBalance) /
+                ETH_NORMALIZATION_FACTOR;
             crveth.exchange(
                 1,
                 0,
                 crvBalance,
-                _getMinReceived(_getPriceInUSD(crvBalance, crvUsdPrice)),
+                _getMinReceived(expectedOut),
                 false
             );
         }
@@ -157,6 +163,10 @@ contract Harvester is IHarvester {
 
         // swap eth to USDC using 0.5% pool
         if (wethBalance > 0) {
+            uint256 expectedOut = (_getPrice(ethUsdPrice) * wethBalance) /
+                ETH_NORMALIZATION_FACTOR;
+
+            console.log("weth:", wethBalance, _getMinReceived(expectedOut));
             uniswapRouter.exactInput(
                 IUniswapV3Router.ExactInputParams(
                     abi.encodePacked(
@@ -167,7 +177,7 @@ contract Harvester is IHarvester {
                     address(this),
                     block.timestamp,
                     wethBalance,
-                    _getMinReceived(_getPriceInUSD(wethBalance, ethUsdPrice))
+                    _getMinReceived(expectedOut)
                 )
             );
         }
@@ -185,15 +195,14 @@ contract Harvester is IHarvester {
     }
 
     /// @notice helper to get price of tokens in ETH, from chainlink
-    /// @param amount the amount of tokens to get in terms of ETH
     /// @param priceFeed the price feed to fetch latest price from
-    function _getPriceInUSD(uint256 amount, IAggregatorV3 priceFeed)
+    function _getPrice(IAggregatorV3 priceFeed)
         internal
         view
         returns (uint256)
     {
         (, int256 latestPrice, , , ) = priceFeed.latestRoundData();
-        return (uint256(latestPrice) * amount) / NORMALIZATION_FACTOR;
+        return (uint256(latestPrice) / 10**priceFeed.decimals());
     }
 
     /// @notice helper to get minimum amount to receive from swap
