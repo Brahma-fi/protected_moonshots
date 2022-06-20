@@ -35,7 +35,7 @@ const buildForkConfig = (): HardhatNetworkForkingUserConfig => {
   } else {
     forkMode = {
       url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}`,
-      blockNumber: Number(process.env.BLOCK_NUMBER),
+      // blockNumber: Number(process.env.BLOCK_NUMBER),
     };
   }
   return forkMode;

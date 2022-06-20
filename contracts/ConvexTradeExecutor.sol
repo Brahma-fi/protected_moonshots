@@ -7,10 +7,7 @@ import {ConvexPositionHandler} from "./ConvexExecutor/ConvexPositionHandler.sol"
 /// @title ConvexTradeExecutor
 /// @author PradeepSelva
 /// @notice A contract to execute strategy's trade, on Convex
-contract ConvexFraxPoolTradeExecutor is
-    BaseTradeExecutor,
-    ConvexPositionHandler
-{
+contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
     /// @notice event emitted when harvester is updated
     event UpdatedHarvester(
         address indexed oldHandler,

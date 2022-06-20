@@ -10,7 +10,7 @@ import {
   Vault,
   IConvexRewards,
   IERC20,
-  ConvexFraxPoolTradeExecutor,
+  ConvexTradeExecutor,
 } from "../../src/types";
 import {
   getERC20ContractAt,
@@ -36,7 +36,7 @@ const CRVETH = "0x8301AE4fc9c624d1D396cbDAa1ed877821D7C511";
 const CVXETH = "0xB576491F1E6e5E62f1d8F26062Ee822B40B0E0d4";
 const _3CRVPOOL = "0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7";
 
-let convexTradeExecutor: ConvexFraxPoolTradeExecutor;
+let convexTradeExecutor: ConvexTradeExecutor;
 let harvester: Harvester;
 let vault: Vault;
 let baseRewardPool: IConvexRewards;
@@ -54,7 +54,7 @@ let governance: SignerWithAddress,
 
 const deploy = async () => {
   const convexTradeExecutorFactory = await ethers.getContractFactory(
-    "ConvexFraxPoolTradeExecutor"
+    "ConvexTradeExecutor"
   );
   const HarvesterFactory = await ethers.getContractFactory("Harvester");
   const vaultFactory = await ethers.getContractFactory("Vault", signer);
@@ -94,7 +94,7 @@ const deploy = async () => {
 
   convexTradeExecutor = (await convexTradeExecutorFactory
     .connect(keeper)
-    .deploy(harvester.address, vault.address)) as ConvexFraxPoolTradeExecutor;
+    .deploy(harvester.address, vault.address)) as ConvexTradeExecutor;
   // set slippage as 0.1%
   await convexTradeExecutor.connect(governance).setSlippage(BigNumber.from(10));
 };
@@ -185,7 +185,6 @@ describe("Convex Trade Executor Frax [MAINNET]", function () {
   });
 
   it("Should setup harvester correctly and initialize on handler", async () => {
-    await harvester.connect(signer).approve();
     expect((await CRV.allowance(harvester.address, CRVETH)).toString()).equals(
       MAX_INT
     );
