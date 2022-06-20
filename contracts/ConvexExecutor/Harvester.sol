@@ -10,6 +10,8 @@ import "../../interfaces/IAggregatorV3.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import "hardhat/console.sol";
+
 /// @title Harvester
 /// @author PradeepSelva
 /// @notice A contract to harvest rewards from Convex staking position into Want TOken
@@ -80,6 +82,8 @@ contract Harvester is IHarvester {
         crv.approve(address(crveth), type(uint256).max);
         // max approve CVX to CVX/ETH pool on curve
         cvx.approve(address(cvxeth), type(uint256).max);
+        // max approve _3CRV to 3 CRV pool on curve
+        _3crv.approve(address(_3crvPool), type(uint256).max);
         // max approve WETH to uniswap router
         weth.approve(address(uniswapRouter), type(uint256).max);
     }
