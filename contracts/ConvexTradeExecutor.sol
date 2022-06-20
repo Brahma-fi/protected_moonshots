@@ -8,6 +8,17 @@ import {ConvexPositionHandler} from "./ConvexExecutor/ConvexPositionHandler.sol"
 /// @author PradeepSelva
 /// @notice A contract to execute strategy's trade, on Convex
 contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
+    /// @notice event emitted when harvester is updated
+    event UpdatedHarvester(
+        address indexed oldHandler,
+        address indexed newHandler
+    );
+    /// @notice event emitted when slippage is updated
+    event UpdatedSlippage(
+        uint256 indexed oldSlippage,
+        uint256 indexed newSlippage
+    );
+
     /// @notice creates a new ConvexTradeExecutor with required state
     /// @param _harvester address of harvester
     /// @param _vault address of vault
@@ -35,12 +46,29 @@ contract ConvexTradeExecutor is BaseTradeExecutor, ConvexPositionHandler {
     /// @notice Keeper function to set max accepted slippage of swaps
     /// @param _slippage Max accepted slippage during harvesting
     function setSlippage(uint256 _slippage) external onlyGovernance {
+        uint256 oldSlippage = ConvexPositionHandler.maxSlippage;
+
         ConvexPositionHandler._setSlippage(_slippage);
+        emit UpdatedSlippage(oldSlippage, _slippage);
+    }
+
+    /// @notice Governance function to set how position value should be calculated, i.e using virtual price or calc withdraw
+    /// @param _useVirtualPriceForPosValue bool signifying if virtual price should be used to calculate position value
+    function setUseVirtualPriceForPosValue(bool _useVirtualPriceForPosValue)
+        external
+        onlyGovernance
+    {
+        ConvexPositionHandler._setUseVirtualPriceForPosValue(
+            _useVirtualPriceForPosValue
+        );
     }
 
     /// @param _harvester address of harvester
     function setHandler(address _harvester) external onlyGovernance {
+        address oldHarvester = address(ConvexPositionHandler.harvester);
+
         ConvexPositionHandler._configHandler(_harvester, vaultWantToken());
+        emit UpdatedHarvester(oldHarvester, _harvester);
     }
 
     /*///////////////////////////////////////////////////////////////
