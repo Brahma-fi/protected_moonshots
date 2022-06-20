@@ -17,7 +17,5 @@ interface IHarvester {
 
     function sweep(address _token) external;
 
-    function approve() external;
-
     function rewardTokens() external view returns (address[] memory);
 }

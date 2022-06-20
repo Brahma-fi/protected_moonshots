@@ -16,36 +16,36 @@ contract Harvester is IHarvester {
     using SafeERC20 for IERC20Metadata;
 
     /*///////////////////////////////////////////////////////////////
-                          GLOBAL IMMUTABLES
+                        GLOBAL CONSTANTS
   //////////////////////////////////////////////////////////////*/
 
     /// @notice address of crv token
-    IERC20 public immutable override crv =
+    IERC20 public constant override crv =
         IERC20(0xD533a949740bb3306d119CC777fa900bA034cd52);
     /// @notice address of cvx token
-    IERC20 public immutable override cvx =
+    IERC20 public constant override cvx =
         IERC20(0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B);
     /// @notice address of 3CRV LP token
-    IERC20 public immutable override _3crv =
+    IERC20 public constant override _3crv =
         IERC20(0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490);
     /// @notice address of WETH token
-    IERC20 private immutable weth =
+    IERC20 private constant weth =
         IERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
 
     /// @notice address of Curve's CRV/ETH pool
-    ICurveV2Pool private immutable crveth =
+    ICurveV2Pool private constant crveth =
         ICurveV2Pool(0x8301AE4fc9c624d1D396cbDAa1ed877821D7C511);
 
     /// @notice address of Curve's CVX/ETH pool
-    ICurveV2Pool private immutable cvxeth =
+    ICurveV2Pool private constant cvxeth =
         ICurveV2Pool(0xB576491F1E6e5E62f1d8F26062Ee822B40B0E0d4);
 
     /// @notice address of Curve's 3CRV metapool
-    ICurveV2Pool private immutable _3crvPool =
+    ICurveV2Pool private constant _3crvPool =
         ICurveV2Pool(0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7);
 
     /// @notice address of uniswap router
-    IUniswapV3Router private immutable uniswapRouter =
+    IUniswapV3Router private constant uniswapRouter =
         IUniswapV3Router(0xE592427A0AEce92De3Edee1F18E0157C05861564);
 
     /*///////////////////////////////////////////////////////////////
@@ -58,6 +58,13 @@ contract Harvester is IHarvester {
     /// @param _vault address of vault
     constructor(address _vault) {
         vault = IVault(_vault);
+
+        // max approve CRV to CRV/ETH pool on curve
+        crv.approve(address(crveth), type(uint256).max);
+        // max approve CVX to CVX/ETH pool on curve
+        cvx.approve(address(cvxeth), type(uint256).max);
+        // max approve WETH to uniswap router
+        weth.approve(address(uniswapRouter), type(uint256).max);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -66,7 +73,7 @@ contract Harvester is IHarvester {
 
     /// @notice Function which returns address of reward tokens
     /// @return rewardTokens array of reward token addresses
-    function rewardTokens() external view override returns (address[] memory) {
+    function rewardTokens() external pure override returns (address[] memory) {
         address[] memory rewards = new address[](3);
         rewards[0] = address(crv);
         rewards[1] = address(cvx);
@@ -77,15 +84,6 @@ contract Harvester is IHarvester {
     /*///////////////////////////////////////////////////////////////
                     KEEPER FUNCTONS
   //////////////////////////////////////////////////////////////*/
-
-    /// @notice Keeper function to max approve all tokens to their respective pools & routers
-    function approve() external override onlyKeeper {
-        // max approve routers
-        crv.safeApprove(address(crveth), type(uint256).max);
-        cvx.safeApprove(address(cvxeth), type(uint256).max);
-        weth.safeApprove(address(uniswapRouter), type(uint256).max);
-        _3crv.safeApprove(address(_3crvPool), type(uint256).max);
-    }
 
     /*///////////////////////////////////////////////////////////////
                       GOVERNANCE FUNCTIONS
