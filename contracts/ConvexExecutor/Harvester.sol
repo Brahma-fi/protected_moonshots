@@ -25,9 +25,7 @@ contract Harvester is IHarvester {
     /// @notice the max basis points used as normalizing factor
     uint256 public constant MAX_BPS = 1000;
     /// @notice normalization factor for decimals
-    uint256 public constant USD_NORMALIZATION_FACTOR = 1e8;
-    /// @notice normalization factor for decimals
-    uint256 public constant ETH_NORMALIZATION_FACTOR = 1e18;
+    uint256 public constant NORMALIZATION_FACTOR = 1e8;
 
     /// @notice address of crv token
     IERC20 public constant override crv =
@@ -61,7 +59,7 @@ contract Harvester is IHarvester {
     /// @notice chainlink data feed for CVX/USD
     IAggregatorV3 public constant cvxUsdPrice =
         IAggregatorV3(0xd962fC30A72A84cE50161031391756Bf2876Af5D);
-    /// @notice chainlink data feed for LDO/USD
+    /// @notice chainlink data feed for ETH/USD
     IAggregatorV3 public constant ethUsdPrice =
         IAggregatorV3(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419);
 
@@ -133,27 +131,21 @@ contract Harvester is IHarvester {
         uint256 _3crvBalance = _3crv.balanceOf(address(this));
         // swap convex to eth
         if (cvxBalance > 0) {
-            uint256 expectedEth = (cvxBalance * _getPrice(cvxUsdPrice)) /
-                USD_NORMALIZATION_FACTOR;
-
             cvxeth.exchange(
                 1,
                 0,
                 cvxBalance,
-                _getMinReceived(expectedEth),
+                _getMinReceived(_getPriceInUSD(cvxBalance, cvxUsdPrice)),
                 false
             );
         }
         // swap crv to eth
         if (crv.balanceOf(address(this)) > 0) {
-            uint256 expectedEth = (crvBalance * _getPrice(crvUsdPrice)) /
-                USD_NORMALIZATION_FACTOR;
-
             crveth.exchange(
                 1,
                 0,
                 crvBalance,
-                _getMinReceived(expectedEth),
+                _getMinReceived(_getPriceInUSD(crvBalance, crvUsdPrice)),
                 false
             );
         }
@@ -171,8 +163,7 @@ contract Harvester is IHarvester {
                     address(this),
                     block.timestamp,
                     wethBalance,
-                    (((_getPrice(ethUsdPrice) * wethBalance) /
-                        ETH_NORMALIZATION_FACTOR) * maxSlippage) / MAX_BPS
+                    _getMinReceived(_getPriceInUSD(wethBalance, ethUsdPrice))
                 )
             );
         }
@@ -189,15 +180,16 @@ contract Harvester is IHarvester {
         );
     }
 
-    /// @notice helper to get price of tokens from chainlink
+    /// @notice helper to get price of tokens in ETH, from chainlink
+    /// @param amount the amount of tokens to get in terms of ETH
     /// @param priceFeed the price feed to fetch latest price from
-    function _getPrice(IAggregatorV3 priceFeed)
+    function _getPriceInUSD(uint256 amount, IAggregatorV3 priceFeed)
         internal
         view
         returns (uint256)
     {
         (, int256 latestPrice, , , ) = priceFeed.latestRoundData();
-        return uint256(latestPrice);
+        return (uint256(latestPrice) * amount) / NORMALIZATION_FACTOR;
     }
 
     /// @notice helper to get minimum amount to receive from swap
