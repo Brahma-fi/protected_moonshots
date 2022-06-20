@@ -6,8 +6,8 @@ import {ConvexPositionHandler} from "./ConvexPositionHandler.sol";
 
 /// @title ConvexTradeExecutor
 /// @author PradeepSelva
-/// @notice A contract to execute strategy's trade, on Convex
-contract ConvexFraxPoolTradeExecutor is
+/// @notice A contract to execute strategy's trade, on Convex (sUSD)
+contract ConvexSUSDPoolTradeExecutor is
     BaseTradeExecutor,
     ConvexPositionHandler
 {
