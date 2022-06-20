@@ -10,8 +10,6 @@ import "../../interfaces/IAggregatorV3.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "hardhat/console.sol";
-
 /// @title Harvester
 /// @author PradeepSelva
 /// @notice A contract to harvest rewards from Convex staking position into Want TOken
@@ -166,7 +164,6 @@ contract Harvester is IHarvester {
             uint256 expectedOut = (_getPrice(ethUsdPrice) * wethBalance) /
                 ETH_NORMALIZATION_FACTOR;
 
-            console.log("weth:", wethBalance, _getMinReceived(expectedOut));
             uniswapRouter.exactInput(
                 IUniswapV3Router.ExactInputParams(
                     abi.encodePacked(
