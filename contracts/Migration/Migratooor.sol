@@ -4,6 +4,9 @@ pragma solidity ^0.8.0;
 import "./interfaces/IUSDC.sol";
 import "./interfaces/IHauler.sol";
 import "./interfaces/IBatcherOld.sol";
+import "./interfaces/IVaultOld.sol";
+import "./interfaces/IOldConvexTE.sol";
+import "./interfaces/IOldPerpTEL2.sol";
 import "../Batcher/interfaces/IBatcher.sol";
 import "hardhat/console.sol";
 
@@ -31,33 +34,39 @@ contract Migratooor {
         bytes32 s,
         bytes memory karmaSignature
     ) public {
-        uint256 oldUSDCBalance = usdc.balanceOf(msg.sender);
+        uint256 oldUserBalance = usdc.balanceOf(msg.sender);
 
         // Burn PMUSDC to get USDC
         uint256 amountOut = oldHauler.withdraw(pmusdcAmount, msg.sender);
 
-        usdc.permit(
-            msg.sender,
-            address(this),
-            approvalAmount,
-            deadline,
-            v,
-            r,
-            s
-        );
+        if (approvalAmount > 0) {
+            usdc.permit(
+                msg.sender,
+                address(this),
+                approvalAmount,
+                deadline,
+                v,
+                r,
+                s
+            );
+        }
 
-        uint256 newUSDCBalance = usdc.balanceOf(msg.sender);
+        uint256 newUserBalance = usdc.balanceOf(msg.sender);
 
         require(
-            newUSDCBalance - oldUSDCBalance == amountOut,
+            newUserBalance - oldUserBalance == amountOut,
             "USDC balance mismatch"
         );
+
+        uint256 oldMigratorBalance = usdc.balanceOf(address(this));
 
         // Use transfer auth signature to transfer usdc to contract
         usdc.transferFrom(msg.sender, address(this), amountOut);
 
+        uint256 newMigratorBalance = usdc.balanceOf(address(this));
+
         require(
-            newUSDCBalance - oldUSDCBalance == amountOut,
+            newMigratorBalance - oldMigratorBalance == amountOut,
             "No usdc received"
         );
 

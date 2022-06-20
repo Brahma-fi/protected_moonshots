@@ -95,13 +95,13 @@ contract ConvexPositionHandler is BasePositionHandler {
         prevSharePrice = ICurvePool(UST_3POOL).get_virtual_price();
 
         // Approve max LP tokens to convex booster
-        IERC20(UST_3POOL).safeApprove(CONVEX_BOOSTER, type(uint256).max);
+        IERC20(UST_3POOL).approve(CONVEX_BOOSTER, type(uint256).max);
 
         // Approve max want tokens to zapper.
-        wantToken.safeApprove(CURVE3POOL_ZAP, type(uint256).max);
+        wantToken.approve(CURVE3POOL_ZAP, type(uint256).max);
 
         // Approve max lp tokens to zapper
-        IERC20(UST_3POOL).safeApprove(CURVE3POOL_ZAP, type(uint256).max);
+        IERC20(UST_3POOL).approve(CURVE3POOL_ZAP, type(uint256).max);
     }
 
     /*///////////////////////////////////////////////////////////////

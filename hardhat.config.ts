@@ -1,12 +1,14 @@
 import * as dotenv from "dotenv";
 import { HardhatNetworkForkingUserConfig } from "hardhat/types";
 import { HardhatUserConfig, task } from "hardhat/config";
+import "hardhat-change-network";
 import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
 import "hardhat-contract-sizer";
+import { readFileSync } from "fs";
 
 dotenv.config();
 
@@ -41,6 +43,15 @@ const buildForkConfig = (): HardhatNetworkForkingUserConfig => {
   return forkMode;
 };
 
+const getTenderlyForkConfig = (): string => {
+  let url = JSON.parse(readFileSync("tenderlyConfig.json").toString());
+  console.log(url);
+  // console.log(`https://rpc.tenderly.co/fork/${process.env.TENDERLY_FORK_ID}`)
+  return url.forkRPCUrl;
+
+  // return `https://rpc.tenderly.co/fork/${process.env.TENDERLY_FORK_ID}`
+};
+
 const config: HardhatUserConfig = {
   solidity: {
     compilers: [
@@ -67,9 +78,10 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       forking: buildForkConfig(),
+      chainId: 1,
     },
     tenderly: {
-      url: `https://rpc.tenderly.co/fork/${process.env.TENDERLY_FORK_ID}`,
+      url: getTenderlyForkConfig(),
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
@@ -88,6 +100,11 @@ const config: HardhatUserConfig = {
     },
     optimism: {
       url: `${process.env.QUICKNODE_OPTIMISM_URL}`,
+      accounts:
+        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    },
+    localhosted: {
+      url: `http://127.0.0.1:8500`,
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },

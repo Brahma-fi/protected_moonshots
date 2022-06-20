@@ -72,7 +72,7 @@ Reentrancy in Batcher.depositFundsInCurveLpToken(uint256,bytes) (contracts/Batch
 	- lpToken.safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Batcher/Batcher.sol#108)
 	- usdcReceived = _convertLpTokenIntoUSDC(lpToken) (contracts/Batcher/Batcher.sol#110)
 		- returndata = address(token).functionCall(data,SafeERC20: low-level call failed) (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#93)
-		- lpToken.safeApprove(address(curve3PoolZap),_amount) (contracts/Batcher/Batcher.sol#316)
+		- lpToken.approve(address(curve3PoolZap),_amount) (contracts/Batcher/Batcher.sol#316)
 		- (success,returndata) = target.call{value: value}(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#137)
 		- receivedWantTokens = curve3PoolZap.remove_liquidity_one_coin(address(ust3Pool),_amount,usdcIndexInPool,(expectedWantTokensOut * (MAX_BPS - slippageForCurveLp)) / (MAX_BPS)) (contracts/Batcher/Batcher.sol#327-332)
 	External calls sending eth:
@@ -99,7 +99,7 @@ Reentrancy in Batcher.depositFundsInCurveLpToken(uint256,bytes) (contracts/Batch
 	- lpToken.safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Batcher/Batcher.sol#108)
 	- usdcReceived = _convertLpTokenIntoUSDC(lpToken) (contracts/Batcher/Batcher.sol#110)
 		- returndata = address(token).functionCall(data,SafeERC20: low-level call failed) (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#93)
-		- lpToken.safeApprove(address(curve3PoolZap),_amount) (contracts/Batcher/Batcher.sol#316)
+		- lpToken.approve(address(curve3PoolZap),_amount) (contracts/Batcher/Batcher.sol#316)
 		- (success,returndata) = target.call{value: value}(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#137)
 		- receivedWantTokens = curve3PoolZap.remove_liquidity_one_coin(address(ust3Pool),_amount,usdcIndexInPool,(expectedWantTokensOut * (MAX_BPS - slippageForCurveLp)) / (MAX_BPS)) (contracts/Batcher/Batcher.sol#327-332)
 	External calls sending eth:
