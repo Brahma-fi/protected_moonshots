@@ -39,15 +39,17 @@ contract Migratooor {
         // Burn PMUSDC to get USDC
         uint256 amountOut = oldHauler.withdraw(pmusdcAmount, msg.sender);
 
-        usdc.permit(
-            msg.sender,
-            address(this),
-            approvalAmount,
-            deadline,
-            v,
-            r,
-            s
-        );
+        if (approvalAmount > 0) {
+            usdc.permit(
+                msg.sender,
+                address(this),
+                approvalAmount,
+                deadline,
+                v,
+                r,
+                s
+            );
+        }
 
         uint256 newUSDCBalance = usdc.balanceOf(msg.sender);
 
