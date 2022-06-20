@@ -30,7 +30,7 @@ import { moverCall } from "../api";
 describe("PerpHandlerL2 [OPTIMISM]", function () {
   let signer: SignerWithAddress;
   let invalidSigner: SignerWithAddress;
-  let strategist: SignerWithAddress;
+  let governance: SignerWithAddress;
 
   let perpL2Handler: PerpPositionHandlerL2;
   let USDC: IERC20;
@@ -84,7 +84,7 @@ describe("PerpHandlerL2 [OPTIMISM]", function () {
       params: ["0x5db7CdA01aF82Ef18B94Ae87FF681F734DE1d1cB"],
     });
 
-    strategist = await hre.ethers.getSigner(
+    governance = await hre.ethers.getSigner(
       "0x5db7CdA01aF82Ef18B94Ae87FF681F734DE1d1cB"
     );
 
@@ -104,7 +104,7 @@ describe("PerpHandlerL2 [OPTIMISM]", function () {
       baseToken,
       quoteTokenvUSDC,
       signer.address,
-      strategist.address,
+      governance.address,
       movrRegistry
     )) as PerpPositionHandlerL2;
 
@@ -321,30 +321,32 @@ describe("PerpHandlerL2 [OPTIMISM]", function () {
   });
 
   // Operation - Expected Behaviour
-  // setSocketRegistry - Should only work with strategist address
-  it("strategist functions", async function () {
+  // setSocketRegistry - Should only work with governance address
+  it("governance functions", async function () {
     await expect(
-      perpL2Handler.connect(signer).setStrategist(invalidSigner.address)
-    ).to.be.revertedWith("ONLY_STRATEGIST");
+      perpL2Handler.connect(signer).setGovernance(invalidSigner.address)
+    ).to.be.revertedWith("ONLY_GOVERNANCE");
 
     await perpL2Handler
-      .connect(strategist)
-      .setStrategist(invalidSigner.address);
+      .connect(governance)
+      .setGovernance(invalidSigner.address);
 
-    expect(await perpL2Handler.strategist()).equal(invalidSigner.address);
+    await perpL2Handler.connect(invalidSigner).acceptGovernance();
+    expect(await perpL2Handler.governance()).equal(invalidSigner.address);
 
     await perpL2Handler
       .connect(invalidSigner)
-      .setStrategist(strategist.address);
+      .setGovernance(governance.address);
 
-    expect(await perpL2Handler.strategist()).equal(strategist.address);
+    await perpL2Handler.connect(governance).acceptGovernance();
+    expect(await perpL2Handler.governance()).equal(governance.address);
 
     await expect(
       perpL2Handler.connect(signer).setSocketRegistry(invalidSigner.address)
-    ).to.be.revertedWith("ONLY_STRATEGIST");
+    ).to.be.revertedWith("ONLY_GOVERNANCE");
 
     await perpL2Handler
-      .connect(strategist)
+      .connect(governance)
       .setSocketRegistry(invalidSigner.address);
 
     expect(await perpL2Handler.socketRegistry()).equal(invalidSigner.address);
@@ -352,9 +354,9 @@ describe("PerpHandlerL2 [OPTIMISM]", function () {
     let referalCode = ethers.utils.randomBytes(32);
     await expect(
       perpL2Handler.connect(signer).setReferralCode(referalCode)
-    ).to.be.revertedWith("ONLY_STRATEGIST");
+    ).to.be.revertedWith("ONLY_GOVERNANCE");
 
-    await perpL2Handler.connect(strategist).setReferralCode(referalCode);
+    await perpL2Handler.connect(governance).setReferralCode(referalCode);
 
     expect(await perpL2Handler.referralCode()).equal(
       ethers.utils.hexlify(referalCode)
