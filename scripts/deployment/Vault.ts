@@ -3,7 +3,7 @@ import { Vault } from "../../src/types";
 
 async function main() {
   const name = "Protected Moonshots USDC";
-  const symbol = "⚛PMUSDC";
+  const symbol = "PMUSDC";
   const wantToken = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
   const keeper = "0xAE75B29ADe678372D77A8B41225654138a7E6ff1";
   const governance = "0x6b29610D6c6a9E47812bE40F1335918bd63321bf";

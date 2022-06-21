@@ -3,7 +3,7 @@ import hre from "hardhat";
 import { Migratooor } from "../../src/types";
 
 async function main() {
-  const batcherAddress = "0x1C4ceb52ab54a35F9d03FcC156a7c57F965e081e";
+  const batcherAddress = "0xa67feFA6657e9aa3e4ee6EF28531641dAFBB8cAf";
 
   const Migrator = await hre.ethers.getContractFactory("Migratooor");
   const httpsProvider = await hre.ethers.provider;
