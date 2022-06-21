@@ -41,6 +41,9 @@ async function main() {
   )) as IOldConvexTE;
 
   const keeper = await getSigner("0xAE75B29ADe678372D77A8B41225654138a7E6ff1");
+  const governance = await getSigner(
+    "0x6b29610D6c6a9E47812bE40F1335918bd63321bf"
+  );
 
   console.log("Keeper address", keeper.address);
 
@@ -81,39 +84,43 @@ async function main() {
 
   await oldVault.connect(keeper).removeExecutor(oldConvexTE.address);
 
-  const Vault = await ethers.getContractFactory("Vault");
-  let vault = (await Vault.deploy(
-    "Protected Moonshots",
-    "PMUSDC",
-    usdc.address,
-    keeper.address,
-    keeper.address
-  )) as Vault;
-  await vault.deployed();
+  // const Vault = await ethers.getContractFactory("Vault");
+  // let vault = (await Vault.deploy(
+  //   "Protected Moonshots",
+  //   "PMUSDC",
+  //   usdc.address,
+  //   keeper.address,
+  //   keeper.address
+  // )) as Vault;
+  // await vault.deployed();
 
-  console.log("Vault V2", vault.address);
+  // console.log("Vault V2", vault.address);
 
-  const Batcher = await ethers.getContractFactory("Batcher");
-  let batcher = (await Batcher.deploy(
-    await oldBatcher.verificationAuthority(),
-    vault.address,
-    ethers.utils.hexValue(100000000000000)
-  )) as Batcher;
-  await batcher.deployed();
+  // const Batcher = await ethers.getContractFactory("Batcher");
+  // let batcher = (await Batcher.deploy(
+  //   await oldBatcher.verificationAuthority(),
+  //   vault.address,
+  //   ethers.utils.hexValue(100000000000000)
+  // )) as Batcher;
+  // await batcher.deployed();
 
-  await batcher.connect(keeper).setDepositSignatureCheck(false);
+  // await batcher.connect(keeper).setDepositSignatureCheck(false);
 
-  console.log("Batcher V2", batcher.address);
+  // console.log("Batcher V2", batcher.address);
 
-  const Migrator = await ethers.getContractFactory("Migratooor");
-  let migratooor = (await Migrator.deploy(batcher.address)) as Migratooor;
-  await migratooor.deployed();
+  // const Migrator = await ethers.getContractFactory("Migratooor");
+  // let migratooor = (await Migrator.deploy(batcher.address)) as Migratooor;
+  // await migratooor.deployed();
 
-  console.log("Migrator", migratooor.address);
+  // console.log("Migrator", migratooor.address);
 
-  await vault.connect(keeper).setBatcher(batcher.address);
+  // await vault.connect(keeper).setBatcher(batcher.address);
 
-  await batcher.connect(keeper).setDepositSignatureCheck(false);
+  let batcher = await ethers.getContractAt(
+    "Batcher",
+    "0xa67feFA6657e9aa3e4ee6EF28531641dAFBB8cAf"
+  );
+  await batcher.connect(governance).setDepositSignatureCheck(false);
 }
 
 export const waitFor = (ms: number) => new Promise((r) => setTimeout(r, ms));
