@@ -104,7 +104,7 @@ describe("Convex Trade Executor [MAINNET]", function () {
     dotenv.config();
     await switchToNetwork(
       `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}`,
-      Number(process.env.BLOCK_NUMBER)
+      15003356
     );
     await deploy();
   });
