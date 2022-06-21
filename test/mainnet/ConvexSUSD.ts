@@ -99,7 +99,7 @@ const deploy = async () => {
   await convexTradeExecutor.connect(governance).setSlippage(BigNumber.from(10));
 };
 
-describe("Convex Trade Executor [MAINNET]", function () {
+describe("Convex SUSD Trade Executor [MAINNET]", function () {
   before(async () => {
     dotenv.config();
     await switchToNetwork(
