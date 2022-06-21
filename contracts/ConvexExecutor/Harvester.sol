@@ -207,7 +207,8 @@ contract Harvester is IHarvester {
         uint256 fee,
         IAggregatorV3 priceFeed
     ) internal {
-        uint256 expectedOut = (_getPriceForAmount(priceFeed, amount));
+        uint256 expectedOut = (_getPriceForAmount(priceFeed, amount) * 1e6) /
+            ETH_NORMALIZATION_FACTOR;
 
         uniswapRouter.exactInput(
             IUniswapV3Router.ExactInputParams(
