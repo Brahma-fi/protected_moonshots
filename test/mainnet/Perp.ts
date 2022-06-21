@@ -218,7 +218,7 @@ describe("PerpTE [MAINNET]", function () {
 
     const withdrawTxn = await perpTE
       .connect(keeper)
-      .initateWithdraw(paramsInBytes);
+      .initiateWithdraw(paramsInBytes);
     const paramsGenerated = await decodeOptimismChainRelayerLogs(withdrawTxn);
 
     const txnDescription = PerpHandlerL2Contract.interface.parseTransaction({
