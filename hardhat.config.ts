@@ -44,7 +44,6 @@ const buildForkConfig = (): HardhatNetworkForkingUserConfig => {
 
 const getTenderlyForkConfig = (): string => {
   let url = JSON.parse(readFileSync("tenderlyConfig.json").toString());
-  console.log(url);
   // console.log(`https://rpc.tenderly.co/fork/${process.env.TENDERLY_FORK_ID}`)
   return url.forkRPCUrl;
 
