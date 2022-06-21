@@ -10,6 +10,8 @@ import "../../interfaces/IAggregatorV3.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import "hardhat/console.sol";
+
 /// @title Harvester
 /// @author PradeepSelva
 /// @notice A contract to harvest rewards from Convex staking position into Want TOken
@@ -94,6 +96,8 @@ contract Harvester is IHarvester {
         _3crv.approve(address(_3crvPool), type(uint256).max);
         // max approve WETH to uniswap router
         weth.approve(address(uniswapRouter), type(uint256).max);
+        // max approve SNX to uniswap router
+        snx.approve(address(uniswapRouter), type(uint256).max);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -146,7 +150,7 @@ contract Harvester is IHarvester {
 
         // swap convex to eth
         if (cvxBalance > 0) {
-            uint256 expectedOut = (_getPriceForAmount(crvEthPrice, crvBalance));
+            uint256 expectedOut = (_getPriceForAmount(crvEthPrice, cvxBalance));
             cvxeth.exchange(
                 1,
                 0,
@@ -158,6 +162,12 @@ contract Harvester is IHarvester {
         // swap crv to eth
         if (crvBalance > 0) {
             uint256 expectedOut = (_getPriceForAmount(crvEthPrice, crvBalance));
+            console.log(
+                "crv:",
+                crvBalance,
+                expectedOut,
+                _getMinReceived(expectedOut)
+            );
             crveth.exchange(
                 1,
                 0,
@@ -238,7 +248,7 @@ contract Harvester is IHarvester {
 
     /// @notice helper to get minimum amount to receive from swap
     function _getMinReceived(uint256 amount) internal view returns (uint256) {
-        return (amount * maxSlippage) / MAX_BPS;
+        return (amount * (MAX_BPS - maxSlippage)) / MAX_BPS;
     }
 
     /*///////////////////////////////////////////////////////////////

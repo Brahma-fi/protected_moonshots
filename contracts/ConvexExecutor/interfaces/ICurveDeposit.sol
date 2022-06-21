@@ -6,7 +6,7 @@ interface ICurveDeposit {
         uint256 _token_amount,
         int128 i,
         uint256 min_amount
-    ) external returns (uint256);
+    ) external;
 
     function calc_withdraw_one_coin(uint256 _token_amount, int128 i)
         external

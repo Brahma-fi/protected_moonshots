@@ -7,7 +7,7 @@ import "../../../library/Math.sol";
 
 import "../interfaces/IConvexRewards.sol";
 import "../interfaces/IConvexBooster.sol";
-import "../interfaces/ICurvePool.sol";
+import "../interfaces/ICurveSwap.sol";
 import "../interfaces/ICurveDeposit.sol";
 import "../interfaces/ICurveDepositZapper.sol";
 import "../interfaces/IHarvester.sol";
@@ -76,8 +76,8 @@ contract ConvexPositionHandler is BasePositionHandler {
     IConvexRewards public constant baseRewardPool =
         IConvexRewards(0x22eE18aca7F3Ee920D01F25dA85840D12d98E8Ca);
     /// @notice curve's sUSD Pool
-    ICurvePool public constant susdPool =
-        ICurvePool(0xA5407eAE9Ba41422680e2e00537571bcC53efBfD);
+    ICurveSwap public constant susdPool =
+        ICurveSwap(0xA5407eAE9Ba41422680e2e00537571bcC53efBfD);
     /// @notice curve's sUSD pool deposit
     ICurveDeposit public constant susdDeposit =
         ICurveDeposit(0xFCBa3E75865d2d561BE8D220616520c171F12851);
@@ -102,6 +102,8 @@ contract ConvexPositionHandler is BasePositionHandler {
         lpToken.approve(address(convexBooster), type(uint256).max);
         // approve max usdc to susd pool
         wantToken.approve(address(susdPool), type(uint256).max);
+        // approve max lp tokens to susd deposit
+        lpToken.approve(address(susdDeposit), type(uint256).max);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -382,6 +384,7 @@ contract ConvexPositionHandler is BasePositionHandler {
         returns (uint256 receivedWantTokens)
     {
         console.log("converting to usdc");
+        uint256 initialWantTokens = wantToken.balanceOf(address(this));
         int128 usdcIndexInPool = int128(
             int256(uint256(SUSDPoolCoinIndexes.USDC))
         );
@@ -390,11 +393,15 @@ contract ConvexPositionHandler is BasePositionHandler {
         uint256 expectedWantTokensOut = (_amount *
             susdPool.get_virtual_price()) / NORMALIZATION_FACTOR; // 30 = normalizing 18 decimals for virutal price + 18 decimals for LP token - 6 decimals for want token
         // burn Lp tokens to receive USDC with a slippage of `maxSlippage`
-        receivedWantTokens = susdDeposit.remove_liquidity_one_coin(
+        susdDeposit.remove_liquidity_one_coin(
             _amount,
             usdcIndexInPool,
             (expectedWantTokensOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)
         );
+
+        receivedWantTokens =
+            wantToken.balanceOf(address(this)) -
+            initialWantTokens;
     }
 
     /**
@@ -413,7 +420,8 @@ contract ConvexPositionHandler is BasePositionHandler {
             wantToken.balanceOf(address(this)),
             wantToken.allowance(address(this), address(susdPool))
         );
-        // uint256[4] memory liquidityAmounts = ;
+        uint256 initialLp = lpToken.balanceOf(address(this));
+        uint256[4] memory liquidityAmounts = [0, _amount, 0, 0];
 
         // estimate amount of Lp Tokens based on stable peg i.e., 1sUSD = 1 3Pool LP Token
         uint256 expectedLpOut = (_amount * NORMALIZATION_FACTOR) /
@@ -421,10 +429,11 @@ contract ConvexPositionHandler is BasePositionHandler {
         // Provide USDC liquidity to receive Lp tokens with a slippage of `maxSlippage`
         console.log("expecting:", expectedLpOut);
         susdPool.add_liquidity(
-            [0, _amount, 0, 0],
-            0
-            //   (expectedLpOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)
+            liquidityAmounts,
+            (expectedLpOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)
         );
+
+        receivedLpTokens = lpToken.balanceOf(address(this)) - initialLp;
         console.log("received:", receivedLpTokens);
     }
 
