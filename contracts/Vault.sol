@@ -27,6 +27,11 @@ contract Vault is IVault, ERC20Permit, ReentrancyGuard {
     uint256 constant DUST_LIMIT = 10**6;
     /// @dev The max basis points used as normalizing factor.
     uint256 constant MAX_BPS = 10000;
+    /// @dev The max amount of seconds in year.
+    /// accounting for leap years there are 365.25 days in year.
+    ///  365.25 * 86400 = 31557600.0
+    uint256 constant MAX_SECONDS = 31557600;
+
     /*///////////////////////////////////////////////////////////////
                                 IMMUTABLES
     //////////////////////////////////////////////////////////////*/
@@ -120,6 +125,12 @@ contract Vault is IVault, ERC20Permit, ReentrancyGuard {
         amountOut = (sharesIn * totalVaultFunds()) / totalSupply();
         // burn shares of msg.sender
         _burn(msg.sender, sharesIn);
+        /// charging exitFee
+        if (exitFee > 0) {
+            uint256 fee = (amountOut * exitFee) / MAX_BPS;
+            IERC20(wantToken).transfer(governance, fee);
+            amountOut = amountOut - fee;
+        }
         IERC20(wantToken).safeTransfer(receiver, amountOut);
     }
 
@@ -184,11 +195,19 @@ contract Vault is IVault, ERC20Permit, ReentrancyGuard {
     /// @notice lagging value of vault total funds.
     /// @dev value intialized to max to prevent slashing on first deposit.
     uint256 public prevVaultFunds = type(uint256).max;
+    /// @dev value intialized to max to prevent slashing on first deposit.
+    uint256 public lastReportedTime = type(uint256).max;
     /// @dev Perfomance fee for the vault.
     uint256 public performanceFee;
-    /// @notice Emitted after fee updation.
-    /// @param fee The new performance fee on vault.
-    event UpdatePerformanceFee(uint256 fee);
+    /// @notice Fee denominated in MAX_BPS charged during exit.
+    uint256 public exitFee;
+    /// @notice Mangement fee for operating the vault.
+    uint256 public managementFee;
+
+    /// @notice Emitted after perfomance fee updation.
+    /// @param oldFee The old performance fee on vault.
+    /// @param newFee The new performance fee on vault.
+    event UpdatePerformanceFee(uint256 oldFee, uint256 newFee);
 
     /// @notice Updates the performance fee on the vault.
     /// @param _fee The new performance fee on the vault.
@@ -196,8 +215,36 @@ contract Vault is IVault, ERC20Permit, ReentrancyGuard {
     function setPerformanceFee(uint256 _fee) public {
         onlyGovernance();
         require(_fee < MAX_BPS / 2, "FEE_TOO_HIGH");
+        emit UpdatePerformanceFee(performanceFee, _fee);
         performanceFee = _fee;
-        emit UpdatePerformanceFee(_fee);
+    }
+
+    /// @notice Emitted after exit fee updation.
+    /// @param oldFee The old exit fee on vault.
+    /// @param newFee The new exit fee on vault.
+    event UpdateExitFee(uint256 oldFee, uint256 newFee);
+
+    /// @notice Function to set exit fee on the vault, can only be called by governance
+    /// @param _fee Address of fee
+    function setExitFee(uint256 _fee) public {
+        onlyGovernance();
+        require(_fee < MAX_BPS / 2, "EXIT_FEE_TOO_HIGH");
+        emit UpdateExitFee(exitFee, _fee);
+        exitFee = _fee;
+    }
+
+    /// @notice Emitted after management fee updation.
+    /// @param oldFee The old management fee on vault.
+    /// @param newFee The new management fee on vault.
+    event UpdateManagementFee(uint256 oldFee, uint256 newFee);
+
+    /// @notice Function to set exit fee on the vault, can only be called by governance
+    /// @param _fee Address of fee
+    function setManagementFee(uint256 _fee) public {
+        onlyGovernance();
+        require(_fee < MAX_BPS / 2, "EXIT_FEE_TOO_HIGH");
+        emit UpdateManagementFee(managementFee, _fee);
+        managementFee = _fee;
     }
 
     /// @notice Emitted when a fees are collected.
@@ -211,11 +258,20 @@ contract Vault is IVault, ERC20Permit, ReentrancyGuard {
     /// should be called before processing any new deposits/withdrawals.
     function collectFees() internal {
         uint256 currentFunds = totalVaultFunds();
+        uint256 fees = 0;
         // collect fees only when profit is made.
         if ((performanceFee > 0) && (currentFunds > prevVaultFunds)) {
             uint256 yieldEarned = (currentFunds - prevVaultFunds);
             // normalization by MAX_BPS
-            uint256 fees = ((yieldEarned * performanceFee) / MAX_BPS);
+            fees += ((yieldEarned * performanceFee) / MAX_BPS);
+        }
+        if ((managementFee > 0) && (lastReportedTime < block.timestamp)) {
+            uint256 duration = block.timestamp - lastReportedTime;
+            fees +=
+                ((duration * managementFee * currentFunds) / MAX_SECONDS) /
+                MAX_BPS;
+        }
+        if (fees > 0) {
             IERC20(wantToken).safeTransfer(governance, fees);
             emit FeesCollected(fees);
         }
@@ -226,6 +282,8 @@ contract Vault is IVault, ERC20Permit, ReentrancyGuard {
         _;
         // update vault funds after fees are collected.
         prevVaultFunds = totalVaultFunds();
+        // update lastReportedTime after fees are collected.
+        lastReportedTime = block.timestamp;
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -360,16 +418,17 @@ contract Vault is IVault, ERC20Permit, ReentrancyGuard {
     }
 
     /// @notice Emitted when keeper is updated.
-    /// @param keeper The address of the new keeper.
-    event UpdatedKeeper(address indexed keeper);
+    /// @param oldKeeper The address of the old keeper.
+    /// @param newKeeper The address of the new keeper.
+    event UpdatedKeeper(address indexed oldKeeper, address indexed newKeeper);
 
     /// @notice Sets new keeper address.
     /// @dev  This can only be called by governance.
     /// @param _keeper The address of new keeper.
     function setKeeper(address _keeper) public {
         onlyGovernance();
+        emit UpdatedKeeper(keeper, _keeper);
         keeper = _keeper;
-        emit UpdatedKeeper(_keeper);
     }
 
     /// @notice Emitted when emergencyMode status is updated.

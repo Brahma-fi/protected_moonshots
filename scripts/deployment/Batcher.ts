@@ -4,8 +4,9 @@ import { Batcher } from "../../src/types";
 
 async function main() {
   const verificationAuthority = "0x687f4304Df62449dBc6C95FE9A8cb1153d40D42e";
-  const vaultAddress = "0x1C4ceb52ab54a35F9d03FcC156a7c57F965e081e";
-  const maxDepositLimit = BigNumber.from(1005000).mul(1e6);
+  const vaultAddress = "0x3c4Fe0db16c9b521480c43856ba3196A9fa50E08";
+
+  const maxDepositLimit = BigNumber.from(2005000).mul(1e6);
   const Batcher = await hre.ethers.getContractFactory("Batcher");
   const httpsProvider = await hre.ethers.provider;
   let feeData = await httpsProvider.getFeeData();
@@ -13,7 +14,7 @@ async function main() {
   const batcher = (await Batcher.deploy(
     verificationAuthority,
     vaultAddress,
-    maxDepositLimit,
+    maxDepositLimit, // In want token with apt decimals
     {
       maxPriorityFeePerGas: feeData["maxPriorityFeePerGas"], // Recommended maxPriorityFeePerGas
       maxFeePerGas: feeData["maxFeePerGas"], // Recommended maxFeePerGas
