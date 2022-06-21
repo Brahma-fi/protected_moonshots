@@ -116,10 +116,12 @@ async function main() {
 
   // await vault.connect(keeper).setBatcher(batcher.address);
 
-  let batcher = await ethers.getContractAt(
+  let batcher = (await ethers.getContractAt(
     "Batcher",
     "0xa67feFA6657e9aa3e4ee6EF28531641dAFBB8cAf"
-  );
+  )) as Batcher;
+
+  console.log("trying to set true");
   await batcher.connect(governance).setDepositSignatureCheck(false);
 }
 
