@@ -15,6 +15,8 @@ import "../interfaces/IHarvester.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import "hardhat/console.sol";
+
 /// @title ConvexPositionHandler
 /// @author PradeepSelva
 /// @notice A Position handler to handle Convex for sUSD Pool
@@ -98,6 +100,8 @@ contract ConvexPositionHandler is BasePositionHandler {
 
         // Approve max LP tokens to convex booster
         lpToken.approve(address(convexBooster), type(uint256).max);
+        // approve max usdc to susd pool
+        wantToken.approve(address(susdPool), type(uint256).max);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -140,6 +144,7 @@ contract ConvexPositionHandler is BasePositionHandler {
             "invalid deposit amount"
         );
 
+        console.log("deposoiting:", depositParams._amount);
         _convertUSDCIntoLpToken(depositParams._amount);
 
         emit Deposit(depositParams._amount);
@@ -376,6 +381,7 @@ contract ConvexPositionHandler is BasePositionHandler {
         internal
         returns (uint256 receivedWantTokens)
     {
+        console.log("converting to usdc");
         int128 usdcIndexInPool = int128(
             int256(uint256(SUSDPoolCoinIndexes.USDC))
         );
@@ -401,16 +407,25 @@ contract ConvexPositionHandler is BasePositionHandler {
         internal
         returns (uint256 receivedLpTokens)
     {
-        uint256[4] memory liquidityAmounts = [0, _amount, 0, 0];
+        console.log(
+            "converting to lp",
+            _amount,
+            wantToken.balanceOf(address(this)),
+            wantToken.allowance(address(this), address(susdPool))
+        );
+        // uint256[4] memory liquidityAmounts = ;
 
         // estimate amount of Lp Tokens based on stable peg i.e., 1sUSD = 1 3Pool LP Token
         uint256 expectedLpOut = (_amount * NORMALIZATION_FACTOR) /
             susdPool.get_virtual_price(); // 30 = normalizing 18 decimals for virutal price + 18 decimals for LP token - 6 decimals for want token
         // Provide USDC liquidity to receive Lp tokens with a slippage of `maxSlippage`
-        receivedLpTokens = susdPool.add_liquidity(
-            liquidityAmounts,
-            (expectedLpOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)
+        console.log("expecting:", expectedLpOut);
+        susdPool.add_liquidity(
+            [0, _amount, 0, 0],
+            0
+            //   (expectedLpOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)
         );
+        console.log("received:", receivedLpTokens);
     }
 
     /**
