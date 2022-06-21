@@ -1,13 +1,13 @@
 ## Introduction
 
-Brahma represents a suite of sustainable open-sourced products that make yield composable alpha and drives capital efficiency in the DeFi ecosystem. As a first step towards this goal, we started with the protected moonshot vault. This valult is built around the idea that users can get leveraged yield from their investments, while still having their prinicpal protected. In order to achieve this brahma has made use of following protocols:
+Brahma represents a suite of sustainable open-sourced products that make yield composable alpha and drives capital efficiency in the DeFi ecosystem. As a first step towards this goal, we started with the protected moonshot vault. This valult is built around the idea that users can get leveraged yield from their investments, while still having their principal protected. In order to achieve this Brahma has made use of following protocols:
 
 1. Convex pool for getting rewards on `USDC` deposit made by user.
 2. Perp V2 for taking leveraged position using harvested yield.
 
 ## Trade Anatomy
 
-The trade for delta neutral strategy looks as follows. Let’s say a user deposited 1000 USDC into the vault. Here is how the position looks like.
+he trade looks as follows. Let’s say a user deposited 1000 USDC into the vault. Here is how the position looks like.
 
 - **Position opening:** Lets say the user deposited 1000 USDC into the vault.
   1000 USDC -> deposited on curve to get lp tokens and staked on convex rewards.

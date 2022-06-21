@@ -21,11 +21,11 @@ The `Vault` is designed to issue tokens proportional to amount of funds the user
 
 - `withdraw` - Burn the vault tokens and transfer the amount to user's wallet.
 
-- `depositIntoExecutor` - Deposits funds into the executor contract to be used for making trades on protocol
+- `depositIntoExecutor` - Deposits want tokens into the executor contract to be used for making trades on protocol
 
-- `withdrawFromExecutor` - Withdraw funds from executor in order to process user withdrawal request.
+- `withdrawFromExecutor` - Withdraw want tokens from executor in order to process user withdrawal request.
 
-- `collectFees` - Calims the fees from the yield generated on user funds to governance.
+- `collectFees` - Claims the fees from the yield generated on user funds to governance.
 
 ## 3. Roles
 
@@ -36,7 +36,7 @@ The `Vault` is designed to issue tokens proportional to amount of funds the user
 
 ## 4. Mechanisms & Concepts
 
-The `vault` contract is responsible for issuing erc20 tokens representing user share based on the total funds it holds. The `vault` also keeps the track of funds invested in trade executors. So trade executor funds should be updated before processing any deposits or withdrawals. vault computes the yield it generated between different harvest cycles to process the fees. `Keeper` maintains the list of `TradeExecutors` and `batcher` makes sure there is always enough collateral on `vault` to process any user withdrawals.
+The `vault` contract is responsible for issuing erc20 tokens representing user share based on the total amount of funds. The `vault` keeps the track of funds invested in trade executors. So trade executor funds should be updated before processing any user deposits or withdrawals. vault computes the yield it generated between different harvest cycles to process the fees. `Keeper` maintains the list of `TradeExecutors` and `batcher` makes sure there is always enough collateral on `vault` to process any user withdrawals.
 
 ## 5. Gotchas
 
