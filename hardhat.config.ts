@@ -1,7 +1,6 @@
 import * as dotenv from "dotenv";
 import { HardhatNetworkForkingUserConfig } from "hardhat/types";
 import { HardhatUserConfig, task } from "hardhat/config";
-import "hardhat-change-network";
 import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
