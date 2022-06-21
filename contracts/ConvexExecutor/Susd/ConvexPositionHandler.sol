@@ -15,8 +15,6 @@ import "../interfaces/IHarvester.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "hardhat/console.sol";
-
 /// @title ConvexPositionHandler
 /// @author PradeepSelva
 /// @notice A Position handler to handle Convex for sUSD Pool
@@ -146,7 +144,6 @@ contract ConvexPositionHandler is BasePositionHandler {
             "invalid deposit amount"
         );
 
-        console.log("deposoiting:", depositParams._amount);
         _convertUSDCIntoLpToken(depositParams._amount);
 
         emit Deposit(depositParams._amount);
@@ -383,7 +380,6 @@ contract ConvexPositionHandler is BasePositionHandler {
         internal
         returns (uint256 receivedWantTokens)
     {
-        console.log("converting to usdc");
         uint256 initialWantTokens = wantToken.balanceOf(address(this));
         int128 usdcIndexInPool = int128(
             int256(uint256(SUSDPoolCoinIndexes.USDC))
@@ -414,12 +410,6 @@ contract ConvexPositionHandler is BasePositionHandler {
         internal
         returns (uint256 receivedLpTokens)
     {
-        console.log(
-            "converting to lp",
-            _amount,
-            wantToken.balanceOf(address(this)),
-            wantToken.allowance(address(this), address(susdPool))
-        );
         uint256 initialLp = lpToken.balanceOf(address(this));
         uint256[4] memory liquidityAmounts = [0, _amount, 0, 0];
 
@@ -427,14 +417,12 @@ contract ConvexPositionHandler is BasePositionHandler {
         uint256 expectedLpOut = (_amount * NORMALIZATION_FACTOR) /
             susdPool.get_virtual_price(); // 30 = normalizing 18 decimals for virutal price + 18 decimals for LP token - 6 decimals for want token
         // Provide USDC liquidity to receive Lp tokens with a slippage of `maxSlippage`
-        console.log("expecting:", expectedLpOut);
         susdPool.add_liquidity(
             liquidityAmounts,
             (expectedLpOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)
         );
 
         receivedLpTokens = lpToken.balanceOf(address(this)) - initialLp;
-        console.log("received:", receivedLpTokens);
     }
 
     /**

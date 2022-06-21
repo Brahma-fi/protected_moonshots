@@ -10,8 +10,6 @@ import "../../interfaces/IAggregatorV3.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "hardhat/console.sol";
-
 /// @title Harvester
 /// @author PradeepSelva
 /// @notice A contract to harvest rewards from Convex staking position into Want TOken
@@ -162,12 +160,6 @@ contract Harvester is IHarvester {
         // swap crv to eth
         if (crvBalance > 0) {
             uint256 expectedOut = (_getPriceForAmount(crvEthPrice, crvBalance));
-            console.log(
-                "crv:",
-                crvBalance,
-                expectedOut,
-                _getMinReceived(expectedOut)
-            );
             crveth.exchange(
                 1,
                 0,
