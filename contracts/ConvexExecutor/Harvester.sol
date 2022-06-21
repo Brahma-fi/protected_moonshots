@@ -146,8 +146,7 @@ contract Harvester is IHarvester {
 
         // swap convex to eth
         if (cvxBalance > 0) {
-            uint256 expectedOut = (_getPrice(crvEthPrice) * crvBalance) /
-                ETH_NORMALIZATION_FACTOR;
+            uint256 expectedOut = (_getPriceForAmount(crvEthPrice, crvBalance));
             cvxeth.exchange(
                 1,
                 0,
@@ -158,8 +157,7 @@ contract Harvester is IHarvester {
         }
         // swap crv to eth
         if (crvBalance > 0) {
-            uint256 expectedOut = (_getPrice(crvEthPrice) * crvBalance) /
-                ETH_NORMALIZATION_FACTOR;
+            uint256 expectedOut = (_getPriceForAmount(crvEthPrice, crvBalance));
             crveth.exchange(
                 1,
                 0,
@@ -173,7 +171,12 @@ contract Harvester is IHarvester {
 
         // swap eth to USDC using 0.5% pool
         if (wethBalance > 0) {
-            _swapWethToWant(wethBalance);
+            _swapToWantOnUniV3(
+                address(weth),
+                wethBalance,
+                WETH_SWAP_FEE,
+                ethUsdPrice
+            );
         }
 
         // swap _crv to usdc
@@ -181,7 +184,14 @@ contract Harvester is IHarvester {
             _3crvPool.remove_liquidity_one_coin(_3crvBalance, 1, 0);
         }
         // swap SNX to usdc
-        if (snxBalance > 0) {}
+        if (snxBalance > 0) {
+            _swapToWantOnUniV3(
+                address(snx),
+                snxBalance,
+                SNX_SWAP_FEE,
+                snxUsdPrice
+            );
+        }
 
         // send token usdc back to vault
         IERC20(vault.wantToken()).safeTransfer(
@@ -190,36 +200,20 @@ contract Harvester is IHarvester {
         );
     }
 
-    /// @notice helper to perform swap weth -> usdc on uniswap v3
-    function _swapWethToWant(uint256 amount) internal {
-        uint256 expectedOut = (_getPrice(ethUsdPrice) * amount) /
-            ETH_NORMALIZATION_FACTOR;
-
-        uniswapRouter.exactInput(
-            IUniswapV3Router.ExactInputParams(
-                abi.encodePacked(
-                    address(weth),
-                    uint24(WETH_SWAP_FEE),
-                    address(vault.wantToken())
-                ),
-                address(this),
-                block.timestamp,
-                amount,
-                _getMinReceived(expectedOut)
-            )
-        );
-    }
-
     /// @notice helper to perform swap snx -> usdc on uniswap v3
-    function _swapSnxToWant(uint256 amount) internal {
-        uint256 expectedOut = (_getPrice(snxUsdPrice) * amount) /
-            USD_NORMALIZATION_FACTOR;
+    function _swapToWantOnUniV3(
+        address tokenIn,
+        uint256 amount,
+        uint256 fee,
+        IAggregatorV3 priceFeed
+    ) internal {
+        uint256 expectedOut = (_getPriceForAmount(priceFeed, amount));
 
         uniswapRouter.exactInput(
             IUniswapV3Router.ExactInputParams(
                 abi.encodePacked(
-                    address(snx),
-                    uint24(SNX_SWAP_FEE),
+                    tokenIn,
+                    uint24(fee),
                     address(vault.wantToken())
                 ),
                 address(this),
@@ -232,13 +226,13 @@ contract Harvester is IHarvester {
 
     /// @notice helper to get price of tokens in ETH, from chainlink
     /// @param priceFeed the price feed to fetch latest price from
-    function _getPrice(IAggregatorV3 priceFeed)
+    function _getPriceForAmount(IAggregatorV3 priceFeed, uint256 amount)
         internal
         view
         returns (uint256)
     {
         (, int256 latestPrice, , , ) = priceFeed.latestRoundData();
-        return (uint256(latestPrice) / 10**priceFeed.decimals());
+        return ((uint256(latestPrice) * amount) / 10**priceFeed.decimals());
     }
 
     /// @notice helper to get minimum amount to receive from swap
