@@ -39,6 +39,8 @@ Vault.withdraw(uint256,address) (contracts/Vault.sol#113-135) performs a multipl
 	-fee = (amountOut * exitFee) / MAX_BPS (contracts/Vault.sol#130)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#divide-before-multiply
 
+---
+
 Vault.constructor(string,string,address,address,address)._name (contracts/Vault.sol#66) shadows:
 	- ERC20._name (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#42) (state variable)
 Vault.constructor(string,string,address,address,address)._symbol (contracts/Vault.sol#67) shadows:
