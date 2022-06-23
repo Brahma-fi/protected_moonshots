@@ -6,3 +6,4 @@ cache/
 types/
 src/
 coverage.json
+bin
