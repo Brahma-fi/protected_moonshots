@@ -18,15 +18,15 @@ The `ConvexTradeExecutor` is a contract to execute strategy's trade, on Convex. 
 
 **- Key Functionalities**
 
-- `initiateDeposit` - Converts the want tokens sent by vault into Curve LP (UST3 Metapool) tokens.
+- `initiateDeposit` - Converts the want tokens sent by vault into Curve LP tokens by depositing into Curve Pool.
 
 - `initiateWithdraw` - Prepares enough want token balance in the contract by unstaking/converting LP Tokens if needed, for the vault to pull.
 
-- `openPosition` - Opens a staking position on Convex with Curve LP (UST3 Metapool) tokens.
+- `openPosition` - Opens a staking position on Convex with Curve LP tokens.
 
 - `closePosition` - Unstakes and withdraws from the current Convex staked position.
 
-- `claimRewards` - Claims the rewards accrued in the open staked position on Convex, and harvests these rewards into Want Token. This also claims any yield generated from price changes in UST3 Metapool's LP tokens, and burns them for Want Tokens.
+- `claimRewards` - Claims the rewards accrued in the open staked position on Convex. Harvests these rewards into wantToken. This also claims any yield generated from price changes in Curve LP tokens, and burns them for Want Tokens.
 
 ## 3. Roles
 
@@ -37,7 +37,7 @@ The `ConvexTradeExecutor` is a contract to execute strategy's trade, on Convex. 
 
 ## 4. Mechanisms & Concepts
 
-The `ConvexTradeExecutor` is responsible for executing the strategy's trade, on Convex. It accepts deposits from `Vault` in `wantToken` and converts this into Curve LP (UST3 Metapool) Tokens, which are converted to Convex Curve LP Tokens and staked on Convex. It also claims rewards from the Convex staked position and from the UST3 Metapool's LP token's price, and harvests these into `wantToken`s. At the final stage, it prepares enough `wantToken`s, by either unstaking from position or converting LP Tokens, for the `Vault` to pull.
+The `ConvexTradeExecutor` is responsible for executing the strategy's trade, on Convex. It accepts deposits from `Vault` in `wantToken` and converts this into Curve LP Tokens, which are converted to Convex Curve LP Tokens and staked on Convex. It also claims rewards from the Convex staked position and from the Curve's LP token's price, and harvests these into `wantToken`s. At the final stage, it prepares enough `wantToken`s, by either unstaking from position or converting LP Tokens, for the `Vault` to pull.
 
 ## 5. Gotchas
 
@@ -46,7 +46,8 @@ During swaps, the estimated amounts may temporarily be considerably different fr
 ## 6. Failure Modes
 
 - In case of emergency, `Governance` can sweep funds from the contract to retrieve them.
+- If the curve pool is imbalanced it might to lead to +ve/-ve slippage depending to type of imbalance. So `Governance` can change slippage to facilitate entry/exit into the pool.
 
 ## 7. Trust Assumptions
 
-We assume that the `Vault` will send and pull out funds from vault during deposit and withdraw respectively.
+We assume that the `Vault` will send and pull out funds from vault during deposit and withdraw respectively. `Keeper` ensures that enough funds are maintained in the contract for `Vault` to pull.

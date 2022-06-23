@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -7,7 +7,7 @@ import "../interfaces/ITradeExecutor.sol";
 import "../interfaces/IVault.sol";
 
 abstract contract BaseTradeExecutor is ITradeExecutor {
-    uint256 constant MAX_INT = 2**256 - 1;
+    uint256 internal constant MAX_INT = type(uint256).max;
 
     ActionStatus public override depositStatus;
     ActionStatus public override withdrawalStatus;
@@ -32,12 +32,12 @@ abstract contract BaseTradeExecutor is ITradeExecutor {
     }
 
     modifier onlyGovernance() {
-        require(msg.sender == governance(), "access :: Governance");
+        require(msg.sender == governance(), "ONLY_GOV");
         _;
     }
 
     modifier onlyKeeper() {
-        require(msg.sender == keeper(), "access :: Keeper");
+        require(msg.sender == keeper(), "ONLY_KEEPER");
         _;
     }
 
@@ -49,27 +49,27 @@ abstract contract BaseTradeExecutor is ITradeExecutor {
     }
 
     function initiateDeposit(bytes calldata _data) public override onlyKeeper {
-        require(!depositStatus.inProcess, "Deposit already in process");
+        require(!depositStatus.inProcess, "DEPOSIT_IN_PROGRESS");
         depositStatus.inProcess = true;
         _initateDeposit(_data);
     }
 
     function confirmDeposit() public override onlyKeeper {
-        require(depositStatus.inProcess, "No Deposit Pending");
-        _confirmDeposit();
+        require(depositStatus.inProcess, "DEPOSIT_COMPLETED");
         depositStatus.inProcess = false;
+        _confirmDeposit();
     }
 
-    function initateWithdraw(bytes calldata _data) public override onlyKeeper {
-        require(!withdrawalStatus.inProcess, "Withdraw already in process");
+    function initiateWithdraw(bytes calldata _data) public override onlyKeeper {
+        require(!withdrawalStatus.inProcess, "WITHDRAW_IN_PROGRESS");
         withdrawalStatus.inProcess = true;
         _initiateWithdraw(_data);
     }
 
     function confirmWithdraw() public override onlyKeeper {
-        require(withdrawalStatus.inProcess, "No Withdraw Pending");
-        _confirmWithdraw();
+        require(withdrawalStatus.inProcess, "WITHDRAW_COMPLETED");
         withdrawalStatus.inProcess = false;
+        _confirmWithdraw();
     }
 
     /// Internal Funcs

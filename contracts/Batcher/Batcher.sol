@@ -394,6 +394,11 @@ contract Batcher is IBatcher, EIP712, ReentrancyGuard {
     /// @inheritdoc IBatcher
     function setVaultLimit(uint256 maxAmount) external override {
         onlyGovernance();
+        emit VaultLimitUpdated(
+            vaultInfo.vaultAddress,
+            vaultInfo.maxAmount,
+            maxAmount
+        );
         vaultInfo.maxAmount = maxAmount;
     }
 
