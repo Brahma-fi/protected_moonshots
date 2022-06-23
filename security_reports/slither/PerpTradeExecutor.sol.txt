@@ -1,4 +1,4 @@
-07 Apr, 2022
+23 June, 2022
 --------------
 
 BaseTradeExecutor.sweep(address) (contracts/BaseTradeExecutor.sol#44-49) ignores return value by IERC20(_token).transfer(governance(),IERC20(_token).balanceOf(address(this))) (contracts/BaseTradeExecutor.sol#45-48)
@@ -7,7 +7,7 @@ Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#uncheck
 ---
 
 BaseTradeExecutor.constructor(address) (contracts/BaseTradeExecutor.sol#17-20) ignores return value by IERC20(vaultWantToken()).approve(vault,MAX_INT) (contracts/BaseTradeExecutor.sol#19)
-SocketV1Controller.sendTokens(address,address,address,address,uint256,uint256,bytes) (contracts/PerpHandler/SocketV1Controller.sol#79-92) ignores return value by IERC20(token).approve(allowanceTarget,amount) (contracts/PerpHandler/SocketV1Controller.sol#89)
+SocketV1Controller.sendTokens(address,address,address,address,uint256,uint256,bytes) (contracts/PerpHandler/SocketV1Controller.sol#87-105) ignores return value by IERC20(token).approve(allowanceTarget,amount) (contracts/PerpHandler/SocketV1Controller.sol#102)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#unused-return
 
 ---
@@ -17,8 +17,8 @@ PerpTradeExecutor.constructor(address,address,address,address,address).vault (co
 	- ITradeExecutor.vault() (interfaces/ITradeExecutor.sol#10) (function)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#local-variable-shadowing
 
-PerpTradeExecutor.setSocketRegistry(address)._socketRegistry (contracts/PerpTradeExecutor.sol#86) lacks a zero-check on :
-		- socketRegistry = _socketRegistry (contracts/PerpTradeExecutor.sol#87)
+PerpTradeExecutor.setSocketRegistry(address)._socketRegistry (contracts/PerpTradeExecutor.sol#66) lacks a zero-check on :
+		- socketRegistry = _socketRegistry (contracts/PerpTradeExecutor.sol#67)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#missing-zero-address-validation
 
 Reentrancy in PerpTradeExecutor.constructor(address,address,address,address,address) (contracts/PerpTradeExecutor.sol#18-32):
@@ -27,116 +27,110 @@ Reentrancy in PerpTradeExecutor.constructor(address,address,address,address,addr
 		- IERC20(vaultWantToken()).approve(vault,MAX_INT) (contracts/BaseTradeExecutor.sol#19)
 	State variables written after the call(s):
 	- _initHandler(vaultWantToken(),_wantTokenL2,_l2HandlerAddress,_L1CrossDomainMessenger,_socketRegistry) (contracts/PerpTradeExecutor.sol#25-31)
-		- L1CrossDomainMessenger = _L1CrossDomainMessenger (contracts/PerpHandler/PerpPositionHandler.sol#128)
+		- L1CrossDomainMessenger = _L1CrossDomainMessenger (contracts/PerpHandler/PerpPositionHandler.sol#123)
 	- _initHandler(vaultWantToken(),_wantTokenL2,_l2HandlerAddress,_L1CrossDomainMessenger,_socketRegistry) (contracts/PerpTradeExecutor.sol#25-31)
-		- positionHandlerL2Address = _positionHandlerL2Address (contracts/PerpHandler/PerpPositionHandler.sol#127)
+		- positionHandlerL2Address = _positionHandlerL2Address (contracts/PerpHandler/PerpPositionHandler.sol#122)
 	- _initHandler(vaultWantToken(),_wantTokenL2,_l2HandlerAddress,_L1CrossDomainMessenger,_socketRegistry) (contracts/PerpTradeExecutor.sol#25-31)
-		- socketRegistry = _socketRegistry (contracts/PerpHandler/PerpPositionHandler.sol#129)
+		- socketRegistry = _socketRegistry (contracts/PerpHandler/PerpPositionHandler.sol#124)
 	- _initHandler(vaultWantToken(),_wantTokenL2,_l2HandlerAddress,_L1CrossDomainMessenger,_socketRegistry) (contracts/PerpTradeExecutor.sol#25-31)
-		- wantTokenL1 = _wantTokenL1 (contracts/PerpHandler/PerpPositionHandler.sol#125)
+		- wantTokenL1 = _wantTokenL1 (contracts/PerpHandler/PerpPositionHandler.sol#120)
 	- _initHandler(vaultWantToken(),_wantTokenL2,_l2HandlerAddress,_L1CrossDomainMessenger,_socketRegistry) (contracts/PerpTradeExecutor.sol#25-31)
-		- wantTokenL2 = _wantTokenL2 (contracts/PerpHandler/PerpPositionHandler.sol#126)
+		- wantTokenL2 = _wantTokenL2 (contracts/PerpHandler/PerpPositionHandler.sol#121)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-2
 
-Reentrancy in PerpPositionHandler._deposit(bytes) (contracts/PerpHandler/PerpPositionHandler.sol#140-156):
+Reentrancy in PerpPositionHandler._deposit(bytes) (contracts/PerpHandler/PerpPositionHandler.sol#134-153):
 	External calls:
-	- sendTokens(wantTokenL1,depositParams._allowanceTarget,depositParams._socketRegistry,positionHandlerL2Address,depositParams._amount,10,depositParams._socketData) (contracts/PerpHandler/PerpPositionHandler.sol#145-153)
-		- IERC20(token).approve(allowanceTarget,amount) (contracts/PerpHandler/SocketV1Controller.sol#89)
-		- (success) = socketRegistry.call(data) (contracts/PerpHandler/SocketV1Controller.sol#90)
+	- sendTokens(wantTokenL1,depositParams._allowanceTarget,depositParams._socketRegistry,positionHandlerL2Address,depositParams._amount,10,depositParams._socketData) (contracts/PerpHandler/PerpPositionHandler.sol#142-150)
+		- IERC20(token).approve(allowanceTarget,amount) (contracts/PerpHandler/SocketV1Controller.sol#102)
+		- (success) = socketRegistry.call(data) (contracts/PerpHandler/SocketV1Controller.sol#103)
 	Event emitted after the call(s):
-	- Deposit(depositParams._amount) (contracts/PerpHandler/PerpPositionHandler.sol#155)
-Reentrancy in PerpPositionHandler._withdraw(bytes) (contracts/PerpHandler/PerpPositionHandler.sol#161-172):
+	- Deposit(depositParams._amount) (contracts/PerpHandler/PerpPositionHandler.sol#152)
+Reentrancy in PerpPositionHandler._withdraw(bytes) (contracts/PerpHandler/PerpPositionHandler.sol#158-176):
 	External calls:
-	- sendMessageToL2(positionHandlerL2Address,L2calldata,withdrawParams._gasLimit) (contracts/PerpHandler/PerpPositionHandler.sol#170)
-		- optimismMessenger.sendMessage(_target,_message,_gasLimit) (contracts/PerpHandler/OptimismWrapper.sol#26)
+	- sendMessageToL2(positionHandlerL2Address,L2calldata,withdrawParams._gasLimit) (contracts/PerpHandler/PerpPositionHandler.sol#170-174)
+		- optimismMessenger.sendMessage(_target,_message,_gasLimit) (contracts/PerpHandler/OptimismWrapper.sol#34)
 	Event emitted after the call(s):
-	- Withdraw(withdrawParams._amount) (contracts/PerpHandler/PerpPositionHandler.sol#171)
+	- Withdraw(withdrawParams._amount) (contracts/PerpHandler/PerpPositionHandler.sol#175)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-3
 
-SocketV1Controller.slice(bytes,uint256,uint256) (contracts/PerpHandler/SocketV1Controller.sol#101-168) uses assembly
-	- INLINE ASM (contracts/PerpHandler/SocketV1Controller.sol#115-165)
+SocketV1Controller.slice(bytes,uint256,uint256) (contracts/PerpHandler/SocketV1Controller.sol#113-185) uses assembly
+	- INLINE ASM (contracts/PerpHandler/SocketV1Controller.sol#123-182)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#assembly-usage
 
 Different versions of Solidity is used:
-	- Version used: ['>=0.7.6<0.8.10', '^0.8.0']
-	- ^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol#4)
-	- ^0.8.0 (contracts/BaseTradeExecutor.sol#2)
+	- Version used: ['>=0.7.6<0.9.0', '^0.8.0', '^0.8.4']
+	- ^0.8.4 (contracts/BaseTradeExecutor.sol#2)
 	- ^0.8.0 (contracts/PerpHandler/OptimismWrapper.sol#2)
 	- ^0.8.0 (contracts/PerpHandler/PerpPositionHandler.sol#2)
 	- ^0.8.0 (contracts/PerpHandler/SocketV1Controller.sol#2)
 	- ^0.8.0 (contracts/PerpHandler/interfaces/CrossDomainMessenger.interface.sol#2)
 	- ABIEncoderV2 (contracts/PerpHandler/interfaces/CrossDomainMessenger.interface.sol#3)
-	- >=0.7.6<0.8.10 (contracts/PerpL2/interfaces/IPositionHandler.sol#2)
+	- >=0.7.6<0.9.0 (contracts/PerpL2/interfaces/IPositionHandler.sol#2)
 	- ^0.8.0 (contracts/PerpTradeExecutor.sol#2)
 	- ^0.8.0 (interfaces/BasePositionHandler.sol#2)
-	- ^0.8.0 (interfaces/ITradeExecutor.sol#2)
+	- ^0.8.4 (interfaces/ITradeExecutor.sol#2)
 	- ^0.8.0 (interfaces/IVault.sol#2)
+	- ^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol#4)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#different-pragma-directives-are-used
 
-BasePositionHandler._claimRewards(bytes) (interfaces/BasePositionHandler.sol#35) is never used and should be removed
-BasePositionHandler._closePosition(bytes) (interfaces/BasePositionHandler.sol#29) is never used and should be removed
-BasePositionHandler._deposit(bytes) (interfaces/BasePositionHandler.sol#31) is never used and should be removed
-BasePositionHandler._openPosition(bytes) (interfaces/BasePositionHandler.sol#27) is never used and should be removed
-BasePositionHandler._withdraw(bytes) (interfaces/BasePositionHandler.sol#33) is never used and should be removed
+BasePositionHandler._claimRewards(bytes) (interfaces/BasePositionHandler.sol#39) is never used and should be removed
+BasePositionHandler._closePosition(bytes) (interfaces/BasePositionHandler.sol#33) is never used and should be removed
+BasePositionHandler._deposit(bytes) (interfaces/BasePositionHandler.sol#35) is never used and should be removed
+BasePositionHandler._openPosition(bytes) (interfaces/BasePositionHandler.sol#31) is never used and should be removed
+BasePositionHandler._withdraw(bytes) (interfaces/BasePositionHandler.sol#37) is never used and should be removed
 BaseTradeExecutor._confirmDeposit() (contracts/BaseTradeExecutor.sol#79) is never used and should be removed
 BaseTradeExecutor._confirmWithdraw() (contracts/BaseTradeExecutor.sol#83) is never used and should be removed
 BaseTradeExecutor._initateDeposit(bytes) (contracts/BaseTradeExecutor.sol#77) is never used and should be removed
 BaseTradeExecutor._initiateWithdraw(bytes) (contracts/BaseTradeExecutor.sol#81) is never used and should be removed
-OptimismWrapper.messageSender() (contracts/PerpHandler/OptimismWrapper.sol#15-18) is never used and should be removed
-PerpPositionHandler._claimRewards(bytes) (contracts/PerpHandler/PerpPositionHandler.sol#216-218) is never used and should be removed
+OptimismWrapper.messageSender() (contracts/PerpHandler/OptimismWrapper.sol#15-20) is never used and should be removed
+PerpPositionHandler._claimRewards(bytes) (contracts/PerpHandler/PerpPositionHandler.sol#224-226) is never used and should be removed
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#dead-code
 
-Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol#4) allows old versions
-Pragma version^0.8.0 (contracts/BaseTradeExecutor.sol#2) allows old versions
 Pragma version^0.8.0 (contracts/PerpHandler/OptimismWrapper.sol#2) allows old versions
 Pragma version^0.8.0 (contracts/PerpHandler/PerpPositionHandler.sol#2) allows old versions
 Pragma version^0.8.0 (contracts/PerpHandler/SocketV1Controller.sol#2) allows old versions
 Pragma version^0.8.0 (contracts/PerpHandler/interfaces/CrossDomainMessenger.interface.sol#2) allows old versions
-Pragma version>=0.7.6<0.8.10 (contracts/PerpL2/interfaces/IPositionHandler.sol#2) is too complex
+Pragma version>=0.7.6<0.9.0 (contracts/PerpL2/interfaces/IPositionHandler.sol#2) is too complex
 Pragma version^0.8.0 (contracts/PerpTradeExecutor.sol#2) allows old versions
 Pragma version^0.8.0 (interfaces/BasePositionHandler.sol#2) allows old versions
-Pragma version^0.8.0 (interfaces/ITradeExecutor.sol#2) allows old versions
 Pragma version^0.8.0 (interfaces/IVault.sol#2) allows old versions
+Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol#4) allows old versions
+solc-0.8.9 is not recommended for deployment
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#incorrect-versions-of-solidity
 
-Low level call in SocketV1Controller.sendTokens(address,address,address,address,uint256,uint256,bytes) (contracts/PerpHandler/SocketV1Controller.sol#79-92):
-	- (success) = socketRegistry.call(data) (contracts/PerpHandler/SocketV1Controller.sol#90)
+Low level call in SocketV1Controller.sendTokens(address,address,address,address,uint256,uint256,bytes) (contracts/PerpHandler/SocketV1Controller.sol#87-105):
+	- (success) = socketRegistry.call(data) (contracts/PerpHandler/SocketV1Controller.sol#103)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#low-level-calls
 
 Parameter BaseTradeExecutor.sweep(address)._token (contracts/BaseTradeExecutor.sol#44) is not in mixedCase
 Parameter BaseTradeExecutor.initiateDeposit(bytes)._data (contracts/BaseTradeExecutor.sol#51) is not in mixedCase
 Parameter BaseTradeExecutor.initiateWithdraw(bytes)._data (contracts/BaseTradeExecutor.sol#63) is not in mixedCase
-Parameter OptimismWrapper.sendMessageToL2(address,bytes,uint32)._target (contracts/PerpHandler/OptimismWrapper.sol#24) is not in mixedCase
-Parameter OptimismWrapper.sendMessageToL2(address,bytes,uint32)._message (contracts/PerpHandler/OptimismWrapper.sol#24) is not in mixedCase
-Parameter OptimismWrapper.sendMessageToL2(address,bytes,uint32)._gasLimit (contracts/PerpHandler/OptimismWrapper.sol#24) is not in mixedCase
+Parameter OptimismWrapper.sendMessageToL2(address,bytes,uint32)._target (contracts/PerpHandler/OptimismWrapper.sol#27) is not in mixedCase
+Parameter OptimismWrapper.sendMessageToL2(address,bytes,uint32)._message (contracts/PerpHandler/OptimismWrapper.sol#28) is not in mixedCase
+Parameter OptimismWrapper.sendMessageToL2(address,bytes,uint32)._gasLimit (contracts/PerpHandler/OptimismWrapper.sol#29) is not in mixedCase
 Variable OptimismWrapper.L1CrossDomainMessenger (contracts/PerpHandler/OptimismWrapper.sol#11) is not in mixedCase
-Parameter SocketV1Controller.decodeSocketRegistryCalldata(bytes)._data (contracts/PerpHandler/SocketV1Controller.sol#42) is not in mixedCase
-Parameter SocketV1Controller.verifySocketCalldata(bytes,uint256,address,address)._data (contracts/PerpHandler/SocketV1Controller.sol#56) is not in mixedCase
-Parameter SocketV1Controller.verifySocketCalldata(bytes,uint256,address,address)._chainId (contracts/PerpHandler/SocketV1Controller.sol#56) is not in mixedCase
-Parameter SocketV1Controller.verifySocketCalldata(bytes,uint256,address,address)._inputToken (contracts/PerpHandler/SocketV1Controller.sol#56) is not in mixedCase
-Parameter SocketV1Controller.verifySocketCalldata(bytes,uint256,address,address)._receiverAddress (contracts/PerpHandler/SocketV1Controller.sol#56) is not in mixedCase
-Parameter SocketV1Controller.slice(bytes,uint256,uint256)._bytes (contracts/PerpHandler/SocketV1Controller.sol#102) is not in mixedCase
-Parameter SocketV1Controller.slice(bytes,uint256,uint256)._start (contracts/PerpHandler/SocketV1Controller.sol#103) is not in mixedCase
-Parameter SocketV1Controller.slice(bytes,uint256,uint256)._length (contracts/PerpHandler/SocketV1Controller.sol#104) is not in mixedCase
-Parameter PerpTradeExecutor.initHandler(address,address,address,address)._wantTokenL2 (contracts/PerpTradeExecutor.sol#40) is not in mixedCase
-Parameter PerpTradeExecutor.initHandler(address,address,address,address)._l2HandlerAddress (contracts/PerpTradeExecutor.sol#41) is not in mixedCase
-Parameter PerpTradeExecutor.initHandler(address,address,address,address)._L1CrossDomainMessenger (contracts/PerpTradeExecutor.sol#42) is not in mixedCase
-Parameter PerpTradeExecutor.initHandler(address,address,address,address)._socketRegistry (contracts/PerpTradeExecutor.sol#43) is not in mixedCase
-Parameter PerpTradeExecutor.setPosValue(uint256)._posValue (contracts/PerpTradeExecutor.sol#80) is not in mixedCase
-Parameter PerpTradeExecutor.setSocketRegistry(address)._socketRegistry (contracts/PerpTradeExecutor.sol#86) is not in mixedCase
-Parameter PerpTradeExecutor.setHandler(address,address,address,address)._wantTokenL2 (contracts/PerpTradeExecutor.sol#96) is not in mixedCase
-Parameter PerpTradeExecutor.setHandler(address,address,address,address)._l2HandlerAddress (contracts/PerpTradeExecutor.sol#97) is not in mixedCase
-Parameter PerpTradeExecutor.setHandler(address,address,address,address)._L1CrossDomainMessenger (contracts/PerpTradeExecutor.sol#98) is not in mixedCase
-Parameter PerpTradeExecutor.setHandler(address,address,address,address)._socketRegistry (contracts/PerpTradeExecutor.sol#99) is not in mixedCase
-Parameter PerpTradeExecutor.openPosition(bytes)._data (contracts/PerpTradeExecutor.sol#140) is not in mixedCase
-Parameter PerpTradeExecutor.closePosition(bytes)._data (contracts/PerpTradeExecutor.sol#146) is not in mixedCase
+Parameter SocketV1Controller.decodeSocketRegistryCalldata(bytes)._data (contracts/PerpHandler/SocketV1Controller.sol#41) is not in mixedCase
+Parameter SocketV1Controller.verifySocketCalldata(bytes,uint256,address,address)._data (contracts/PerpHandler/SocketV1Controller.sol#60) is not in mixedCase
+Parameter SocketV1Controller.verifySocketCalldata(bytes,uint256,address,address)._chainId (contracts/PerpHandler/SocketV1Controller.sol#61) is not in mixedCase
+Parameter SocketV1Controller.verifySocketCalldata(bytes,uint256,address,address)._inputToken (contracts/PerpHandler/SocketV1Controller.sol#62) is not in mixedCase
+Parameter SocketV1Controller.verifySocketCalldata(bytes,uint256,address,address)._receiverAddress (contracts/PerpHandler/SocketV1Controller.sol#63) is not in mixedCase
+Parameter SocketV1Controller.slice(bytes,uint256,uint256)._bytes (contracts/PerpHandler/SocketV1Controller.sol#114) is not in mixedCase
+Parameter SocketV1Controller.slice(bytes,uint256,uint256)._start (contracts/PerpHandler/SocketV1Controller.sol#115) is not in mixedCase
+Parameter SocketV1Controller.slice(bytes,uint256,uint256)._length (contracts/PerpHandler/SocketV1Controller.sol#116) is not in mixedCase
+Parameter PerpTradeExecutor.setPosValue(uint256)._posValue (contracts/PerpTradeExecutor.sol#60) is not in mixedCase
+Parameter PerpTradeExecutor.setSocketRegistry(address)._socketRegistry (contracts/PerpTradeExecutor.sol#66) is not in mixedCase
+Parameter PerpTradeExecutor.setHandler(address,address,address,address)._wantTokenL2 (contracts/PerpTradeExecutor.sol#76) is not in mixedCase
+Parameter PerpTradeExecutor.setHandler(address,address,address,address)._l2HandlerAddress (contracts/PerpTradeExecutor.sol#77) is not in mixedCase
+Parameter PerpTradeExecutor.setHandler(address,address,address,address)._L1CrossDomainMessenger (contracts/PerpTradeExecutor.sol#78) is not in mixedCase
+Parameter PerpTradeExecutor.setHandler(address,address,address,address)._socketRegistry (contracts/PerpTradeExecutor.sol#79) is not in mixedCase
+Parameter PerpTradeExecutor.openPosition(bytes)._data (contracts/PerpTradeExecutor.sol#120) is not in mixedCase
+Parameter PerpTradeExecutor.closePosition(bytes)._data (contracts/PerpTradeExecutor.sol#126) is not in mixedCase
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#conformance-to-solidity-naming-conventions
 
-Variable PerpPositionHandler._initHandler(address,address,address,address,address)._wantTokenL1 (contracts/PerpHandler/PerpPositionHandler.sol#119) is too similar to PerpPositionHandler._initHandler(address,address,address,address,address)._wantTokenL2 (contracts/PerpHandler/PerpPositionHandler.sol#120)
-Variable PerpPositionHandler.wantTokenL1 (contracts/PerpHandler/PerpPositionHandler.sol#80) is too similar to PerpPositionHandler.wantTokenL2 (contracts/PerpHandler/PerpPositionHandler.sol#83)
-Variable PerpPositionHandler._initHandler(address,address,address,address,address)._wantTokenL1 (contracts/PerpHandler/PerpPositionHandler.sol#119) is too similar to PerpTradeExecutor.setHandler(address,address,address,address)._wantTokenL2 (contracts/PerpTradeExecutor.sol#96)
-Variable PerpPositionHandler._initHandler(address,address,address,address,address)._wantTokenL1 (contracts/PerpHandler/PerpPositionHandler.sol#119) is too similar to PerpTradeExecutor.initHandler(address,address,address,address)._wantTokenL2 (contracts/PerpTradeExecutor.sol#40)
-Variable PerpPositionHandler._initHandler(address,address,address,address,address)._wantTokenL1 (contracts/PerpHandler/PerpPositionHandler.sol#119) is too similar to PerpTradeExecutor.constructor(address,address,address,address,address)._wantTokenL2 (contracts/PerpTradeExecutor.sol#20)
+Variable PerpPositionHandler._initHandler(address,address,address,address,address)._wantTokenL1 (contracts/PerpHandler/PerpPositionHandler.sol#114) is too similar to PerpPositionHandler._initHandler(address,address,address,address,address)._wantTokenL2 (contracts/PerpHandler/PerpPositionHandler.sol#115)
+Variable PerpPositionHandler.wantTokenL1 (contracts/PerpHandler/PerpPositionHandler.sol#78) is too similar to PerpPositionHandler.wantTokenL2 (contracts/PerpHandler/PerpPositionHandler.sol#81)
+Variable PerpPositionHandler._initHandler(address,address,address,address,address)._wantTokenL1 (contracts/PerpHandler/PerpPositionHandler.sol#114) is too similar to PerpTradeExecutor.setHandler(address,address,address,address)._wantTokenL2 (contracts/PerpTradeExecutor.sol#76)
+Variable PerpPositionHandler._initHandler(address,address,address,address,address)._wantTokenL1 (contracts/PerpHandler/PerpPositionHandler.sol#114) is too similar to PerpTradeExecutor.constructor(address,address,address,address,address)._wantTokenL2 (contracts/PerpTradeExecutor.sol#20)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#variable-names-are-too-similar
 
 sweep(address) should be declared external:
@@ -149,19 +143,18 @@ initiateWithdraw(bytes) should be declared external:
 	- BaseTradeExecutor.initiateWithdraw(bytes) (contracts/BaseTradeExecutor.sol#63-67)
 confirmWithdraw() should be declared external:
 	- BaseTradeExecutor.confirmWithdraw() (contracts/BaseTradeExecutor.sol#69-73)
-initHandler(address,address,address,address) should be declared external:
-	- PerpTradeExecutor.initHandler(address,address,address,address) (contracts/PerpTradeExecutor.sol#39-52)
 totalFunds() should be declared external:
-	- PerpTradeExecutor.totalFunds() (contracts/PerpTradeExecutor.sol#61-72)
+	- PerpTradeExecutor.totalFunds() (contracts/PerpTradeExecutor.sol#41-52)
 setPosValue(uint256) should be declared external:
-	- PerpTradeExecutor.setPosValue(uint256) (contracts/PerpTradeExecutor.sol#80-82)
+	- PerpTradeExecutor.setPosValue(uint256) (contracts/PerpTradeExecutor.sol#60-62)
 setSocketRegistry(address) should be declared external:
-	- PerpTradeExecutor.setSocketRegistry(address) (contracts/PerpTradeExecutor.sol#86-88)
+	- PerpTradeExecutor.setSocketRegistry(address) (contracts/PerpTradeExecutor.sol#66-68)
 setHandler(address,address,address,address) should be declared external:
-	- PerpTradeExecutor.setHandler(address,address,address,address) (contracts/PerpTradeExecutor.sol#95-108)
+	- PerpTradeExecutor.setHandler(address,address,address,address) (contracts/PerpTradeExecutor.sol#75-88)
 openPosition(bytes) should be declared external:
-	- PerpTradeExecutor.openPosition(bytes) (contracts/PerpTradeExecutor.sol#140-142)
+	- PerpTradeExecutor.openPosition(bytes) (contracts/PerpTradeExecutor.sol#120-122)
 closePosition(bytes) should be declared external:
-	- PerpTradeExecutor.closePosition(bytes) (contracts/PerpTradeExecutor.sol#146-148)
+	- PerpTradeExecutor.closePosition(bytes) (contracts/PerpTradeExecutor.sol#126-128)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#public-function-that-could-be-declared-external
-contracts/PerpTradeExecutor.sol analyzed (11 contracts with 77 detectors), 77 result(s) found
+
+contracts/PerpTradeExecutor.sol analyzed (11 contracts with 77 detectors), 70 result(s) found
