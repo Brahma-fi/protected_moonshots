@@ -1,0 +1,251 @@
+23 June, 2022
+------------
+
+BaseTradeExecutor.sweep(address) (contracts/BaseTradeExecutor.sol#44-49) ignores return value by IERC20(_token).transfer(governance(),IERC20(_token).balanceOf(address(this))) (contracts/BaseTradeExecutor.sol#45-48)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#unchecked-transfer
+
+---
+
+ConvexPositionHandler._convertLpTokenIntoUSDC(uint256) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#379-401) performs a multiplication on the result of a division:
+	-expectedWantTokensOut = (_amount * susdPool.get_virtual_price()) / NORMALIZATION_FACTOR (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#389-390)
+	-susdDeposit.remove_liquidity_one_coin(_amount,usdcIndexInPool,(expectedWantTokensOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#392-396)
+ConvexPositionHandler._convertUSDCIntoLpToken(uint256) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#409-426) performs a multiplication on the result of a division:
+	-expectedLpOut = (_amount * NORMALIZATION_FACTOR) / susdPool.get_virtual_price() (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#417-418)
+	-susdPool.add_liquidity(liquidityAmounts,(expectedLpOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#420-423)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#divide-before-multiply
+
+ConvexPositionHandler._lpTokenValueInUSDC(uint256) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#433-445) uses a dangerous strict equality:
+	- _value == 0 (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#438)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#dangerous-strict-equalities
+
+Reentrancy in ConvexPositionHandler._claimRewards(bytes) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#278-331):
+	External calls:
+	- require(bool,string)(baseRewardPool.getReward(),reward claim failed) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#279)
+	- harvester.harvest() (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#299)
+	- baseRewardPool.withdrawAndUnwrap(lpTokenEarned - contractLpTokenBalance,true) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#315-318)
+	- _convertLpTokenIntoUSDC(lpTokenEarned) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#321)
+		- susdDeposit.remove_liquidity_one_coin(_amount,usdcIndexInPool,(expectedWantTokensOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#392-396)
+	State variables written after the call(s):
+	- prevSharePrice = currentSharePrice (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#323)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-1
+
+BaseTradeExecutor.constructor(address) (contracts/BaseTradeExecutor.sol#17-20) ignores return value by IERC20(vaultWantToken()).approve(vault,MAX_INT) (contracts/BaseTradeExecutor.sol#19)
+ConvexPositionHandler._configHandler(address,address) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#92-105) ignores return value by lpToken.approve(address(convexBooster),type()(uint256).max) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#100)
+ConvexPositionHandler._configHandler(address,address) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#92-105) ignores return value by wantToken.approve(address(susdPool),type()(uint256).max) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#102)
+ConvexPositionHandler._configHandler(address,address) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#92-105) ignores return value by lpToken.approve(address(susdDeposit),type()(uint256).max) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#104)
+ConvexPositionHandler._closePosition(bytes) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#246-265) ignores return value by baseRewardPool.withdrawAndUnwrap(closePositionParams._amount,true) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#260)
+ConvexPositionHandler._claimRewards(bytes) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#278-331) ignores return value by baseRewardPool.withdrawAndUnwrap(lpTokenEarned - contractLpTokenBalance,true) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#315-318)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#unused-return
+
+---
+
+Reentrancy in ConvexPositionHandler._claimRewards(bytes) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#278-331):
+	External calls:
+	- require(bool,string)(baseRewardPool.getReward(),reward claim failed) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#279)
+	- harvester.harvest() (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#299)
+	- baseRewardPool.withdrawAndUnwrap(lpTokenEarned - contractLpTokenBalance,true) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#315-318)
+	- _convertLpTokenIntoUSDC(lpTokenEarned) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#321)
+		- susdDeposit.remove_liquidity_one_coin(_amount,usdcIndexInPool,(expectedWantTokensOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#392-396)
+	State variables written after the call(s):
+	- latestHarvestedRewards = wantToken.balanceOf(address(this)) - initialUSDCBalance (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#325-327)
+	- totalCummulativeRewards += latestHarvestedRewards (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#328)
+Reentrancy in ConvexSUSDPoolTradeExecutor._initateDeposit(bytes) (contracts/ConvexExecutor/Susd/ConvexSUSDPoolTradeExecutor.sol#84-87):
+	External calls:
+	- ConvexPositionHandler._deposit(_data) (contracts/ConvexExecutor/Susd/ConvexSUSDPoolTradeExecutor.sol#85)
+		- susdPool.add_liquidity(liquidityAmounts,(expectedLpOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#420-423)
+	State variables written after the call(s):
+	- BaseTradeExecutor.confirmDeposit() (contracts/ConvexExecutor/Susd/ConvexSUSDPoolTradeExecutor.sol#86)
+		- depositStatus.inProcess = false (contracts/BaseTradeExecutor.sol#59)
+Reentrancy in ConvexSUSDPoolTradeExecutor._initiateWithdraw(bytes) (contracts/ConvexExecutor/Susd/ConvexSUSDPoolTradeExecutor.sol#92-95):
+	External calls:
+	- ConvexPositionHandler._withdraw(_data) (contracts/ConvexExecutor/Susd/ConvexSUSDPoolTradeExecutor.sol#93)
+		- susdDeposit.remove_liquidity_one_coin(_amount,usdcIndexInPool,(expectedWantTokensOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#392-396)
+		- require(bool,string)(baseRewardPool.withdrawAndUnwrap(lpTokensToUnstake,true),could not unstake) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#190-193)
+	State variables written after the call(s):
+	- BaseTradeExecutor.confirmWithdraw() (contracts/ConvexExecutor/Susd/ConvexSUSDPoolTradeExecutor.sol#94)
+		- withdrawalStatus.inProcess = false (contracts/BaseTradeExecutor.sol#71)
+Reentrancy in ConvexSUSDPoolTradeExecutor.constructor(address,address) (contracts/ConvexExecutor/Susd/ConvexSUSDPoolTradeExecutor.sol#28-33):
+	External calls:
+	- ConvexPositionHandler._configHandler(_harvester,BaseTradeExecutor.vaultWantToken()) (contracts/ConvexExecutor/Susd/ConvexSUSDPoolTradeExecutor.sol#29-32)
+		- lpToken.approve(address(convexBooster),type()(uint256).max) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#100)
+		- wantToken.approve(address(susdPool),type()(uint256).max) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#102)
+		- lpToken.approve(address(susdDeposit),type()(uint256).max) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#104)
+	- BaseTradeExecutor(_vault) (contracts/ConvexExecutor/Susd/ConvexSUSDPoolTradeExecutor.sol#28)
+		- IERC20(vaultWantToken()).approve(vault,MAX_INT) (contracts/BaseTradeExecutor.sol#19)
+	State variables written after the call(s):
+	- ConvexPositionHandler._configHandler(_harvester,BaseTradeExecutor.vaultWantToken()) (contracts/ConvexExecutor/Susd/ConvexSUSDPoolTradeExecutor.sol#29-32)
+		- harvester = IHarvester(_harvester) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#94)
+	- ConvexPositionHandler._configHandler(_harvester,BaseTradeExecutor.vaultWantToken()) (contracts/ConvexExecutor/Susd/ConvexSUSDPoolTradeExecutor.sol#29-32)
+		- prevSharePrice = susdPool.get_virtual_price() (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#97)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-2
+
+Reentrancy in ConvexPositionHandler._claimRewards(bytes) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#278-331):
+	External calls:
+	- require(bool,string)(baseRewardPool.getReward(),reward claim failed) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#279)
+	- harvester.harvest() (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#299)
+	- baseRewardPool.withdrawAndUnwrap(lpTokenEarned - contractLpTokenBalance,true) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#315-318)
+	- _convertLpTokenIntoUSDC(lpTokenEarned) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#321)
+		- susdDeposit.remove_liquidity_one_coin(_amount,usdcIndexInPool,(expectedWantTokensOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#392-396)
+	Event emitted after the call(s):
+	- Claim(latestHarvestedRewards) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#330)
+Reentrancy in ConvexPositionHandler._deposit(bytes) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#140-150):
+	External calls:
+	- _convertUSDCIntoLpToken(depositParams._amount) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#147)
+		- susdPool.add_liquidity(liquidityAmounts,(expectedLpOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#420-423)
+	Event emitted after the call(s):
+	- Deposit(depositParams._amount) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#149)
+Reentrancy in ConvexPositionHandler._withdraw(bytes) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#157-209):
+	External calls:
+	- require(bool,string)(baseRewardPool.withdrawAndUnwrap(lpTokensToUnstake,true),could not unstake) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#190-193)
+	- _convertLpTokenIntoUSDC(lpTokensToConvert) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#205)
+		- susdDeposit.remove_liquidity_one_coin(_amount,usdcIndexInPool,(expectedWantTokensOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#392-396)
+	Event emitted after the call(s):
+	- Withdraw(withdrawParams._amount) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#208)
+Reentrancy in ConvexSUSDPoolTradeExecutor.setHandler(address) (contracts/ConvexExecutor/Susd/ConvexSUSDPoolTradeExecutor.sol#70-75):
+	External calls:
+	- ConvexPositionHandler._configHandler(_harvester,vaultWantToken()) (contracts/ConvexExecutor/Susd/ConvexSUSDPoolTradeExecutor.sol#73)
+		- lpToken.approve(address(convexBooster),type()(uint256).max) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#100)
+		- wantToken.approve(address(susdPool),type()(uint256).max) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#102)
+		- lpToken.approve(address(susdDeposit),type()(uint256).max) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#104)
+	Event emitted after the call(s):
+	- UpdatedHarvester(oldHarvester,_harvester) (contracts/ConvexExecutor/Susd/ConvexSUSDPoolTradeExecutor.sol#74)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-3
+
+Address.verifyCallResult(bool,bytes,string) (node_modules/@openzeppelin/contracts/utils/Address.sol#201-221) uses assembly
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/Address.sol#213-216)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#assembly-usage
+
+Different versions of Solidity is used:
+	- Version used: ['^0.8.0', '^0.8.1', '^0.8.4']
+	- ^0.8.4 (contracts/BaseTradeExecutor.sol#2)
+	- ^0.8.0 (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#2)
+	- v2 (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#3)
+	- ^0.8.0 (contracts/ConvexExecutor/Susd/ConvexSUSDPoolTradeExecutor.sol#2)
+	- ^0.8.0 (contracts/ConvexExecutor/interfaces/IConvexBooster.sol#2)
+	- ^0.8.0 (contracts/ConvexExecutor/interfaces/IConvexRewards.sol#2)
+	- ^0.8.0 (contracts/ConvexExecutor/interfaces/ICurveDeposit.sol#2)
+	- ^0.8.0 (contracts/ConvexExecutor/interfaces/ICurveDepositZapper.sol#2)
+	- ^0.8.0 (contracts/ConvexExecutor/interfaces/ICurveSwap.sol#2)
+	- ^0.8.0 (contracts/ConvexExecutor/interfaces/IHarvester.sol#2)
+	- ^0.8.0 (interfaces/BasePositionHandler.sol#2)
+	- ^0.8.4 (interfaces/ITradeExecutor.sol#2)
+	- ^0.8.0 (interfaces/IVault.sol#2)
+	- ^0.8.0 (library/Math.sol#4)
+	- ^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol#4)
+	- ^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol#4)
+	- ^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#4)
+	- ^0.8.1 (node_modules/@openzeppelin/contracts/utils/Address.sol#4)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#different-pragma-directives-are-used
+
+Address.functionCall(address,bytes) (node_modules/@openzeppelin/contracts/utils/Address.sol#85-87) is never used and should be removed
+Address.functionCallWithValue(address,bytes,uint256) (node_modules/@openzeppelin/contracts/utils/Address.sol#114-120) is never used and should be removed
+Address.functionDelegateCall(address,bytes) (node_modules/@openzeppelin/contracts/utils/Address.sol#174-176) is never used and should be removed
+Address.functionDelegateCall(address,bytes,string) (node_modules/@openzeppelin/contracts/utils/Address.sol#184-193) is never used and should be removed
+Address.functionStaticCall(address,bytes) (node_modules/@openzeppelin/contracts/utils/Address.sol#147-149) is never used and should be removed
+Address.functionStaticCall(address,bytes,string) (node_modules/@openzeppelin/contracts/utils/Address.sol#157-166) is never used and should be removed
+Address.sendValue(address,uint256) (node_modules/@openzeppelin/contracts/utils/Address.sol#60-65) is never used and should be removed
+BasePositionHandler._claimRewards(bytes) (interfaces/BasePositionHandler.sol#39) is never used and should be removed
+BasePositionHandler._closePosition(bytes) (interfaces/BasePositionHandler.sol#33) is never used and should be removed
+BasePositionHandler._deposit(bytes) (interfaces/BasePositionHandler.sol#35) is never used and should be removed
+BasePositionHandler._openPosition(bytes) (interfaces/BasePositionHandler.sol#31) is never used and should be removed
+BasePositionHandler._withdraw(bytes) (interfaces/BasePositionHandler.sol#37) is never used and should be removed
+BaseTradeExecutor._confirmDeposit() (contracts/BaseTradeExecutor.sol#79) is never used and should be removed
+BaseTradeExecutor._confirmWithdraw() (contracts/BaseTradeExecutor.sol#83) is never used and should be removed
+BaseTradeExecutor._initateDeposit(bytes) (contracts/BaseTradeExecutor.sol#77) is never used and should be removed
+BaseTradeExecutor._initiateWithdraw(bytes) (contracts/BaseTradeExecutor.sol#81) is never used and should be removed
+Math.max(uint256,uint256) (library/Math.sol#13-15) is never used and should be removed
+SafeERC20.safeApprove(IERC20,address,uint256) (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#45-58) is never used and should be removed
+SafeERC20.safeDecreaseAllowance(IERC20,address,uint256) (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#69-80) is never used and should be removed
+SafeERC20.safeIncreaseAllowance(IERC20,address,uint256) (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#60-67) is never used and should be removed
+SafeERC20.safeTransferFrom(IERC20,address,address,uint256) (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#29-36) is never used and should be removed
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#dead-code
+
+Pragma version^0.8.0 (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#2) allows old versions
+Pragma version^0.8.0 (contracts/ConvexExecutor/Susd/ConvexSUSDPoolTradeExecutor.sol#2) allows old versions
+Pragma version^0.8.0 (contracts/ConvexExecutor/interfaces/IConvexBooster.sol#2) allows old versions
+Pragma version^0.8.0 (contracts/ConvexExecutor/interfaces/IConvexRewards.sol#2) allows old versions
+Pragma version^0.8.0 (contracts/ConvexExecutor/interfaces/ICurveDeposit.sol#2) allows old versions
+Pragma version^0.8.0 (contracts/ConvexExecutor/interfaces/ICurveDepositZapper.sol#2) allows old versions
+Pragma version^0.8.0 (contracts/ConvexExecutor/interfaces/ICurveSwap.sol#2) allows old versions
+Pragma version^0.8.0 (contracts/ConvexExecutor/interfaces/IHarvester.sol#2) allows old versions
+Pragma version^0.8.0 (interfaces/BasePositionHandler.sol#2) allows old versions
+Pragma version^0.8.0 (interfaces/IVault.sol#2) allows old versions
+Pragma version^0.8.0 (library/Math.sol#4) allows old versions
+Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol#4) allows old versions
+Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol#4) allows old versions
+Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#4) allows old versions
+Pragma version^0.8.1 (node_modules/@openzeppelin/contracts/utils/Address.sol#4) allows old versions
+solc-0.8.9 is not recommended for deployment
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#incorrect-versions-of-solidity
+
+Low level call in Address.sendValue(address,uint256) (node_modules/@openzeppelin/contracts/utils/Address.sol#60-65):
+	- (success) = recipient.call{value: amount}() (node_modules/@openzeppelin/contracts/utils/Address.sol#63)
+Low level call in Address.functionCallWithValue(address,bytes,uint256,string) (node_modules/@openzeppelin/contracts/utils/Address.sol#128-139):
+	- (success,returndata) = target.call{value: value}(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#137)
+Low level call in Address.functionStaticCall(address,bytes,string) (node_modules/@openzeppelin/contracts/utils/Address.sol#157-166):
+	- (success,returndata) = target.staticcall(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#164)
+Low level call in Address.functionDelegateCall(address,bytes,string) (node_modules/@openzeppelin/contracts/utils/Address.sol#184-193):
+	- (success,returndata) = target.delegatecall(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#191)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#low-level-calls
+
+Parameter BaseTradeExecutor.sweep(address)._token (contracts/BaseTradeExecutor.sol#44) is not in mixedCase
+Parameter BaseTradeExecutor.initiateDeposit(bytes)._data (contracts/BaseTradeExecutor.sol#51) is not in mixedCase
+Parameter BaseTradeExecutor.initiateWithdraw(bytes)._data (contracts/BaseTradeExecutor.sol#63) is not in mixedCase
+Function ConvexPositionHandler._USDCValueInLpToken(uint256) (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#465-473) is not in mixedCase
+Parameter ConvexPositionHandler._USDCValueInLpToken(uint256)._value (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#465) is not in mixedCase
+Variable ConvexPositionHandler.MAX_BPS (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#45) is not in mixedCase
+Constant ConvexPositionHandler.baseRewardPool (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#74-75) is not in UPPER_CASE_WITH_UNDERSCORES
+Constant ConvexPositionHandler.susdPool (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#77-78) is not in UPPER_CASE_WITH_UNDERSCORES
+Constant ConvexPositionHandler.susdDeposit (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#80-81) is not in UPPER_CASE_WITH_UNDERSCORES
+Constant ConvexPositionHandler.convexBooster (contracts/ConvexExecutor/Susd/ConvexPositionHandler.sol#83-84) is not in UPPER_CASE_WITH_UNDERSCORES
+Parameter ConvexSUSDPoolTradeExecutor.setSlippage(uint256)._slippage (contracts/ConvexExecutor/Susd/ConvexSUSDPoolTradeExecutor.sol#51) is not in mixedCase
+Parameter ConvexSUSDPoolTradeExecutor.setUseVirtualPriceForPosValue(bool)._useVirtualPriceForPosValue (contracts/ConvexExecutor/Susd/ConvexSUSDPoolTradeExecutor.sol#60) is not in mixedCase
+Parameter ConvexSUSDPoolTradeExecutor.setHandler(address)._harvester (contracts/ConvexExecutor/Susd/ConvexSUSDPoolTradeExecutor.sol#70) is not in mixedCase
+Parameter ConvexSUSDPoolTradeExecutor.openPosition(bytes)._data (contracts/ConvexExecutor/Susd/ConvexSUSDPoolTradeExecutor.sol#112) is not in mixedCase
+Parameter ConvexSUSDPoolTradeExecutor.closePosition(bytes)._data (contracts/ConvexExecutor/Susd/ConvexSUSDPoolTradeExecutor.sol#119) is not in mixedCase
+Parameter ConvexSUSDPoolTradeExecutor.claimRewards(bytes)._data (contracts/ConvexExecutor/Susd/ConvexSUSDPoolTradeExecutor.sol#129) is not in mixedCase
+Function ICurveDeposit.remove_liquidity_one_coin(uint256,int128,uint256) (contracts/ConvexExecutor/interfaces/ICurveDeposit.sol#5-9) is not in mixedCase
+Parameter ICurveDeposit.remove_liquidity_one_coin(uint256,int128,uint256)._token_amount (contracts/ConvexExecutor/interfaces/ICurveDeposit.sol#6) is not in mixedCase
+Parameter ICurveDeposit.remove_liquidity_one_coin(uint256,int128,uint256).min_amount (contracts/ConvexExecutor/interfaces/ICurveDeposit.sol#8) is not in mixedCase
+Function ICurveDeposit.calc_withdraw_one_coin(uint256,int128) (contracts/ConvexExecutor/interfaces/ICurveDeposit.sol#11-14) is not in mixedCase
+Parameter ICurveDeposit.calc_withdraw_one_coin(uint256,int128)._token_amount (contracts/ConvexExecutor/interfaces/ICurveDeposit.sol#11) is not in mixedCase
+Function ICurveDepositZapper.calc_withdraw_one_coin(address,uint256,int128) (contracts/ConvexExecutor/interfaces/ICurveDepositZapper.sol#5-9) is not in mixedCase
+Parameter ICurveDepositZapper.calc_withdraw_one_coin(address,uint256,int128)._token_amount (contracts/ConvexExecutor/interfaces/ICurveDepositZapper.sol#7) is not in mixedCase
+Function ICurveDepositZapper.calc_token_amount(address,uint256[4],bool) (contracts/ConvexExecutor/interfaces/ICurveDepositZapper.sol#11-15) is not in mixedCase
+Parameter ICurveDepositZapper.calc_token_amount(address,uint256[4],bool)._is_deposit (contracts/ConvexExecutor/interfaces/ICurveDepositZapper.sol#14) is not in mixedCase
+Function ICurveDepositZapper.remove_liquidity_one_coin(address,uint256,int128,uint256) (contracts/ConvexExecutor/interfaces/ICurveDepositZapper.sol#17-22) is not in mixedCase
+Parameter ICurveDepositZapper.remove_liquidity_one_coin(address,uint256,int128,uint256)._burn_amount (contracts/ConvexExecutor/interfaces/ICurveDepositZapper.sol#19) is not in mixedCase
+Parameter ICurveDepositZapper.remove_liquidity_one_coin(address,uint256,int128,uint256)._min_amount (contracts/ConvexExecutor/interfaces/ICurveDepositZapper.sol#21) is not in mixedCase
+Function ICurveDepositZapper.add_liquidity(address,uint256[4],uint256) (contracts/ConvexExecutor/interfaces/ICurveDepositZapper.sol#24-28) is not in mixedCase
+Parameter ICurveDepositZapper.add_liquidity(address,uint256[4],uint256)._deposit_amounts (contracts/ConvexExecutor/interfaces/ICurveDepositZapper.sol#26) is not in mixedCase
+Parameter ICurveDepositZapper.add_liquidity(address,uint256[4],uint256)._min_mint_amount (contracts/ConvexExecutor/interfaces/ICurveDepositZapper.sol#27) is not in mixedCase
+Parameter ICurveSwap.exchange(int128,int128,uint256,uint256,address)._min_dy (contracts/ConvexExecutor/interfaces/ICurveSwap.sol#9) is not in mixedCase
+Function ICurveSwap.remove_liquidity_one_coin(uint256,int128,uint256) (contracts/ConvexExecutor/interfaces/ICurveSwap.sol#13-17) is not in mixedCase
+Parameter ICurveSwap.remove_liquidity_one_coin(uint256,int128,uint256)._token_amount (contracts/ConvexExecutor/interfaces/ICurveSwap.sol#14) is not in mixedCase
+Parameter ICurveSwap.remove_liquidity_one_coin(uint256,int128,uint256).min_amount (contracts/ConvexExecutor/interfaces/ICurveSwap.sol#16) is not in mixedCase
+Function ICurveSwap.add_liquidity(uint256[4],uint256) (contracts/ConvexExecutor/interfaces/ICurveSwap.sol#19-20) is not in mixedCase
+Parameter ICurveSwap.add_liquidity(uint256[4],uint256).min_mint_amount (contracts/ConvexExecutor/interfaces/ICurveSwap.sol#19) is not in mixedCase
+Function ICurveSwap.get_dy(int128,int128,uint256) (contracts/ConvexExecutor/interfaces/ICurveSwap.sol#22-26) is not in mixedCase
+Function ICurveSwap.calc_token_amount(uint256[4],bool) (contracts/ConvexExecutor/interfaces/ICurveSwap.sol#28-31) is not in mixedCase
+Parameter ICurveSwap.calc_token_amount(uint256[4],bool)._is_deposit (contracts/ConvexExecutor/interfaces/ICurveSwap.sol#28) is not in mixedCase
+Function ICurveSwap.get_virtual_price() (contracts/ConvexExecutor/interfaces/ICurveSwap.sol#33) is not in mixedCase
+Function IHarvester._3crv() (contracts/ConvexExecutor/interfaces/IHarvester.sol#11) is not in mixedCase
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#conformance-to-solidity-naming-conventions
+
+sweep(address) should be declared external:
+	- BaseTradeExecutor.sweep(address) (contracts/BaseTradeExecutor.sol#44-49)
+initiateDeposit(bytes) should be declared external:
+	- BaseTradeExecutor.initiateDeposit(bytes) (contracts/BaseTradeExecutor.sol#51-55)
+initiateWithdraw(bytes) should be declared external:
+	- BaseTradeExecutor.initiateWithdraw(bytes) (contracts/BaseTradeExecutor.sol#63-67)
+totalFunds() should be declared external:
+	- ConvexSUSDPoolTradeExecutor.totalFunds() (contracts/ConvexExecutor/Susd/ConvexSUSDPoolTradeExecutor.sol#41-43)
+openPosition(bytes) should be declared external:
+	- ConvexSUSDPoolTradeExecutor.openPosition(bytes) (contracts/ConvexExecutor/Susd/ConvexSUSDPoolTradeExecutor.sol#112-114)
+closePosition(bytes) should be declared external:
+	- ConvexSUSDPoolTradeExecutor.closePosition(bytes) (contracts/ConvexExecutor/Susd/ConvexSUSDPoolTradeExecutor.sol#119-121)
+claimRewards(bytes) should be declared external:
+	- ConvexSUSDPoolTradeExecutor.claimRewards(bytes) (contracts/ConvexExecutor/Susd/ConvexSUSDPoolTradeExecutor.sol#129-131)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#public-function-that-could-be-declared-external
+
+contracts/ConvexExecutor/Susd/ConvexSUSDPoolTradeExecutor.sol analyzed (17 contracts with 77 detectors), 111 result(s) found
