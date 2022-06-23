@@ -10,6 +10,8 @@ interface IHarvester {
 
     function _3crv() external view returns (IERC20);
 
+    function snx() external view returns (IERC20);
+
     function vault() external view returns (IVault);
 
     // Swap tokens to wantToken

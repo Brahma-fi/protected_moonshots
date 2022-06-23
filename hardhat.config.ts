@@ -1,7 +1,6 @@
 import * as dotenv from "dotenv";
 import { HardhatNetworkForkingUserConfig } from "hardhat/types";
 import { HardhatUserConfig, task } from "hardhat/config";
-import "hardhat-change-network";
 import "@nomiclabs/hardhat-etherscan";
 import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
@@ -37,7 +36,7 @@ const buildForkConfig = (): HardhatNetworkForkingUserConfig => {
   } else {
     forkMode = {
       url: `https://eth-mainnet.alchemyapi.io/v2/${process.env.ALCHEMY_KEY}`,
-      // blockNumber: Number(process.env.BLOCK_NUMBER),
+      blockNumber: 15003356,
     };
   }
   return forkMode;
@@ -45,7 +44,6 @@ const buildForkConfig = (): HardhatNetworkForkingUserConfig => {
 
 const getTenderlyForkConfig = (): string => {
   let url = JSON.parse(readFileSync("tenderlyConfig.json").toString());
-  console.log(url);
   // console.log(`https://rpc.tenderly.co/fork/${process.env.TENDERLY_FORK_ID}`)
   return url.forkRPCUrl;
 

@@ -7,7 +7,7 @@ import {
   MockTradeExecutor,
   MockAsyncTradeExecutor,
   ERC20,
-  ConvexTradeExecutor,
+  ConvexFraxPoolTradeExecutor,
   Harvester,
   IConvexRewards,
 } from "../../src/types";
@@ -88,15 +88,15 @@ export async function getHarvester(vault: string): Promise<Harvester> {
 export async function getConvexTradeExecutor(
   harvester: string,
   vault: string
-): Promise<ConvexTradeExecutor> {
+): Promise<ConvexFraxPoolTradeExecutor> {
   const ConvexTradeExecutorFactory = await hre.ethers.getContractFactory(
-    "ConvexTradeExecutor"
+    "ConvexFraxPoolTradeExecutor"
   );
 
   return (await ConvexTradeExecutorFactory.deploy(
     harvester,
     vault
-  )) as ConvexTradeExecutor;
+  )) as ConvexFraxPoolTradeExecutor;
 }
 
 export async function getMockTradeExecutor(

@@ -105,7 +105,7 @@ Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#low-lev
 
 Parameter BaseTradeExecutor.sweep(address)._token (contracts/BaseTradeExecutor.sol#44) is not in mixedCase
 Parameter BaseTradeExecutor.initiateDeposit(bytes)._data (contracts/BaseTradeExecutor.sol#51) is not in mixedCase
-Parameter BaseTradeExecutor.initateWithdraw(bytes)._data (contracts/BaseTradeExecutor.sol#63) is not in mixedCase
+Parameter BaseTradeExecutor.initiateWithdraw(bytes)._data (contracts/BaseTradeExecutor.sol#63) is not in mixedCase
 Parameter OptimismWrapper.sendMessageToL2(address,bytes,uint32)._target (contracts/PerpHandler/OptimismWrapper.sol#24) is not in mixedCase
 Parameter OptimismWrapper.sendMessageToL2(address,bytes,uint32)._message (contracts/PerpHandler/OptimismWrapper.sol#24) is not in mixedCase
 Parameter OptimismWrapper.sendMessageToL2(address,bytes,uint32)._gasLimit (contracts/PerpHandler/OptimismWrapper.sol#24) is not in mixedCase
@@ -145,8 +145,8 @@ initiateDeposit(bytes) should be declared external:
 	- BaseTradeExecutor.initiateDeposit(bytes) (contracts/BaseTradeExecutor.sol#51-55)
 confirmDeposit() should be declared external:
 	- BaseTradeExecutor.confirmDeposit() (contracts/BaseTradeExecutor.sol#57-61)
-initateWithdraw(bytes) should be declared external:
-	- BaseTradeExecutor.initateWithdraw(bytes) (contracts/BaseTradeExecutor.sol#63-67)
+initiateWithdraw(bytes) should be declared external:
+	- BaseTradeExecutor.initiateWithdraw(bytes) (contracts/BaseTradeExecutor.sol#63-67)
 confirmWithdraw() should be declared external:
 	- BaseTradeExecutor.confirmWithdraw() (contracts/BaseTradeExecutor.sol#69-73)
 initHandler(address,address,address,address) should be declared external:
