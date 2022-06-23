@@ -2,9 +2,7 @@ import hre from "hardhat";
 import { Vault } from "../../src/types";
 
 const HarvesterConfig = {
-  keeper: "0xAE75B29ADe678372D77A8B41225654138a7E6ff1",
-  wantToken: "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",
-  governance: "0x6b29610D6c6a9E47812bE40F1335918bd63321bf",
+  vault: "0x3c4Fe0db16c9b521480c43856ba3196A9fa50E08",
 };
 
 async function main() {
@@ -20,12 +18,12 @@ async function main() {
   await harvester.deployed();
   console.log("Harvester deployed to:", harvester.address);
 
-  //   await new Promise((r) => setTimeout(r, 75000));
+  await new Promise((r) => setTimeout(r, 75000));
 
-  //   await hre.run("verify:verify", {
-  //     address: harvester.address,
-  //     constructorArguments: [...Object.values(HarvesterConfig)]
-  //   });
+  await hre.run("verify:verify", {
+    address: harvester.address,
+    constructorArguments: [...Object.values(HarvesterConfig)],
+  });
 }
 
 // We recommend this pattern to be able to use async/await everywhere
