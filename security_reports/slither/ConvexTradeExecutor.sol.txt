@@ -175,7 +175,7 @@ Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#low-lev
 
 Parameter BaseTradeExecutor.sweep(address)._token (contracts/BaseTradeExecutor.sol#44) is not in mixedCase
 Parameter BaseTradeExecutor.initiateDeposit(bytes)._data (contracts/BaseTradeExecutor.sol#51) is not in mixedCase
-Parameter BaseTradeExecutor.initateWithdraw(bytes)._data (contracts/BaseTradeExecutor.sol#63) is not in mixedCase
+Parameter BaseTradeExecutor.initiateWithdraw(bytes)._data (contracts/BaseTradeExecutor.sol#63) is not in mixedCase
 Function ConvexPositionHandler._USDCValueInLpToken(uint256) (contracts/ConvexExecutor/ConvexPositionHandler.sol#393-402) is not in mixedCase
 Parameter ConvexPositionHandler._USDCValueInLpToken(uint256)._value (contracts/ConvexExecutor/ConvexPositionHandler.sol#393) is not in mixedCase
 Variable ConvexPositionHandler.MAX_BPS (contracts/ConvexExecutor/ConvexPositionHandler.sol#42) is not in mixedCase
@@ -213,8 +213,8 @@ sweep(address) should be declared external:
 	- BaseTradeExecutor.sweep(address) (contracts/BaseTradeExecutor.sol#44-49)
 initiateDeposit(bytes) should be declared external:
 	- BaseTradeExecutor.initiateDeposit(bytes) (contracts/BaseTradeExecutor.sol#51-55)
-initateWithdraw(bytes) should be declared external:
-	- BaseTradeExecutor.initateWithdraw(bytes) (contracts/BaseTradeExecutor.sol#63-67)
+initiateWithdraw(bytes) should be declared external:
+	- BaseTradeExecutor.initiateWithdraw(bytes) (contracts/BaseTradeExecutor.sol#63-67)
 totalFunds() should be declared external:
 	- ConvexTradeExecutor.totalFunds() (contracts/ConvexTradeExecutor.sol#46-48)
 openPosition(bytes) should be declared external:

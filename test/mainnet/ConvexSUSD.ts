@@ -259,7 +259,7 @@ describe("Convex SUSD Trade Executor [MAINNET]", function () {
       [[totalFund.div(2)]]
     );
 
-    await convexTradeExecutor.connect(signer).initateWithdraw(paramsInBytes);
+    await convexTradeExecutor.connect(signer).initiateWithdraw(paramsInBytes);
 
     const finalUsdcBal = await USDC.balanceOf(convexTradeExecutor.address);
 
@@ -276,6 +276,6 @@ describe("Convex SUSD Trade Executor [MAINNET]", function () {
 
     await convexTradeExecutor
       .connect(signer)
-      .initateWithdraw(completeParamsInBytes);
+      .initiateWithdraw(completeParamsInBytes);
   });
 });
