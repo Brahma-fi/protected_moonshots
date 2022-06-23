@@ -1,0 +1,244 @@
+23 June, 2022
+------------
+
+BaseTradeExecutor.sweep(address) (contracts/BaseTradeExecutor.sol#44-49) ignores return value by IERC20(_token).transfer(governance(),IERC20(_token).balanceOf(address(this))) (contracts/BaseTradeExecutor.sol#45-48)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#unchecked-transfer
+
+---
+
+ConvexPositionHandler._convertLpTokenIntoUSDC(uint256) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#380-398) performs a multiplication on the result of a division:
+	-expectedWantTokensOut = (_amount * fraxPool.get_virtual_price()) / NORMALIZATION_FACTOR (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#389-390)
+	-receivedWantTokens = curve3PoolZap.remove_liquidity_one_coin(address(fraxPool),_amount,usdcIndexInPool,(expectedWantTokensOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#392-397)
+ConvexPositionHandler._convertUSDCIntoLpToken(uint256) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#406-421) performs a multiplication on the result of a division:
+	-expectedLpOut = (_amount * NORMALIZATION_FACTOR) / fraxPool.get_virtual_price() (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#413-414)
+	-receivedLpTokens = curve3PoolZap.add_liquidity(address(fraxPool),liquidityAmounts,(expectedLpOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#416-420)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#divide-before-multiply
+
+ConvexPositionHandler._lpTokenValueInUSDC(uint256) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#428-441) uses a dangerous strict equality:
+	- _value == 0 (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#433)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#dangerous-strict-equalities
+
+Reentrancy in ConvexPositionHandler._claimRewards(bytes) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#279-332):
+	External calls:
+	- require(bool,string)(baseRewardPool.getReward(),reward claim failed) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#280)
+	- harvester.harvest() (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#300)
+	- baseRewardPool.withdrawAndUnwrap(lpTokenEarned - contractLpTokenBalance,true) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#316-319)
+	- _convertLpTokenIntoUSDC(lpTokenEarned) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#322)
+		- receivedWantTokens = curve3PoolZap.remove_liquidity_one_coin(address(fraxPool),_amount,usdcIndexInPool,(expectedWantTokensOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#392-397)
+	State variables written after the call(s):
+	- prevSharePrice = currentSharePrice (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#324)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-1
+
+BaseTradeExecutor.constructor(address) (contracts/BaseTradeExecutor.sol#17-20) ignores return value by IERC20(vaultWantToken()).approve(vault,MAX_INT) (contracts/BaseTradeExecutor.sol#19)
+ConvexPositionHandler._configHandler(address,address) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#91-106) ignores return value by lpToken.approve(address(convexBooster),type()(uint256).max) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#99)
+ConvexPositionHandler._configHandler(address,address) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#91-106) ignores return value by wantToken.approve(address(curve3PoolZap),type()(uint256).max) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#102)
+ConvexPositionHandler._configHandler(address,address) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#91-106) ignores return value by lpToken.approve(address(curve3PoolZap),type()(uint256).max) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#105)
+ConvexPositionHandler._closePosition(bytes) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#247-266) ignores return value by baseRewardPool.withdrawAndUnwrap(closePositionParams._amount,true) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#261)
+ConvexPositionHandler._claimRewards(bytes) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#279-332) ignores return value by baseRewardPool.withdrawAndUnwrap(lpTokenEarned - contractLpTokenBalance,true) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#316-319)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#unused-return
+
+---
+
+Reentrancy in ConvexPositionHandler._claimRewards(bytes) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#279-332):
+	External calls:
+	- require(bool,string)(baseRewardPool.getReward(),reward claim failed) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#280)
+	- harvester.harvest() (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#300)
+	- baseRewardPool.withdrawAndUnwrap(lpTokenEarned - contractLpTokenBalance,true) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#316-319)
+	- _convertLpTokenIntoUSDC(lpTokenEarned) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#322)
+		- receivedWantTokens = curve3PoolZap.remove_liquidity_one_coin(address(fraxPool),_amount,usdcIndexInPool,(expectedWantTokensOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#392-397)
+	State variables written after the call(s):
+	- latestHarvestedRewards = wantToken.balanceOf(address(this)) - initialUSDCBalance (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#326-328)
+	- totalCummulativeRewards += latestHarvestedRewards (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#329)
+Reentrancy in ConvexFraxPoolTradeExecutor._initateDeposit(bytes) (contracts/ConvexExecutor/Frax/ConvexFraxPoolTradeExecutor.sol#84-87):
+	External calls:
+	- ConvexPositionHandler._deposit(_data) (contracts/ConvexExecutor/Frax/ConvexFraxPoolTradeExecutor.sol#85)
+		- receivedLpTokens = curve3PoolZap.add_liquidity(address(fraxPool),liquidityAmounts,(expectedLpOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#416-420)
+	State variables written after the call(s):
+	- BaseTradeExecutor.confirmDeposit() (contracts/ConvexExecutor/Frax/ConvexFraxPoolTradeExecutor.sol#86)
+		- depositStatus.inProcess = false (contracts/BaseTradeExecutor.sol#59)
+Reentrancy in ConvexFraxPoolTradeExecutor._initiateWithdraw(bytes) (contracts/ConvexExecutor/Frax/ConvexFraxPoolTradeExecutor.sol#92-95):
+	External calls:
+	- ConvexPositionHandler._withdraw(_data) (contracts/ConvexExecutor/Frax/ConvexFraxPoolTradeExecutor.sol#93)
+		- receivedWantTokens = curve3PoolZap.remove_liquidity_one_coin(address(fraxPool),_amount,usdcIndexInPool,(expectedWantTokensOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#392-397)
+		- require(bool,string)(baseRewardPool.withdrawAndUnwrap(lpTokensToUnstake,true),could not unstake) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#191-194)
+	State variables written after the call(s):
+	- BaseTradeExecutor.confirmWithdraw() (contracts/ConvexExecutor/Frax/ConvexFraxPoolTradeExecutor.sol#94)
+		- withdrawalStatus.inProcess = false (contracts/BaseTradeExecutor.sol#71)
+Reentrancy in ConvexFraxPoolTradeExecutor.constructor(address,address) (contracts/ConvexExecutor/Frax/ConvexFraxPoolTradeExecutor.sol#28-33):
+	External calls:
+	- ConvexPositionHandler._configHandler(_harvester,BaseTradeExecutor.vaultWantToken()) (contracts/ConvexExecutor/Frax/ConvexFraxPoolTradeExecutor.sol#29-32)
+		- lpToken.approve(address(convexBooster),type()(uint256).max) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#99)
+		- wantToken.approve(address(curve3PoolZap),type()(uint256).max) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#102)
+		- lpToken.approve(address(curve3PoolZap),type()(uint256).max) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#105)
+	- BaseTradeExecutor(_vault) (contracts/ConvexExecutor/Frax/ConvexFraxPoolTradeExecutor.sol#28)
+		- IERC20(vaultWantToken()).approve(vault,MAX_INT) (contracts/BaseTradeExecutor.sol#19)
+	State variables written after the call(s):
+	- ConvexPositionHandler._configHandler(_harvester,BaseTradeExecutor.vaultWantToken()) (contracts/ConvexExecutor/Frax/ConvexFraxPoolTradeExecutor.sol#29-32)
+		- harvester = IHarvester(_harvester) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#93)
+	- ConvexPositionHandler._configHandler(_harvester,BaseTradeExecutor.vaultWantToken()) (contracts/ConvexExecutor/Frax/ConvexFraxPoolTradeExecutor.sol#29-32)
+		- prevSharePrice = fraxPool.get_virtual_price() (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#96)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-2
+
+Reentrancy in ConvexPositionHandler._claimRewards(bytes) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#279-332):
+	External calls:
+	- require(bool,string)(baseRewardPool.getReward(),reward claim failed) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#280)
+	- harvester.harvest() (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#300)
+	- baseRewardPool.withdrawAndUnwrap(lpTokenEarned - contractLpTokenBalance,true) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#316-319)
+	- _convertLpTokenIntoUSDC(lpTokenEarned) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#322)
+		- receivedWantTokens = curve3PoolZap.remove_liquidity_one_coin(address(fraxPool),_amount,usdcIndexInPool,(expectedWantTokensOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#392-397)
+	Event emitted after the call(s):
+	- Claim(latestHarvestedRewards) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#331)
+Reentrancy in ConvexPositionHandler._deposit(bytes) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#141-151):
+	External calls:
+	- _convertUSDCIntoLpToken(depositParams._amount) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#148)
+		- receivedLpTokens = curve3PoolZap.add_liquidity(address(fraxPool),liquidityAmounts,(expectedLpOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#416-420)
+	Event emitted after the call(s):
+	- Deposit(depositParams._amount) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#150)
+Reentrancy in ConvexPositionHandler._withdraw(bytes) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#158-210):
+	External calls:
+	- require(bool,string)(baseRewardPool.withdrawAndUnwrap(lpTokensToUnstake,true),could not unstake) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#191-194)
+	- _convertLpTokenIntoUSDC(lpTokensToConvert) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#206)
+		- receivedWantTokens = curve3PoolZap.remove_liquidity_one_coin(address(fraxPool),_amount,usdcIndexInPool,(expectedWantTokensOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#392-397)
+	Event emitted after the call(s):
+	- Withdraw(withdrawParams._amount) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#209)
+Reentrancy in ConvexFraxPoolTradeExecutor.setHandler(address) (contracts/ConvexExecutor/Frax/ConvexFraxPoolTradeExecutor.sol#70-75):
+	External calls:
+	- ConvexPositionHandler._configHandler(_harvester,vaultWantToken()) (contracts/ConvexExecutor/Frax/ConvexFraxPoolTradeExecutor.sol#73)
+		- lpToken.approve(address(convexBooster),type()(uint256).max) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#99)
+		- wantToken.approve(address(curve3PoolZap),type()(uint256).max) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#102)
+		- lpToken.approve(address(curve3PoolZap),type()(uint256).max) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#105)
+	Event emitted after the call(s):
+	- UpdatedHarvester(oldHarvester,_harvester) (contracts/ConvexExecutor/Frax/ConvexFraxPoolTradeExecutor.sol#74)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-3
+
+Address.verifyCallResult(bool,bytes,string) (node_modules/@openzeppelin/contracts/utils/Address.sol#201-221) uses assembly
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/Address.sol#213-216)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#assembly-usage
+
+Different versions of Solidity is used:
+	- Version used: ['^0.8.0', '^0.8.1', '^0.8.4']
+	- ^0.8.4 (contracts/BaseTradeExecutor.sol#2)
+	- ^0.8.0 (contracts/ConvexExecutor/Frax/ConvexFraxPoolTradeExecutor.sol#2)
+	- ^0.8.0 (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#2)
+	- v2 (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#3)
+	- ^0.8.0 (contracts/ConvexExecutor/interfaces/IConvexBooster.sol#2)
+	- ^0.8.0 (contracts/ConvexExecutor/interfaces/IConvexRewards.sol#2)
+	- ^0.8.0 (contracts/ConvexExecutor/interfaces/ICurveDepositZapper.sol#2)
+	- ^0.8.0 (contracts/ConvexExecutor/interfaces/ICurvePool.sol#2)
+	- ^0.8.0 (contracts/ConvexExecutor/interfaces/IHarvester.sol#2)
+	- ^0.8.0 (interfaces/BasePositionHandler.sol#2)
+	- ^0.8.4 (interfaces/ITradeExecutor.sol#2)
+	- ^0.8.0 (interfaces/IVault.sol#2)
+	- ^0.8.0 (library/Math.sol#4)
+	- ^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol#4)
+	- ^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol#4)
+	- ^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#4)
+	- ^0.8.1 (node_modules/@openzeppelin/contracts/utils/Address.sol#4)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#different-pragma-directives-are-used
+
+Address.functionCall(address,bytes) (node_modules/@openzeppelin/contracts/utils/Address.sol#85-87) is never used and should be removed
+Address.functionCallWithValue(address,bytes,uint256) (node_modules/@openzeppelin/contracts/utils/Address.sol#114-120) is never used and should be removed
+Address.functionDelegateCall(address,bytes) (node_modules/@openzeppelin/contracts/utils/Address.sol#174-176) is never used and should be removed
+Address.functionDelegateCall(address,bytes,string) (node_modules/@openzeppelin/contracts/utils/Address.sol#184-193) is never used and should be removed
+Address.functionStaticCall(address,bytes) (node_modules/@openzeppelin/contracts/utils/Address.sol#147-149) is never used and should be removed
+Address.functionStaticCall(address,bytes,string) (node_modules/@openzeppelin/contracts/utils/Address.sol#157-166) is never used and should be removed
+Address.sendValue(address,uint256) (node_modules/@openzeppelin/contracts/utils/Address.sol#60-65) is never used and should be removed
+BasePositionHandler._claimRewards(bytes) (interfaces/BasePositionHandler.sol#39) is never used and should be removed
+BasePositionHandler._closePosition(bytes) (interfaces/BasePositionHandler.sol#33) is never used and should be removed
+BasePositionHandler._deposit(bytes) (interfaces/BasePositionHandler.sol#35) is never used and should be removed
+BasePositionHandler._openPosition(bytes) (interfaces/BasePositionHandler.sol#31) is never used and should be removed
+BasePositionHandler._withdraw(bytes) (interfaces/BasePositionHandler.sol#37) is never used and should be removed
+BaseTradeExecutor._confirmDeposit() (contracts/BaseTradeExecutor.sol#79) is never used and should be removed
+BaseTradeExecutor._confirmWithdraw() (contracts/BaseTradeExecutor.sol#83) is never used and should be removed
+BaseTradeExecutor._initateDeposit(bytes) (contracts/BaseTradeExecutor.sol#77) is never used and should be removed
+BaseTradeExecutor._initiateWithdraw(bytes) (contracts/BaseTradeExecutor.sol#81) is never used and should be removed
+Math.max(uint256,uint256) (library/Math.sol#13-15) is never used and should be removed
+SafeERC20.safeApprove(IERC20,address,uint256) (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#45-58) is never used and should be removed
+SafeERC20.safeDecreaseAllowance(IERC20,address,uint256) (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#69-80) is never used and should be removed
+SafeERC20.safeIncreaseAllowance(IERC20,address,uint256) (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#60-67) is never used and should be removed
+SafeERC20.safeTransferFrom(IERC20,address,address,uint256) (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#29-36) is never used and should be removed
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#dead-code
+
+Pragma version^0.8.0 (contracts/ConvexExecutor/Frax/ConvexFraxPoolTradeExecutor.sol#2) allows old versions
+Pragma version^0.8.0 (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#2) allows old versions
+Pragma version^0.8.0 (contracts/ConvexExecutor/interfaces/IConvexBooster.sol#2) allows old versions
+Pragma version^0.8.0 (contracts/ConvexExecutor/interfaces/IConvexRewards.sol#2) allows old versions
+Pragma version^0.8.0 (contracts/ConvexExecutor/interfaces/ICurveDepositZapper.sol#2) allows old versions
+Pragma version^0.8.0 (contracts/ConvexExecutor/interfaces/ICurvePool.sol#2) allows old versions
+Pragma version^0.8.0 (contracts/ConvexExecutor/interfaces/IHarvester.sol#2) allows old versions
+Pragma version^0.8.0 (interfaces/BasePositionHandler.sol#2) allows old versions
+Pragma version^0.8.0 (interfaces/IVault.sol#2) allows old versions
+Pragma version^0.8.0 (library/Math.sol#4) allows old versions
+Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol#4) allows old versions
+Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol#4) allows old versions
+Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#4) allows old versions
+Pragma version^0.8.1 (node_modules/@openzeppelin/contracts/utils/Address.sol#4) allows old versions
+solc-0.8.9 is not recommended for deployment
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#incorrect-versions-of-solidity
+
+Low level call in Address.sendValue(address,uint256) (node_modules/@openzeppelin/contracts/utils/Address.sol#60-65):
+	- (success) = recipient.call{value: amount}() (node_modules/@openzeppelin/contracts/utils/Address.sol#63)
+Low level call in Address.functionCallWithValue(address,bytes,uint256,string) (node_modules/@openzeppelin/contracts/utils/Address.sol#128-139):
+	- (success,returndata) = target.call{value: value}(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#137)
+Low level call in Address.functionStaticCall(address,bytes,string) (node_modules/@openzeppelin/contracts/utils/Address.sol#157-166):
+	- (success,returndata) = target.staticcall(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#164)
+Low level call in Address.functionDelegateCall(address,bytes,string) (node_modules/@openzeppelin/contracts/utils/Address.sol#184-193):
+	- (success,returndata) = target.delegatecall(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#191)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#low-level-calls
+
+Parameter BaseTradeExecutor.sweep(address)._token (contracts/BaseTradeExecutor.sol#44) is not in mixedCase
+Parameter BaseTradeExecutor.initiateDeposit(bytes)._data (contracts/BaseTradeExecutor.sol#51) is not in mixedCase
+Parameter BaseTradeExecutor.initiateWithdraw(bytes)._data (contracts/BaseTradeExecutor.sol#63) is not in mixedCase
+Parameter ConvexFraxPoolTradeExecutor.setSlippage(uint256)._slippage (contracts/ConvexExecutor/Frax/ConvexFraxPoolTradeExecutor.sol#51) is not in mixedCase
+Parameter ConvexFraxPoolTradeExecutor.setUseVirtualPriceForPosValue(bool)._useVirtualPriceForPosValue (contracts/ConvexExecutor/Frax/ConvexFraxPoolTradeExecutor.sol#60) is not in mixedCase
+Parameter ConvexFraxPoolTradeExecutor.setHandler(address)._harvester (contracts/ConvexExecutor/Frax/ConvexFraxPoolTradeExecutor.sol#70) is not in mixedCase
+Parameter ConvexFraxPoolTradeExecutor.openPosition(bytes)._data (contracts/ConvexExecutor/Frax/ConvexFraxPoolTradeExecutor.sol#112) is not in mixedCase
+Parameter ConvexFraxPoolTradeExecutor.closePosition(bytes)._data (contracts/ConvexExecutor/Frax/ConvexFraxPoolTradeExecutor.sol#119) is not in mixedCase
+Parameter ConvexFraxPoolTradeExecutor.claimRewards(bytes)._data (contracts/ConvexExecutor/Frax/ConvexFraxPoolTradeExecutor.sol#129) is not in mixedCase
+Function ConvexPositionHandler._USDCValueInLpToken(uint256) (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#461-474) is not in mixedCase
+Parameter ConvexPositionHandler._USDCValueInLpToken(uint256)._value (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#461) is not in mixedCase
+Variable ConvexPositionHandler.MAX_BPS (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#44) is not in mixedCase
+Constant ConvexPositionHandler.baseRewardPool (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#73-74) is not in UPPER_CASE_WITH_UNDERSCORES
+Constant ConvexPositionHandler.fraxPool (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#76-77) is not in UPPER_CASE_WITH_UNDERSCORES
+Constant ConvexPositionHandler.curve3PoolZap (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#79-80) is not in UPPER_CASE_WITH_UNDERSCORES
+Constant ConvexPositionHandler.convexBooster (contracts/ConvexExecutor/Frax/ConvexPositionHandler.sol#82-83) is not in UPPER_CASE_WITH_UNDERSCORES
+Function ICurveDepositZapper.calc_withdraw_one_coin(address,uint256,int128) (contracts/ConvexExecutor/interfaces/ICurveDepositZapper.sol#5-9) is not in mixedCase
+Parameter ICurveDepositZapper.calc_withdraw_one_coin(address,uint256,int128)._token_amount (contracts/ConvexExecutor/interfaces/ICurveDepositZapper.sol#7) is not in mixedCase
+Function ICurveDepositZapper.calc_token_amount(address,uint256[4],bool) (contracts/ConvexExecutor/interfaces/ICurveDepositZapper.sol#11-15) is not in mixedCase
+Parameter ICurveDepositZapper.calc_token_amount(address,uint256[4],bool)._is_deposit (contracts/ConvexExecutor/interfaces/ICurveDepositZapper.sol#14) is not in mixedCase
+Function ICurveDepositZapper.remove_liquidity_one_coin(address,uint256,int128,uint256) (contracts/ConvexExecutor/interfaces/ICurveDepositZapper.sol#17-22) is not in mixedCase
+Parameter ICurveDepositZapper.remove_liquidity_one_coin(address,uint256,int128,uint256)._burn_amount (contracts/ConvexExecutor/interfaces/ICurveDepositZapper.sol#19) is not in mixedCase
+Parameter ICurveDepositZapper.remove_liquidity_one_coin(address,uint256,int128,uint256)._min_amount (contracts/ConvexExecutor/interfaces/ICurveDepositZapper.sol#21) is not in mixedCase
+Function ICurveDepositZapper.add_liquidity(address,uint256[4],uint256) (contracts/ConvexExecutor/interfaces/ICurveDepositZapper.sol#24-28) is not in mixedCase
+Parameter ICurveDepositZapper.add_liquidity(address,uint256[4],uint256)._deposit_amounts (contracts/ConvexExecutor/interfaces/ICurveDepositZapper.sol#26) is not in mixedCase
+Parameter ICurveDepositZapper.add_liquidity(address,uint256[4],uint256)._min_mint_amount (contracts/ConvexExecutor/interfaces/ICurveDepositZapper.sol#27) is not in mixedCase
+Parameter ICurvePool.exchange(int128,int128,uint256,uint256,address)._min_dy (contracts/ConvexExecutor/interfaces/ICurvePool.sol#9) is not in mixedCase
+Function ICurvePool.remove_liquidity_one_coin(uint256,int128,uint256) (contracts/ConvexExecutor/interfaces/ICurvePool.sol#13-17) is not in mixedCase
+Parameter ICurvePool.remove_liquidity_one_coin(uint256,int128,uint256)._token_amount (contracts/ConvexExecutor/interfaces/ICurvePool.sol#14) is not in mixedCase
+Parameter ICurvePool.remove_liquidity_one_coin(uint256,int128,uint256).min_amount (contracts/ConvexExecutor/interfaces/ICurvePool.sol#16) is not in mixedCase
+Function ICurvePool.add_liquidity(uint256[4],uint256) (contracts/ConvexExecutor/interfaces/ICurvePool.sol#19-21) is not in mixedCase
+Parameter ICurvePool.add_liquidity(uint256[4],uint256).min_mint_amount (contracts/ConvexExecutor/interfaces/ICurvePool.sol#19) is not in mixedCase
+Function ICurvePool.get_dy(int128,int128,uint256) (contracts/ConvexExecutor/interfaces/ICurvePool.sol#23-27) is not in mixedCase
+Function ICurvePool.calc_token_amount(uint256[4],bool) (contracts/ConvexExecutor/interfaces/ICurvePool.sol#29-32) is not in mixedCase
+Parameter ICurvePool.calc_token_amount(uint256[4],bool)._is_deposit (contracts/ConvexExecutor/interfaces/ICurvePool.sol#29) is not in mixedCase
+Function ICurvePool.get_virtual_price() (contracts/ConvexExecutor/interfaces/ICurvePool.sol#34) is not in mixedCase
+Function IHarvester._3crv() (contracts/ConvexExecutor/interfaces/IHarvester.sol#11) is not in mixedCase
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#conformance-to-solidity-naming-conventions
+
+sweep(address) should be declared external:
+	- BaseTradeExecutor.sweep(address) (contracts/BaseTradeExecutor.sol#44-49)
+initiateDeposit(bytes) should be declared external:
+	- BaseTradeExecutor.initiateDeposit(bytes) (contracts/BaseTradeExecutor.sol#51-55)
+initiateWithdraw(bytes) should be declared external:
+	- BaseTradeExecutor.initiateWithdraw(bytes) (contracts/BaseTradeExecutor.sol#63-67)
+totalFunds() should be declared external:
+	- ConvexFraxPoolTradeExecutor.totalFunds() (contracts/ConvexExecutor/Frax/ConvexFraxPoolTradeExecutor.sol#41-43)
+openPosition(bytes) should be declared external:
+	- ConvexFraxPoolTradeExecutor.openPosition(bytes) (contracts/ConvexExecutor/Frax/ConvexFraxPoolTradeExecutor.sol#112-114)
+closePosition(bytes) should be declared external:
+	- ConvexFraxPoolTradeExecutor.closePosition(bytes) (contracts/ConvexExecutor/Frax/ConvexFraxPoolTradeExecutor.sol#119-121)
+claimRewards(bytes) should be declared external:
+	- ConvexFraxPoolTradeExecutor.claimRewards(bytes) (contracts/ConvexExecutor/Frax/ConvexFraxPoolTradeExecutor.sol#129-131)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#public-function-that-could-be-declared-external
+
+contracts/ConvexExecutor/Frax/ConvexFraxPoolTradeExecutor.sol analyzed (16 contracts with 77 detectors), 105 result(s) found
