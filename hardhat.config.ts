@@ -102,9 +102,7 @@ const config: HardhatUserConfig = {
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     localhosted: {
-      url: `http://127.0.0.1:8500`,
-      accounts:
-        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+      url: `https://rpc.brahma.fi`,
     },
   },
   gasReporter: {
