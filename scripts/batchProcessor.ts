@@ -74,7 +74,7 @@ const main = async () => {
     ["tuple(uint256)"],
     [[pmusdcBalance]]
   );
-  await convexTE.initateWithdraw(paramsInBytes);
+  await convexTE.initiateWithdraw(paramsInBytes);
 
   await vault.withdrawFromExecutor(
     convexTradeExecutorAddress,

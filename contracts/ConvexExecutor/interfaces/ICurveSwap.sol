@@ -1,7 +1,7 @@
 /// SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.0;
 
-interface ICurvePool {
+interface ICurveSwap {
     function exchange(
         int128 i,
         int128 j,
@@ -14,11 +14,10 @@ interface ICurvePool {
         uint256 _token_amount,
         int128 i,
         uint256 min_amount
-    ) external returns (uint256);
+    ) external;
 
     function add_liquidity(uint256[4] memory amounts, uint256 min_mint_amount)
-        external
-        returns (uint256);
+        external;
 
     function get_dy(
         int128 i,
