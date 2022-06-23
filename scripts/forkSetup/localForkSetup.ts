@@ -52,7 +52,7 @@ async function main() {
     ["tuple(uint256)"],
     [[balance]]
   );
-  await oldConvexTE.connect(keeper).initateWithdraw(paramsInBytes);
+  await oldConvexTE.connect(keeper).initiateWithdraw(paramsInBytes);
 
   let usdcBalance = await usdc.balanceOf(oldConvexTE.address);
 
@@ -66,7 +66,7 @@ async function main() {
     [[newBalance]]
   );
 
-  await oldConvexTE.connect(keeper).initateWithdraw(paramsInBytes);
+  await oldConvexTE.connect(keeper).initiateWithdraw(paramsInBytes);
 
   usdcBalance = await usdc.balanceOf(oldConvexTE.address);
 
