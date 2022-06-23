@@ -1,151 +1,186 @@
 
-07 Apr, 2022
+23 June, 2022
 ------------
 
-Reentrancy in Vault.deposit(uint256,address) (contracts/Vault.sol#78-98):
+Reentrancy in Vault.deposit(uint256,address) (contracts/Vault.sol#90-108):
 	External calls:
-	- collectFees() (contracts/Vault.sol#89)
+	- IERC20(wantToken).safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Vault.sol#106)
+	- ensureFeesAreCollected() (contracts/Vault.sol#94)
 		- returndata = address(token).functionCall(data,SafeERC20: low-level call failed) (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#93)
 		- (success,returndata) = target.call{value: value}(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#137)
-		- IERC20(wantToken).safeTransfer(governance,yieldEarned) (contracts/Vault.sol#211)
-	- IERC20(wantToken).safeTransferFrom(receiver,address(this),amountIn) (contracts/Vault.sol#94)
+		- IERC20(wantToken).safeTransfer(governance,fees) (contracts/Vault.sol#275)
 	External calls sending eth:
-	- collectFees() (contracts/Vault.sol#89)
+	- ensureFeesAreCollected() (contracts/Vault.sol#94)
 		- (success,returndata) = target.call{value: value}(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#137)
 	State variables written after the call(s):
-	- _mint(receiver,shares) (contracts/Vault.sol#95)
+	- _mint(receiver,shares) (contracts/Vault.sol#107)
 		- _totalSupply += amount (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#262)
-	- prevVaultFunds = totalVaultFunds() (contracts/Vault.sol#97)
-Reentrancy in Vault.withdraw(uint256,address) (contracts/Vault.sol#103-121):
+Reentrancy in Vault.ensureFeesAreCollected() (contracts/Vault.sol#280-287):
 	External calls:
-	- collectFees() (contracts/Vault.sol#114)
+	- collectFees() (contracts/Vault.sol#281)
 		- returndata = address(token).functionCall(data,SafeERC20: low-level call failed) (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#93)
 		- (success,returndata) = target.call{value: value}(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#137)
-		- IERC20(wantToken).safeTransfer(governance,yieldEarned) (contracts/Vault.sol#211)
-	- IERC20(wantToken).safeTransfer(receiver,amountOut) (contracts/Vault.sol#118)
+		- IERC20(wantToken).safeTransfer(governance,fees) (contracts/Vault.sol#275)
 	External calls sending eth:
-	- collectFees() (contracts/Vault.sol#114)
+	- collectFees() (contracts/Vault.sol#281)
 		- (success,returndata) = target.call{value: value}(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#137)
 	State variables written after the call(s):
-	- prevVaultFunds = totalVaultFunds() (contracts/Vault.sol#120)
+	- lastReportedTime = block.timestamp (contracts/Vault.sol#286)
+	- prevVaultFunds = totalVaultFunds() (contracts/Vault.sol#284)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities
+
+Vault.withdraw(uint256,address) (contracts/Vault.sol#113-135) ignores return value by IERC20(wantToken).transfer(governance,fee) (contracts/Vault.sol#131)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#unchecked-transfer
 
 ---
 
-Vault.constructor(string,string,address,address,address)._name (contracts/Vault.sol#56) shadows:
+Vault.withdraw(uint256,address) (contracts/Vault.sol#113-135) performs a multiplication on the result of a division:
+	-amountOut = (sharesIn * totalVaultFunds()) / totalSupply() (contracts/Vault.sol#125)
+	-fee = (amountOut * exitFee) / MAX_BPS (contracts/Vault.sol#130)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#divide-before-multiply
+
+Vault.constructor(string,string,address,address,address)._name (contracts/Vault.sol#66) shadows:
 	- ERC20._name (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#42) (state variable)
-Vault.constructor(string,string,address,address,address)._symbol (contracts/Vault.sol#57) shadows:
+Vault.constructor(string,string,address,address,address)._symbol (contracts/Vault.sol#67) shadows:
 	- ERC20._symbol (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#43) (state variable)
+ERC20Permit.constructor(string).name (node_modules/@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol#44) shadows:
+	- ERC20.name() (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#62-64) (function)
+	- IERC20Metadata.name() (node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol#17) (function)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#local-variable-shadowing
 
-Vault.constructor(string,string,address,address,address)._wantToken (contracts/Vault.sol#58) lacks a zero-check on :
-		- wantToken = _wantToken (contracts/Vault.sol#63)
-Vault.constructor(string,string,address,address,address)._keeper (contracts/Vault.sol#59) lacks a zero-check on :
-		- keeper = _keeper (contracts/Vault.sol#64)
-Vault.constructor(string,string,address,address,address)._governance (contracts/Vault.sol#60) lacks a zero-check on :
-		- governance = _governance (contracts/Vault.sol#65)
-Vault.setBatcher(address)._batcher (contracts/Vault.sol#303) lacks a zero-check on :
-		- batcher = _batcher (contracts/Vault.sol#306)
-Vault.setGovernance(address)._governance (contracts/Vault.sol#325) lacks a zero-check on :
-		- pendingGovernance = _governance (contracts/Vault.sol#327)
-Vault.setKeeper(address)._keeper (contracts/Vault.sol#353) lacks a zero-check on :
-		- keeper = _keeper (contracts/Vault.sol#355)
+Vault.constructor(string,string,address,address,address)._wantToken (contracts/Vault.sol#68) lacks a zero-check on :
+		- wantToken = _wantToken (contracts/Vault.sol#73)
+Vault.constructor(string,string,address,address,address)._keeper (contracts/Vault.sol#69) lacks a zero-check on :
+		- keeper = _keeper (contracts/Vault.sol#74)
+Vault.constructor(string,string,address,address,address)._governance (contracts/Vault.sol#70) lacks a zero-check on :
+		- governance = _governance (contracts/Vault.sol#75)
+Vault.setBatcher(address)._batcher (contracts/Vault.sol#377) lacks a zero-check on :
+		- batcher = _batcher (contracts/Vault.sol#380)
+Vault.setGovernance(address)._governance (contracts/Vault.sol#399) lacks a zero-check on :
+		- pendingGovernance = _governance (contracts/Vault.sol#401)
+Vault.setKeeper(address)._keeper (contracts/Vault.sol#428) lacks a zero-check on :
+		- keeper = _keeper (contracts/Vault.sol#431)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#missing-zero-address-validation
 
-Vault.totalExecutorFunds() (contracts/Vault.sol#279-289) has external calls inside a loop: (executorFunds,blockUpdated) = ITradeExecutor(executor).totalFunds() (contracts/Vault.sol#283-284)
+Vault.totalExecutorFunds() (contracts/Vault.sol#349-360) has external calls inside a loop: (executorFunds,blockUpdated) = ITradeExecutor(executor).totalFunds() (contracts/Vault.sol#353-355)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation/#calls-inside-a-loop
 
-Reentrancy in Vault.deposit(uint256,address) (contracts/Vault.sol#78-98):
+Variable 'ECDSA.tryRecover(bytes32,bytes).r (node_modules/@openzeppelin/contracts/utils/cryptography/ECDSA.sol#62)' in ECDSA.tryRecover(bytes32,bytes) (node_modules/@openzeppelin/contracts/utils/cryptography/ECDSA.sol#57-86) potentially used before declaration: r = mload(uint256)(signature + 0x20) (node_modules/@openzeppelin/contracts/utils/cryptography/ECDSA.sol#79)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#pre-declaration-usage-of-local-variables
+
+Reentrancy in Vault.deposit(uint256,address) (contracts/Vault.sol#90-108):
 	External calls:
-	- collectFees() (contracts/Vault.sol#89)
+	- IERC20(wantToken).safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Vault.sol#106)
+	- ensureFeesAreCollected() (contracts/Vault.sol#94)
 		- returndata = address(token).functionCall(data,SafeERC20: low-level call failed) (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#93)
 		- (success,returndata) = target.call{value: value}(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#137)
-		- IERC20(wantToken).safeTransfer(governance,yieldEarned) (contracts/Vault.sol#211)
-	- IERC20(wantToken).safeTransferFrom(receiver,address(this),amountIn) (contracts/Vault.sol#94)
+		- IERC20(wantToken).safeTransfer(governance,fees) (contracts/Vault.sol#275)
 	External calls sending eth:
-	- collectFees() (contracts/Vault.sol#89)
+	- ensureFeesAreCollected() (contracts/Vault.sol#94)
 		- (success,returndata) = target.call{value: value}(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#137)
 	State variables written after the call(s):
-	- _mint(receiver,shares) (contracts/Vault.sol#95)
+	- _mint(receiver,shares) (contracts/Vault.sol#107)
 		- _balances[account] += amount (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#263)
-Reentrancy in Vault.withdraw(uint256,address) (contracts/Vault.sol#103-121):
+Reentrancy in Vault.withdraw(uint256,address) (contracts/Vault.sol#113-135):
 	External calls:
-	- collectFees() (contracts/Vault.sol#114)
+	- ensureFeesAreCollected() (contracts/Vault.sol#117)
 		- returndata = address(token).functionCall(data,SafeERC20: low-level call failed) (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#93)
 		- (success,returndata) = target.call{value: value}(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#137)
-		- IERC20(wantToken).safeTransfer(governance,yieldEarned) (contracts/Vault.sol#211)
+		- IERC20(wantToken).safeTransfer(governance,fees) (contracts/Vault.sol#275)
 	External calls sending eth:
-	- collectFees() (contracts/Vault.sol#114)
+	- ensureFeesAreCollected() (contracts/Vault.sol#117)
 		- (success,returndata) = target.call{value: value}(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#137)
 	State variables written after the call(s):
-	- _burn(receiver,sharesIn) (contracts/Vault.sol#117)
+	- _burn(msg.sender,sharesIn) (contracts/Vault.sol#127)
 		- _balances[account] = accountBalance - amount (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#288)
-	- _burn(receiver,sharesIn) (contracts/Vault.sol#117)
+	- _burn(msg.sender,sharesIn) (contracts/Vault.sol#127)
 		- _totalSupply -= amount (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#290)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-2
 
-Reentrancy in Vault.collectFees() (contracts/Vault.sol#204-214):
+Reentrancy in Vault.collectFees() (contracts/Vault.sol#259-278):
 	External calls:
-	- IERC20(wantToken).safeTransfer(governance,yieldEarned) (contracts/Vault.sol#211)
+	- IERC20(wantToken).safeTransfer(governance,fees) (contracts/Vault.sol#275)
 	Event emitted after the call(s):
-	- FeesCollected(yieldEarned) (contracts/Vault.sol#212)
-Reentrancy in Vault.deposit(uint256,address) (contracts/Vault.sol#78-98):
+	- FeesCollected(fees) (contracts/Vault.sol#276)
+Reentrancy in Vault.deposit(uint256,address) (contracts/Vault.sol#90-108):
 	External calls:
-	- collectFees() (contracts/Vault.sol#89)
+	- IERC20(wantToken).safeTransferFrom(msg.sender,address(this),amountIn) (contracts/Vault.sol#106)
+	- ensureFeesAreCollected() (contracts/Vault.sol#94)
 		- returndata = address(token).functionCall(data,SafeERC20: low-level call failed) (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#93)
 		- (success,returndata) = target.call{value: value}(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#137)
-		- IERC20(wantToken).safeTransfer(governance,yieldEarned) (contracts/Vault.sol#211)
-	- IERC20(wantToken).safeTransferFrom(receiver,address(this),amountIn) (contracts/Vault.sol#94)
+		- IERC20(wantToken).safeTransfer(governance,fees) (contracts/Vault.sol#275)
 	External calls sending eth:
-	- collectFees() (contracts/Vault.sol#89)
+	- ensureFeesAreCollected() (contracts/Vault.sol#94)
 		- (success,returndata) = target.call{value: value}(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#137)
 	Event emitted after the call(s):
 	- Transfer(address(0),account,amount) (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#264)
-		- _mint(receiver,shares) (contracts/Vault.sol#95)
-Reentrancy in Vault.depositIntoExecutor(address,uint256) (contracts/Vault.sol#149-158):
+		- _mint(receiver,shares) (contracts/Vault.sol#107)
+Reentrancy in Vault.depositIntoExecutor(address,uint256) (contracts/Vault.sol#167-176):
 	External calls:
-	- IERC20(wantToken).safeTransfer(_executor,_amount) (contracts/Vault.sol#156)
+	- IERC20(wantToken).safeTransfer(_executor,_amount) (contracts/Vault.sol#174)
 	Event emitted after the call(s):
-	- ExecutorDeposit(_executor,_amount) (contracts/Vault.sol#157)
-Reentrancy in Vault.withdraw(uint256,address) (contracts/Vault.sol#103-121):
+	- ExecutorDeposit(_executor,_amount) (contracts/Vault.sol#175)
+Reentrancy in Vault.withdraw(uint256,address) (contracts/Vault.sol#113-135):
 	External calls:
-	- collectFees() (contracts/Vault.sol#114)
+	- ensureFeesAreCollected() (contracts/Vault.sol#117)
 		- returndata = address(token).functionCall(data,SafeERC20: low-level call failed) (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#93)
 		- (success,returndata) = target.call{value: value}(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#137)
-		- IERC20(wantToken).safeTransfer(governance,yieldEarned) (contracts/Vault.sol#211)
+		- IERC20(wantToken).safeTransfer(governance,fees) (contracts/Vault.sol#275)
 	External calls sending eth:
-	- collectFees() (contracts/Vault.sol#114)
+	- ensureFeesAreCollected() (contracts/Vault.sol#117)
 		- (success,returndata) = target.call{value: value}(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#137)
 	Event emitted after the call(s):
 	- Transfer(account,address(0),amount) (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#292)
-		- _burn(receiver,sharesIn) (contracts/Vault.sol#117)
-Reentrancy in Vault.withdrawFromExecutor(address,uint256) (contracts/Vault.sol#163-172):
+		- _burn(msg.sender,sharesIn) (contracts/Vault.sol#127)
+Reentrancy in Vault.withdrawFromExecutor(address,uint256) (contracts/Vault.sol#181-190):
 	External calls:
-	- IERC20(wantToken).safeTransferFrom(_executor,address(this),_amount) (contracts/Vault.sol#170)
+	- IERC20(wantToken).safeTransferFrom(_executor,address(this),_amount) (contracts/Vault.sol#188)
 	Event emitted after the call(s):
-	- ExecutorWithdrawal(_executor,_amount) (contracts/Vault.sol#171)
+	- ExecutorWithdrawal(_executor,_amount) (contracts/Vault.sol#189)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-3
+
+Vault.collectFees() (contracts/Vault.sol#259-278) uses timestamp for comparisons
+	Dangerous comparisons:
+	- (managementFee > 0) && (lastReportedTime < block.timestamp) (contracts/Vault.sol#268)
+	- fees > 0 (contracts/Vault.sol#274)
+ERC20Permit.permit(address,address,uint256,uint256,uint8,bytes32,bytes32) (node_modules/@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol#49-68) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(block.timestamp <= deadline,ERC20Permit: expired deadline) (node_modules/@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol#58)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#block-timestamp
 
 Address.verifyCallResult(bool,bytes,string) (node_modules/@openzeppelin/contracts/utils/Address.sol#201-221) uses assembly
 	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/Address.sol#213-216)
+ECDSA.tryRecover(bytes32,bytes) (node_modules/@openzeppelin/contracts/utils/cryptography/ECDSA.sol#57-86) uses assembly
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/cryptography/ECDSA.sol#67-71)
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/cryptography/ECDSA.sol#78-81)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#assembly-usage
 
+Vault.isEmergencyMode() (contracts/Vault.sol#482-484) compares to a boolean constant:
+	-require(bool,string)(emergencyMode == true,EMERGENCY_MODE) (contracts/Vault.sol#483)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#boolean-equality
+
 Different versions of Solidity is used:
-	- Version used: ['^0.8.0', '^0.8.1']
+	- Version used: ['^0.8.0', '^0.8.1', '^0.8.4']
+	- ^0.8.0 (contracts/Vault.sol#2)
+	- ^0.8.4 (interfaces/ITradeExecutor.sol#2)
+	- ^0.8.0 (interfaces/IVault.sol#2)
+	- ^0.8.0 (library/AddArrayLib.sol#2)
 	- ^0.8.0 (node_modules/@openzeppelin/contracts/security/ReentrancyGuard.sol#4)
 	- ^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#4)
 	- ^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol#4)
 	- ^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol#4)
+	- ^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol#4)
+	- ^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/extensions/draft-IERC20Permit.sol#4)
 	- ^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#4)
 	- ^0.8.1 (node_modules/@openzeppelin/contracts/utils/Address.sol#4)
 	- ^0.8.0 (node_modules/@openzeppelin/contracts/utils/Context.sol#4)
-	- ^0.8.0 (contracts/Vault.sol#2)
-	- ^0.8.0 (interfaces/ITradeExecutor.sol#2)
-	- ^0.8.0 (interfaces/IVault.sol#2)
-	- ^0.8.0 (library/AddArrayLib.sol#2)
+	- ^0.8.0 (node_modules/@openzeppelin/contracts/utils/Counters.sol#4)
+	- ^0.8.0 (node_modules/@openzeppelin/contracts/utils/Strings.sol#4)
+	- ^0.8.0 (node_modules/@openzeppelin/contracts/utils/cryptography/ECDSA.sol#4)
+	- ^0.8.0 (node_modules/@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol#4)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#different-pragma-directives-are-used
 
-AddrArrayLib.getAllAddresses(AddrArrayLib.Addresses) (library/AddArrayLib.sol#76-78) is never used and should be removed
+AddrArrayLib.getAllAddresses(AddrArrayLib.Addresses) (library/AddArrayLib.sol#83-89) is never used and should be removed
 Address.functionCall(address,bytes) (node_modules/@openzeppelin/contracts/utils/Address.sol#85-87) is never used and should be removed
 Address.functionCallWithValue(address,bytes,uint256) (node_modules/@openzeppelin/contracts/utils/Address.sol#114-120) is never used and should be removed
 Address.functionDelegateCall(address,bytes) (node_modules/@openzeppelin/contracts/utils/Address.sol#174-176) is never used and should be removed
@@ -154,22 +189,39 @@ Address.functionStaticCall(address,bytes) (node_modules/@openzeppelin/contracts/
 Address.functionStaticCall(address,bytes,string) (node_modules/@openzeppelin/contracts/utils/Address.sol#157-166) is never used and should be removed
 Address.sendValue(address,uint256) (node_modules/@openzeppelin/contracts/utils/Address.sol#60-65) is never used and should be removed
 Context._msgData() (node_modules/@openzeppelin/contracts/utils/Context.sol#21-23) is never used and should be removed
-SafeERC20.approve(IERC20,address,uint256) (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#45-58) is never used and should be removed
+Counters.decrement(Counters.Counter) (node_modules/@openzeppelin/contracts/utils/Counters.sol#32-38) is never used and should be removed
+Counters.reset(Counters.Counter) (node_modules/@openzeppelin/contracts/utils/Counters.sol#40-42) is never used and should be removed
+ECDSA.recover(bytes32,bytes) (node_modules/@openzeppelin/contracts/utils/cryptography/ECDSA.sol#102-106) is never used and should be removed
+ECDSA.recover(bytes32,bytes32,bytes32) (node_modules/@openzeppelin/contracts/utils/cryptography/ECDSA.sol#130-138) is never used and should be removed
+ECDSA.toEthSignedMessageHash(bytes) (node_modules/@openzeppelin/contracts/utils/cryptography/ECDSA.sol#214-216) is never used and should be removed
+ECDSA.toEthSignedMessageHash(bytes32) (node_modules/@openzeppelin/contracts/utils/cryptography/ECDSA.sol#200-204) is never used and should be removed
+ECDSA.tryRecover(bytes32,bytes) (node_modules/@openzeppelin/contracts/utils/cryptography/ECDSA.sol#57-86) is never used and should be removed
+ECDSA.tryRecover(bytes32,bytes32,bytes32) (node_modules/@openzeppelin/contracts/utils/cryptography/ECDSA.sol#115-123) is never used and should be removed
+SafeERC20.safeApprove(IERC20,address,uint256) (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#45-58) is never used and should be removed
 SafeERC20.safeDecreaseAllowance(IERC20,address,uint256) (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#69-80) is never used and should be removed
 SafeERC20.safeIncreaseAllowance(IERC20,address,uint256) (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#60-67) is never used and should be removed
+Strings.toHexString(uint256) (node_modules/@openzeppelin/contracts/utils/Strings.sol#40-51) is never used and should be removed
+Strings.toHexString(uint256,uint256) (node_modules/@openzeppelin/contracts/utils/Strings.sol#56-66) is never used and should be removed
+Strings.toString(uint256) (node_modules/@openzeppelin/contracts/utils/Strings.sol#15-35) is never used and should be removed
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#dead-code
 
+Pragma version^0.8.0 (contracts/Vault.sol#2) allows old versions
+Pragma version^0.8.0 (interfaces/IVault.sol#2) allows old versions
+Pragma version^0.8.0 (library/AddArrayLib.sol#2) allows old versions
 Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/security/ReentrancyGuard.sol#4) allows old versions
 Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#4) allows old versions
 Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol#4) allows old versions
 Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol#4) allows old versions
+Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol#4) allows old versions
+Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/extensions/draft-IERC20Permit.sol#4) allows old versions
 Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#4) allows old versions
 Pragma version^0.8.1 (node_modules/@openzeppelin/contracts/utils/Address.sol#4) allows old versions
 Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/utils/Context.sol#4) allows old versions
-Pragma version^0.8.0 (contracts/Vault.sol#2) allows old versions
-Pragma version^0.8.0 (interfaces/ITradeExecutor.sol#2) allows old versions
-Pragma version^0.8.0 (interfaces/IVault.sol#2) allows old versions
-Pragma version^0.8.0 (library/AddArrayLib.sol#2) allows old versions
+Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/utils/Counters.sol#4) allows old versions
+Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/utils/Strings.sol#4) allows old versions
+Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/utils/cryptography/ECDSA.sol#4) allows old versions
+Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol#4) allows old versions
+solc-0.8.9 is not recommended for deployment
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#incorrect-versions-of-solidity
 
 Low level call in Address.sendValue(address,uint256) (node_modules/@openzeppelin/contracts/utils/Address.sol#60-65):
@@ -182,30 +234,81 @@ Low level call in Address.functionDelegateCall(address,bytes,string) (node_modul
 	- (success,returndata) = target.delegatecall(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#191)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#low-level-calls
 
-Parameter Vault.depositIntoExecutor(address,uint256)._executor (contracts/Vault.sol#149) is not in mixedCase
-Parameter Vault.depositIntoExecutor(address,uint256)._amount (contracts/Vault.sol#149) is not in mixedCase
-Parameter Vault.withdrawFromExecutor(address,uint256)._executor (contracts/Vault.sol#163) is not in mixedCase
-Parameter Vault.withdrawFromExecutor(address,uint256)._amount (contracts/Vault.sol#163) is not in mixedCase
-Parameter Vault.setPerformanceFee(uint256)._fee (contracts/Vault.sol#188) is not in mixedCase
-Parameter Vault.addExecutor(address)._tradeExecutor (contracts/Vault.sol#229) is not in mixedCase
-Parameter Vault.removeExecutor(address)._tradeExecutor (contracts/Vault.sol#247) is not in mixedCase
-Parameter Vault.executorByIndex(uint256)._index (contracts/Vault.sol#272) is not in mixedCase
-Parameter Vault.setBatcher(address)._batcher (contracts/Vault.sol#303) is not in mixedCase
-Parameter Vault.setBatcherOnlyDeposit(bool)._batcherOnlyDeposit (contracts/Vault.sol#316) is not in mixedCase
-Parameter Vault.setGovernance(address)._governance (contracts/Vault.sol#325) is not in mixedCase
-Parameter Vault.setKeeper(address)._keeper (contracts/Vault.sol#353) is not in mixedCase
-Parameter Vault.sweep(address)._token (contracts/Vault.sol#363) is not in mixedCase
-Parameter Vault.isValidAddress(address)._tradeExecutor (contracts/Vault.sol#392) is not in mixedCase
-Parameter Vault.isActiveExecutor(address)._tradeExecutor (contracts/Vault.sol#397) is not in mixedCase
+Parameter Vault.depositIntoExecutor(address,uint256)._executor (contracts/Vault.sol#167) is not in mixedCase
+Parameter Vault.depositIntoExecutor(address,uint256)._amount (contracts/Vault.sol#167) is not in mixedCase
+Parameter Vault.withdrawFromExecutor(address,uint256)._executor (contracts/Vault.sol#181) is not in mixedCase
+Parameter Vault.withdrawFromExecutor(address,uint256)._amount (contracts/Vault.sol#181) is not in mixedCase
+Parameter Vault.setPerformanceFee(uint256)._fee (contracts/Vault.sol#215) is not in mixedCase
+Parameter Vault.setExitFee(uint256)._fee (contracts/Vault.sol#229) is not in mixedCase
+Parameter Vault.setManagementFee(uint256)._fee (contracts/Vault.sol#243) is not in mixedCase
+Parameter Vault.addExecutor(address)._tradeExecutor (contracts/Vault.sol#302) is not in mixedCase
+Parameter Vault.removeExecutor(address)._tradeExecutor (contracts/Vault.sol#320) is not in mixedCase
+Parameter Vault.executorByIndex(uint256)._index (contracts/Vault.sol#343) is not in mixedCase
+Parameter Vault.setBatcher(address)._batcher (contracts/Vault.sol#377) is not in mixedCase
+Parameter Vault.setBatcherOnlyDeposit(bool)._batcherOnlyDeposit (contracts/Vault.sol#390) is not in mixedCase
+Parameter Vault.setGovernance(address)._governance (contracts/Vault.sol#399) is not in mixedCase
+Parameter Vault.setKeeper(address)._keeper (contracts/Vault.sol#428) is not in mixedCase
+Parameter Vault.setEmergencyMode(bool)._emergencyMode (contracts/Vault.sol#441) is not in mixedCase
+Parameter Vault.sweep(address)._token (contracts/Vault.sol#453) is not in mixedCase
+Parameter Vault.isValidAddress(address)._addr (contracts/Vault.sol#487) is not in mixedCase
+Parameter Vault.isActiveExecutor(address)._tradeExecutor (contracts/Vault.sol#492) is not in mixedCase
+Parameter Vault.areFundsUpdated(uint256)._blockUpdated (contracts/Vault.sol#497) is not in mixedCase
+Function ERC20Permit.DOMAIN_SEPARATOR() (node_modules/@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol#81-83) is not in mixedCase
+Variable ERC20Permit._PERMIT_TYPEHASH_DEPRECATED_SLOT (node_modules/@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol#37) is not in mixedCase
+Function IERC20Permit.DOMAIN_SEPARATOR() (node_modules/@openzeppelin/contracts/token/ERC20/extensions/draft-IERC20Permit.sol#59) is not in mixedCase
+Variable EIP712._CACHED_DOMAIN_SEPARATOR (node_modules/@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol#31) is not in mixedCase
+Variable EIP712._CACHED_CHAIN_ID (node_modules/@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol#32) is not in mixedCase
+Variable EIP712._CACHED_THIS (node_modules/@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol#33) is not in mixedCase
+Variable EIP712._HASHED_NAME (node_modules/@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol#35) is not in mixedCase
+Variable EIP712._HASHED_VERSION (node_modules/@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol#36) is not in mixedCase
+Variable EIP712._TYPE_HASH (node_modules/@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol#37) is not in mixedCase
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#conformance-to-solidity-naming-conventions
 
+ERC20Permit._PERMIT_TYPEHASH_DEPRECATED_SLOT (node_modules/@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol#37) is never used in Vault (contracts/Vault.sol#17-503)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#unused-state-variable
+
+ERC20Permit._PERMIT_TYPEHASH_DEPRECATED_SLOT (node_modules/@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol#37) should be constant
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#state-variables-that-could-be-declared-constant
+
+decimals() should be declared external:
+	- ERC20.decimals() (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#87-89)
+	- Vault.decimals() (contracts/Vault.sol#80-82)
+deposit(uint256,address) should be declared external:
+	- Vault.deposit(uint256,address) (contracts/Vault.sol#90-108)
+withdraw(uint256,address) should be declared external:
+	- Vault.withdraw(uint256,address) (contracts/Vault.sol#113-135)
+depositIntoExecutor(address,uint256) should be declared external:
+	- Vault.depositIntoExecutor(address,uint256) (contracts/Vault.sol#167-176)
+withdrawFromExecutor(address,uint256) should be declared external:
+	- Vault.withdrawFromExecutor(address,uint256) (contracts/Vault.sol#181-190)
+setPerformanceFee(uint256) should be declared external:
+	- Vault.setPerformanceFee(uint256) (contracts/Vault.sol#215-220)
+setExitFee(uint256) should be declared external:
+	- Vault.setExitFee(uint256) (contracts/Vault.sol#229-234)
+setManagementFee(uint256) should be declared external:
+	- Vault.setManagementFee(uint256) (contracts/Vault.sol#243-248)
+addExecutor(address) should be declared external:
+	- Vault.addExecutor(address) (contracts/Vault.sol#302-315)
+removeExecutor(address) should be declared external:
+	- Vault.removeExecutor(address) (contracts/Vault.sol#320-333)
+setBatcher(address) should be declared external:
+	- Vault.setBatcher(address) (contracts/Vault.sol#377-381)
+setBatcherOnlyDeposit(bool) should be declared external:
+	- Vault.setBatcherOnlyDeposit(bool) (contracts/Vault.sol#390-394)
+setGovernance(address) should be declared external:
+	- Vault.setGovernance(address) (contracts/Vault.sol#399-402)
+acceptGovernance() should be declared external:
+	- Vault.acceptGovernance() (contracts/Vault.sol#414-418)
+setKeeper(address) should be declared external:
+	- Vault.setKeeper(address) (contracts/Vault.sol#428-432)
+setEmergencyMode(bool) should be declared external:
+	- Vault.setEmergencyMode(bool) (contracts/Vault.sol#441-447)
+sweep(address) should be declared external:
+	- Vault.sweep(address) (contracts/Vault.sol#453-459)
 name() should be declared external:
 	- ERC20.name() (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#62-64)
 symbol() should be declared external:
 	- ERC20.symbol() (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#70-72)
-decimals() should be declared external:
-	- ERC20.decimals() (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#87-89)
-	- Vault.decimals() (contracts/Vault.sol#68-70)
 balanceOf(address) should be declared external:
 	- ERC20.balanceOf(address) (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#101-103)
 transfer(address,uint256) should be declared external:
@@ -218,31 +321,10 @@ increaseAllowance(address,uint256) should be declared external:
 	- ERC20.increaseAllowance(address,uint256) (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#181-185)
 decreaseAllowance(address,uint256) should be declared external:
 	- ERC20.decreaseAllowance(address,uint256) (node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol#201-210)
-deposit(uint256,address) should be declared external:
-	- Vault.deposit(uint256,address) (contracts/Vault.sol#78-98)
-withdraw(uint256,address) should be declared external:
-	- Vault.withdraw(uint256,address) (contracts/Vault.sol#103-121)
-depositIntoExecutor(address,uint256) should be declared external:
-	- Vault.depositIntoExecutor(address,uint256) (contracts/Vault.sol#149-158)
-withdrawFromExecutor(address,uint256) should be declared external:
-	- Vault.withdrawFromExecutor(address,uint256) (contracts/Vault.sol#163-172)
-setPerformanceFee(uint256) should be declared external:
-	- Vault.setPerformanceFee(uint256) (contracts/Vault.sol#188-193)
-addExecutor(address) should be declared external:
-	- Vault.addExecutor(address) (contracts/Vault.sol#229-242)
-removeExecutor(address) should be declared external:
-	- Vault.removeExecutor(address) (contracts/Vault.sol#247-262)
-setBatcher(address) should be declared external:
-	- Vault.setBatcher(address) (contracts/Vault.sol#303-307)
-setBatcherOnlyDeposit(bool) should be declared external:
-	- Vault.setBatcherOnlyDeposit(bool) (contracts/Vault.sol#316-320)
-setGovernance(address) should be declared external:
-	- Vault.setGovernance(address) (contracts/Vault.sol#325-328)
-acceptGovernance() should be declared external:
-	- Vault.acceptGovernance() (contracts/Vault.sol#340-344)
-setKeeper(address) should be declared external:
-	- Vault.setKeeper(address) (contracts/Vault.sol#353-357)
-sweep(address) should be declared external:
-	- Vault.sweep(address) (contracts/Vault.sol#363-369)
+permit(address,address,uint256,uint256,uint8,bytes32,bytes32) should be declared external:
+	- ERC20Permit.permit(address,address,uint256,uint256,uint8,bytes32,bytes32) (node_modules/@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol#49-68)
+nonces(address) should be declared external:
+	- ERC20Permit.nonces(address) (node_modules/@openzeppelin/contracts/token/ERC20/extensions/draft-ERC20Permit.sol#73-75)
 Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#public-function-that-could-be-declared-external
-contracts/Vault.sol analyzed (11 contracts with 77 detectors), 84 result(s) found
+
+contracts/Vault.sol analyzed (17 contracts with 77 detectors), 129 result(s) found
