@@ -4,7 +4,6 @@ pragma solidity ^0.8.4;
 import "./BaseTradeExecutor.sol";
 import "./LyraExecutor/LyraPositionHandler.sol";
 import "../interfaces/IVault.sol";
-import "../interfaces/IWETH9.sol";
 
 /// @title LyraTradeExecutor
 /// @author 0xAd1
@@ -109,10 +108,7 @@ contract LyraTradeExecutor is BaseTradeExecutor, LyraPositionHandler {
 
     /// @notice To confirm transfer of want tokens from L2 back to this contract
     /// @dev Handle anything related to deposit confirmation
-    function _confirmWithdraw() internal override {
-        if (address(this).balance > 0)
-            IWETH9(wantTokenL1).deposit{value: address(this).balance}();
-    }
+    function _confirmWithdraw() internal override {}
 
     /*///////////////////////////////////////////////////////////////
                         OPEN / CLOSE FUNCTIONS

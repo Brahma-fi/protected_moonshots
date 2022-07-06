@@ -111,13 +111,11 @@ contract LyraPositionHandlerL2 is
     function positionInWantToken() public view override returns (uint256) {
         /// Get balance in susd and convert it into USDC
         uint256 sUSDbalance = LyraController._positionInWantToken();
-        uint256 ETHPriceInsUSD = LyraAdapter
-            .synthetixAdapter
-            .getSpotPriceForMarket(LYRA_ETH_OPTIONS_MARKET);
+        uint256 USDCPriceInsUSD = UniswapV3Controller._getUSDCPriceInSUSD();
         /// Adding USDC balance of contract as wantToken is wrapped USDC
         return
             (sUSDbalance * NORMALIZATION_FACTOR) /
-            ETHPriceInsUSD +
+            USDCPriceInsUSD +
             IERC20(wantTokenL2).balanceOf(address(this)) +
             address(this).balance;
     }
