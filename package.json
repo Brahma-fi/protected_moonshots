@@ -47,7 +47,10 @@
     "@uniswap/v3-periphery": "^1.4.0",
     "abi-decoder": "^2.4.0",
     "axios": "^0.26.1",
-    "hardhat-change-network": "^0.0.7"
+    "hardhat-change-network": "^0.0.7",
+    "openzeppelin-contracts-4.4.1": "npm:@openzeppelin/contracts@4.4.1",
+    "@lyrafinance/lyra-js": "^0.0.9",
+    "@lyrafinance/protocol": "^0.1.2-alpha"
   },
   "husky": {
     "hooks": {
