@@ -41,6 +41,14 @@ abstract contract BaseTradeExecutor is ITradeExecutor {
         _;
     }
 
+    modifier keeperOrGovernance() {
+        require(
+            msg.sender == keeper() || msg.sender == governance(),
+            "ONLY_KEEPER_OR_GOVERNANCE"
+        );
+        _;
+    }
+
     function sweep(address _token) public onlyGovernance {
         IERC20(_token).transfer(
             governance(),
