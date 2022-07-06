@@ -2,13 +2,12 @@
 pragma solidity ^0.8.4;
 
 import "../../interfaces/IUniswapSwapRouter.sol";
+import "../../interfaces/IAggregatorV3.sol";
 
 import "./interfaces/IPositionHandler.sol";
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
-import {ILyraRegistry, ISynthetixAdapter} from "@lyrafinance/protocol/contracts/periphery/LyraAdapter.sol";
 
 /// @title UniswapV3Controller
 /// @author Pradeep
@@ -20,31 +19,27 @@ contract UniswapV3Controller {
     uint256 public constant MAX_BPS = 10000;
     /// @notice normalization factor for decimals
     uint256 public constant NORMALIZATION_FACTOR = 1e18;
+    /// @notice normalization factor for chainlink USD decimals
+    uint256 public constant USD_NORMALIZATION_FACTOR = 1e8;
     /// @notice uniswap swap fee
     uint24 public constant UNISWAP_FEE = 3000;
-    /// @notice address of lyra eth options market
-    address public constant LYRA_ETH_OPTIONS_MARKET =
-        0x1d42a98848e022908069c2c545aE44Cc78509Bc8;
 
     /// @notice uniswap router to swap tokens
     IUniswapSwapRouter public constant uniswapRouter =
         IUniswapSwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
+    /// @notice chainlink price feed for SUSD/USD
+    IAggregatorV3 public constant susdUsd =
+        IAggregatorV3(0x7f99817d87baD03ea21E05112Ca799d715730efe);
+    /// @notice chainlink price feed for USDC/USD
+    IAggregatorV3 public constant usdcUsd =
+        IAggregatorV3(0x16a9FA2FDa030272Ce99B29CF780dFA30361E0f3);
+
     /// @notice sUSD IERC20 address
     address public constant sUSDAddr =
         0x8c6f28f2F1A3C87F0f938b96d27520d9751ec8d9;
 
-    /// @notice SyntheticAdapter contract
-    ISynthetixAdapter public immutable lyraSynthetixAdapter;
-
     /// @notice slippage for swaps
     uint256 public slippage;
-
-    constructor() {
-        lyraSynthetixAdapter = ISynthetixAdapter(
-            ILyraRegistry(0xF5A0442D4753cA1Ea36427ec071aa5E786dA5916)
-                .getGlobalAddress("SYNTHETIX_ADAPTER")
-        );
-    }
 
     function _setSlippage(uint256 _slippage) internal {
         slippage = _slippage;
@@ -53,7 +48,7 @@ contract UniswapV3Controller {
     function _estimateAndSwap(bool direction, uint256 amountToSwap) internal {
         require(amountToSwap > 0, "INVALID_AMOUNT");
 
-        // direction = true -> swap WETH -> USD else swap USD -> ETH
+        // direction = true -> swap USDC -> sUSD else swap sUSD -> USDC
         address srcToken = direction
             ? IPositionHandler(address(this)).wantTokenL2()
             : sUSDAddr;
@@ -66,13 +61,11 @@ contract UniswapV3Controller {
             "INSUFFICIENT_BALANCE"
         );
 
-        // get ETH price and estimate amount out to account for slippage
-        uint256 ETHPriceInsUSD = lyraSynthetixAdapter.getSpotPriceForMarket(
-            LYRA_ETH_OPTIONS_MARKET
-        );
+        // get USDC price and estimate amount out to account for slippage
+        uint256 USDCPriceInsUSD = _getUSDCPriceInSUSD();
         uint256 amountOutExpected = direction
-            ? (amountToSwap * ETHPriceInsUSD) / NORMALIZATION_FACTOR
-            : (amountToSwap * NORMALIZATION_FACTOR) / ETHPriceInsUSD;
+            ? (amountToSwap * USDCPriceInsUSD) / NORMALIZATION_FACTOR
+            : (amountToSwap * NORMALIZATION_FACTOR) / USDCPriceInsUSD;
 
         IUniswapSwapRouter.ExactInputSingleParams
             memory params = IUniswapSwapRouter.ExactInputSingleParams({
@@ -87,5 +80,14 @@ contract UniswapV3Controller {
                 sqrtPriceLimitX96: 0
             });
         uniswapRouter.exactInputSingle(params);
+    }
+
+    function _getUSDCPriceInSUSD() internal view returns (uint256) {
+        (, int256 susdPriceInUSD, , , ) = susdUsd.latestRoundData();
+        (, int256 usdcPriceInUSD, , , ) = usdcUsd.latestRoundData();
+
+        return
+            ((uint256(susdPriceInUSD) * MAX_BPS * USD_NORMALIZATION_FACTOR) /
+                uint256(usdcPriceInUSD)) / MAX_BPS;
     }
 }
