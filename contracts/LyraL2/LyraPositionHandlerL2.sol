@@ -7,7 +7,6 @@ import "./SocketV1Controller.sol";
 import "./UniswapV3Controller.sol";
 
 import "./interfaces/IPositionHandler.sol";
-import "../../interfaces/IWETH9.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title LyraPositionHandlerL2
@@ -110,12 +109,12 @@ contract LyraPositionHandlerL2 is
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
     function positionInWantToken() public view override returns (uint256) {
-        /// Get balance in susd and convert it into ETH
+        /// Get balance in susd and convert it into USDC
         uint256 sUSDbalance = LyraController._positionInWantToken();
         uint256 ETHPriceInsUSD = LyraAdapter
             .synthetixAdapter
             .getSpotPriceForMarket(LYRA_ETH_OPTIONS_MARKET);
-        /// Adding ETH balance of contract as wantToken is wrapped ETH
+        /// Adding USDC balance of contract as wantToken is wrapped USDC
         return
             (sUSDbalance * NORMALIZATION_FACTOR) /
             ETHPriceInsUSD +
@@ -131,10 +130,10 @@ contract LyraPositionHandlerL2 is
     function deposit() public override onlyKeeper {
         require(
             address(this).balance > 0 ||
-                IWETH9(wantTokenL2).balanceOf(address(this)) > 0,
+                IERC20(wantTokenL2).balanceOf(address(this)) > 0,
             "INSUFFICIENT_BALANCE"
         );
-        IWETH9(wantTokenL2).deposit{value: address(this).balance}();
+
         UniswapV3Controller._estimateAndSwap(
             true,
             IERC20(wantTokenL2).balanceOf(address(this))
@@ -151,9 +150,6 @@ contract LyraPositionHandlerL2 is
         address _socketRegistry,
         bytes calldata socketData
     ) public override onlyAuthorized {
-        IWETH9(wantTokenL2).withdraw(
-            IWETH9(wantTokenL2).balanceOf(address(this))
-        );
         require(address(this).balance >= amountOut, "NOT_ENOUGH_TOKENS");
         require(socketRegistry == _socketRegistry, "INVALID_REGISTRY");
         SocketV1Controller.sendTokens(
@@ -270,7 +266,4 @@ contract LyraPositionHandlerL2 is
         require(msg.sender == governance, "ONLY_GOVERNANCE");
         _;
     }
-
-    /// @notice Receive native ETH and do nothing
-    receive() external payable {}
 }
