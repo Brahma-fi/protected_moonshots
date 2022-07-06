@@ -41,7 +41,7 @@ describe("PerpHandlerL2 [OPTIMISM]", function () {
     dotenv.config();
 
     await switchToNetwork(
-      process.env.QUICKNODE_OPTIMISM_URL,
+      `https://opt-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`,
       Number(process.env.OPTIMISM_BLOCK_NUMBER)
     );
 
