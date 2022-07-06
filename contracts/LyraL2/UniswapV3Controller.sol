@@ -22,7 +22,7 @@ contract UniswapV3Controller {
     /// @notice normalization factor for chainlink USD decimals
     uint256 public constant USD_NORMALIZATION_FACTOR = 1e8;
     /// @notice uniswap swap fee
-    uint24 public constant UNISWAP_FEE = 3000;
+    uint24 public constant UNISWAP_FEE = 500;
 
     /// @notice uniswap router to swap tokens
     IUniswapSwapRouter public constant uniswapRouter =
