@@ -19,8 +19,6 @@ contract UniswapV3Controller {
     uint256 public constant MAX_BPS = 10000;
     /// @notice normalization factor for decimals
     uint256 public constant NORMALIZATION_FACTOR = 1e18;
-    /// @notice normalization factor for chainlink USD decimals
-    uint256 public constant USD_NORMALIZATION_FACTOR = 1e8;
     /// @notice uniswap swap fee
     uint24 public constant UNISWAP_FEE = 500;
 
@@ -86,8 +84,7 @@ contract UniswapV3Controller {
         (, int256 susdPriceInUSD, , , ) = susdUsd.latestRoundData();
         (, int256 usdcPriceInUSD, , , ) = usdcUsd.latestRoundData();
 
-        return
-            ((uint256(susdPriceInUSD) * MAX_BPS * USD_NORMALIZATION_FACTOR) /
-                uint256(usdcPriceInUSD)) / MAX_BPS;
+        return ((uint256(susdPriceInUSD) * NORMALIZATION_FACTOR) /
+            uint256(usdcPriceInUSD));
     }
 }
