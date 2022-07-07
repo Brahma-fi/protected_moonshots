@@ -4,7 +4,7 @@ pragma solidity ^0.8.4;
 import {LyraAdapter} from "@lyrafinance/protocol/contracts/periphery/LyraAdapter.sol";
 import {DecimalMath} from "@lyrafinance/protocol/contracts/synthetix/DecimalMath.sol";
 
-contract LyraController is LyraAdapter {
+contract MockLyraAdapter is LyraAdapter {
     using DecimalMath for uint256;
 
     function getPremiumForStrike(
