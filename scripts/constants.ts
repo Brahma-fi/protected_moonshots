@@ -38,3 +38,4 @@ export const lyraETHOptionMarketAddress =
 export const lyraETHOptionToken = "0xCfDfF4E171133D55dE2e45c66a0E144a135D93f2";
 export const synthetixAdapterAddress =
   "0xbfa31380ED380cEb325153eA08f296A45A489108";
+export const sUSDaddress = "0x8c6f28f2F1A3C87F0f938b96d27520d9751ec8d9";
