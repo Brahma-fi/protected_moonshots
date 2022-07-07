@@ -32,3 +32,7 @@ export const perpTradeExecutorAddress =
   "0x675A5c853fc2bc81E0eB79FC45e395d01Bd5D72D";
 export const perpPositionHandlerL2Address =
   "0x00fFC95A1A63dbd48A1E7397a3B051eA9E3F5Be9";
+
+export const lyraETHOptionMarketAddress =
+  "0x1d42a98848e022908069c2c545aE44Cc78509Bc8";
+export const lyraETHOptionToken = "0xCfDfF4E171133D55dE2e45c66a0E144a135D93f2";
