@@ -1,9 +1,9 @@
 //SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.8.0;
 
-import "./BaseTradeExecutor.sol";
-import "./PerpHandler/PerpPositionHandler.sol";
-import "../interfaces/IVault.sol";
+import "../BaseTradeExecutor.sol";
+import "./PerpPositionHandler.sol";
+import "../../interfaces/IVault.sol";
 
 /// @title PerpTradeExecutor
 /// @author 0xAd1
@@ -57,7 +57,7 @@ contract PerpTradeExecutor is BaseTradeExecutor, PerpPositionHandler {
 
     /// @notice L2 position value setter, called by keeper
     /// @param _posValue new position value retrived from L2
-    function setPosValue(uint256 _posValue) public onlyKeeper {
+    function setPosValue(uint256 _posValue) public keeperOrGovernance {
         PerpPositionHandler._setPosValue(_posValue);
     }
 

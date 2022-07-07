@@ -216,13 +216,15 @@ contract PerpV2Controller {
 
     /// @notice Returns the value of current position in wantToken value
     /// @return amount value of position in wantToken (USDC)
-    function positionInUSDC() public view returns (uint256) {
+    function positionInWantToken() public view returns (uint256, uint256) {
         int256 posValue = clearingHouse.getAccountValue(address(this));
         uint256 amountOut = (posValue < 0)
             ? uint256(-1 * posValue)
             : uint256(posValue);
-        return
+        return (
             amountOut.div(1e12) +
-            IERC20(perpVault.getSettlementToken()).balanceOf(address(this));
+                IERC20(perpVault.getSettlementToken()).balanceOf(address(this)),
+            block.number
+        );
     }
 }
