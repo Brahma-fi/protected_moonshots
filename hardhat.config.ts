@@ -30,7 +30,7 @@ const buildForkConfig = (): HardhatNetworkForkingUserConfig => {
   let forkMode: HardhatNetworkForkingUserConfig;
   if (FORK_OPTIMISM == "1") {
     forkMode = {
-      url: process.env.QUICKNODE_OPTIMISM_URL,
+      url: `https://opt-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`,
       blockNumber: Number(process.env.OPTIMISM_BLOCK_NUMBER),
     };
   } else {
@@ -39,6 +39,7 @@ const buildForkConfig = (): HardhatNetworkForkingUserConfig => {
       blockNumber: 15003356,
     };
   }
+  console.log(forkMode);
   return forkMode;
 };
 
@@ -106,7 +107,7 @@ const config: HardhatUserConfig = {
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
     optimism: {
-      url: `${process.env.QUICKNODE_OPTIMISM_URL}`,
+      url: `https://opt-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`,
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },

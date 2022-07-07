@@ -75,8 +75,13 @@ export const getOptimalNumberOfOptionsToBuy = async (
   optimalAmount: BigNumber;
   price: BigNumber;
 }> => {
-  const MockLyraAdapter = await ethers.getContractFactory("MockLyraAdapter");
+  const MockLyraAdapter = await ethers.getContractFactory("MockLyraAdapter", {
+    libraries: {
+      BlackScholes: "0xE97831964bF41C564EDF6629f818Ed36C85fD520",
+    },
+  });
   const mockLyraAdapter = (await MockLyraAdapter.deploy()) as MockLyraAdapter;
+  console.log("mocklyraadapter:", mockLyraAdapter.address);
 
   const getOptionPrice = async (amount: BigNumber): Promise<BigNumber> => {
     const price = await mockLyraAdapter.getPremiumForStrike(
@@ -131,3 +136,15 @@ export const getOptimalNumberOfOptionsToBuy = async (
     price: optimalPriceToPay,
   };
 };
+
+(async () => {
+  const strike = await getLyraStrikeId();
+  console.log("strike:", strike.toString());
+
+  const optimalAmount = await getOptimalNumberOfOptionsToBuy(
+    BigNumber.from(1e4).mul(1e9).mul(1e9),
+    strike,
+    true
+  );
+  console.log("optimal amount:", optimalAmount.toString());
+})();
