@@ -11,7 +11,7 @@ contract MockLyraAdapter is LyraAdapter {
         uint256 strikeId,
         bool isCall,
         uint256 amount
-    ) external returns (uint256) {
+    ) external view returns (uint256) {
         (uint256 callPremium, uint256 putPremium) = LyraAdapter
             ._getPurePremiumForStrike(strikeId);
         uint256 totalPremium = (isCall ? callPremium : putPremium)
