@@ -195,7 +195,7 @@ contract LyraController is LyraAdapter {
             LyraAdapter.TradeInputParameters({
                 strikeId: strikeId,
                 positionId: positionId,
-                iterations: 1,
+                iterations: 3,
                 optionType: optionType,
                 amount: amount,
                 setCollateralTo: 0,

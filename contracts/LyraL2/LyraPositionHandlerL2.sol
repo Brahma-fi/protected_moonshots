@@ -10,7 +10,7 @@ import "./interfaces/IPositionHandler.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /// @title LyraPositionHandlerL2
-/// @author Bapireddy and 0xAd1
+/// @author Bapireddy and Pradeep
 /// @notice Acts as positon handler and token bridger on L2 Optimism
 contract LyraPositionHandlerL2 is
     IPositionHandler,

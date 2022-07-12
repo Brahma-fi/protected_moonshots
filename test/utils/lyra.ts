@@ -115,8 +115,8 @@ export const getOptimalNumberOfOptionsToBuy = async (
 
   while (true) {
     const nextNum = isActualPriceLesserThanAmt
-      ? optimalNum.add(ethers.utils.parseEther("0.1"))
-      : optimalNum.sub(ethers.utils.parseEther("0.1"));
+      ? optimalNum.add(ethers.utils.parseEther("1"))
+      : optimalNum.sub(ethers.utils.parseEther("1"));
     const nextPrice = await getOptionPrice(nextNum);
 
     if (
@@ -146,5 +146,5 @@ export const getOptimalNumberOfOptionsToBuy = async (
     strike,
     true
   );
-  console.log("optimal amount:", optimalAmount.toString());
+  console.log("optimal amount:", optimalAmount);
 })();

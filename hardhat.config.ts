@@ -39,7 +39,6 @@ const buildForkConfig = (): HardhatNetworkForkingUserConfig => {
       blockNumber: 15003356,
     };
   }
-  console.log(forkMode);
   return forkMode;
 };
 
