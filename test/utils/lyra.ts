@@ -19,6 +19,9 @@ import {
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { getSigner } from "./signers";
 import { IERC20 } from "@lyrafinance/protocol/dist/typechain-types";
+import { switchToNetwork } from "./hardhat";
+
+import * as dotenv from "dotenv";
 
 let lyraPH: LyraPositionHandlerL2;
 let signer: SignerWithAddress;
@@ -50,8 +53,7 @@ export const getLyraStrikeId = async (): Promise<BigNumber> => {
       .find(([, expiryUNIX, ,]) => {
         const expiryTime = new Date(expiryUNIX.toNumber() * 1000);
 
-        if (dayjs(new Date()).add(1, "week").isSame(expiryTime, "week"))
-          return true;
+        if (dayjs(new Date()).isSame(expiryTime, "week")) return true;
         return false;
       })?.[0]
       ?.toNumber() || 0;
@@ -91,29 +93,17 @@ export const getOptimalNumberOfOptionsToBuy = async (
   optimalAmount: BigNumber;
   price: BigNumber;
 }> => {
-  const lyra = new Lyra();
-  const strike = await lyra.strike(
-    lyraETHOptionMarketAddress,
-    strikeId.toNumber()
-  );
-
   const getOptionPrice = async (amount: BigNumber): Promise<BigNumber> => {
-    const price = await strike.quote(isCall, true, amount);
-    console.log(
-      "PRICE",
-      price.pricePerOption.toString(),
-      price.size.toString(),
-      price.pricePerOption.toString(),
-      price.option().price.toString(),
-      strike.vega.toString(),
-      price.premium.toString()
+    const result = await lyraPH
+      .connect(signer)
+      .callStatic.openPosition(strikeId, isCall, amount, false);
+    const totalCost = (result?.totalCost || BigNumber.from("0")).add(
+      result?.totalFee || 0
     );
-    price.board;
-    return price.pricePerOption
-      .add(strike.vega)
-      .mul(1005)
-      .mul(price.size.div(1e9).div(1e9))
-      .div(1e3);
+
+    console.log(`[cost] ${amount}: ${totalCost.toString()}`);
+
+    return totalCost;
   };
 
   const minPremium = await getOptionPrice(ethers.utils.parseEther("1"));
@@ -138,8 +128,8 @@ export const getOptimalNumberOfOptionsToBuy = async (
 
   while (true) {
     const nextNum = isActualPriceLesserThanAmt
-      ? optimalNum.add(ethers.utils.parseEther("0.1"))
-      : optimalNum.sub(ethers.utils.parseEther("0.1"));
+      ? optimalNum.add(ethers.utils.parseEther("0.5"))
+      : optimalNum.sub(ethers.utils.parseEther("0.5"));
     const nextPrice = await getOptionPrice(nextNum);
 
     if (
@@ -161,7 +151,13 @@ export const getOptimalNumberOfOptionsToBuy = async (
 };
 
 (async () => {
-  const keeper = "0xAE75B29ADe678372D77A8B41225654138a7E6ff1";
+  dotenv.config();
+
+  switchToNetwork(
+    `https://opt-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`
+  );
+
+  const keeper = "0x7F5c764cBc14f9669B88837ca1490cCa17c31607";
   const LyraPH = await ethers.getContractFactory("LyraPositionHandlerL2", {
     libraries: {
       "@lyrafinance/protocol/contracts/libraries/BlackScholes.sol:BlackScholes":
@@ -212,21 +208,10 @@ export const getOptimalNumberOfOptionsToBuy = async (
   const strike = await getLyraStrikeId();
   console.log("strike:", strike.toString());
 
-  const result = await lyraPH
-    .connect(signer)
-    .openPosition(strike, true, BigNumber.from(1e9).mul(1e9), false);
-
-  console.log("result:", result);
-
-  console.log(
-    "l2 susd bal after open:",
-    (await sUSD.balanceOf(lyraPH.address)).toString()
+  const optimalAmount = await getOptimalNumberOfOptionsToBuy(
+    BigNumber.from(1500).mul(1e9).mul(1e9),
+    strike,
+    true
   );
-
-  // const optimalAmount = await getOptimalNumberOfOptionsToBuy(
-  //   BigNumber.from(1e4).mul(1e9).mul(1e9),
-  //   strike,
-  //   true
-  // );
-  // console.log("optimal amount:", optimalAmount);
+  console.log("optimal amount:", optimalAmount);
 })();
