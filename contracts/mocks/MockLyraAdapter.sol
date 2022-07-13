@@ -19,34 +19,40 @@ contract MockLyraAdapter is LyraAdapter {
         );
     }
 
-    function getPremiumForStrike(
-        uint256 strikeId,
-        bool isCall,
-        uint256 amount
-    ) external view returns (uint256) {
-        OptionMarket.Strike memory strike = OptionMarket(
-            0x1d42a98848e022908069c2c545aE44Cc78509Bc8
-        ).getStrike(strikeId);
+    // function getPremiumForStrike(
+    //   uint256 strikeId,
+    //   bool isCall,
+    //   uint256 amount
+    // ) external view returns (uint256) {
+    //   openPositionParams = _getTradeInputParams(
+    //     strikeId,
+    //     0,
+    //     isCall
+    //       ? LyraAdapter.OptionType.LONG_CALL
+    //       : LyraAdapter.OptionType.LONG_PUT,
+    //     amount
+    //   );
 
-        (uint256 callPrice, uint256 putPrice) = LyraAdapter._optionPriceGWAV(
-            strikeId,
-            30
-        );
-        console.log("price:", callPrice);
-        (uint256 callPremium, uint256 putPremium) = LyraAdapter
-            ._getPurePremiumForStrike(strikeId);
-        console.log("premium:", callPremium);
+    //   LyraAdapter.TradeResult memory tradeResult = address(this).call();
+    // }
 
-        uint256 iv = LyraAdapter._ivGWAV(strike.boardId, 30);
-        uint256 vol = LyraAdapter._volGWAV(strikeId, 30);
-        console.log("iv:", iv);
-        console.log("vol:", vol);
-
-        uint256 totalPremium = (
-            isCall ? (callPremium + callPrice) : (putPremium + putPrice)
-        ).multiplyDecimal(amount) + LyraAdapter._vegaGWAV(strikeId, 30);
-        console.log("Total:", amount, totalPremium);
-
-        return totalPremium;
-    }
+    // function _getTradeInputParams(
+    //   uint256 strikeId,
+    //   uint256 positionId,
+    //   LyraAdapter.OptionType optionType,
+    //   uint256 amount
+    // ) internal returns (LyraAdapter.TradeInputParameters memory) {
+    //   return
+    //     LyraAdapter.TradeInputParameters({
+    //       strikeId: strikeId,
+    //       positionId: positionId,
+    //       iterations: 3,
+    //       optionType: optionType,
+    //       amount: amount,
+    //       setCollateralTo: 0,
+    //       minTotalCost: 0,
+    //       maxTotalCost: sUSD.balanceOf(address(this)),
+    //       rewardRecipient: address(this)
+    //     });
+    // }
 }

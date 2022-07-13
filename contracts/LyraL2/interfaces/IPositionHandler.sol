@@ -2,6 +2,7 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {LyraAdapter} from "@lyrafinance/protocol/contracts/periphery/LyraAdapter.sol";
 
 interface IPositionHandler {
     function wantTokenL2() external view returns (address);
@@ -13,7 +14,7 @@ interface IPositionHandler {
         bool isCall,
         uint256 amount,
         bool updateExistingPosition
-    ) external;
+    ) external returns (LyraAdapter.TradeResult memory);
 
     function closePosition(bool toSettle) external;
 

@@ -8,6 +8,7 @@ import "./UniswapV3Controller.sol";
 
 import "./interfaces/IPositionHandler.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {BasicFeeCounter} from "@lyrafinance/protocol/contracts/periphery/BasicFeeCounter.sol";
 
 /// @title LyraPositionHandlerL2
 /// @author Bapireddy and Pradeep
@@ -103,6 +104,22 @@ contract LyraPositionHandlerL2 is
             address(UniswapV3Controller.uniswapRouter),
             type(uint256).max
         );
+
+        // deploy basic fee counter and set trusted counter
+        BasicFeeCounter feeCounter = new BasicFeeCounter();
+        feeCounter.setTrustedCounter(address(this), true);
+
+        // set Lyra Adapter
+        LyraAdapter.setLyraAddresses(
+            // lyra registry
+            0xF5A0442D4753cA1Ea36427ec071aa5E786dA5916,
+            // option market
+            _lyraOptionMarket,
+            // curve swap
+            0xA5407eAE9Ba41422680e2e00537571bcC53efBfD,
+            // fee counter
+            address(feeCounter)
+        );
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -116,8 +133,9 @@ contract LyraPositionHandlerL2 is
         return
             (sUSDbalance * NORMALIZATION_FACTOR) /
             USDCPriceInsUSD +
-            IERC20(wantTokenL2).balanceOf(address(this)) +
-            address(this).balance;
+            (IERC20(wantTokenL2).balanceOf(address(this)) *
+                NORMALIZATION_FACTOR) /
+            1e6;
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -175,8 +193,13 @@ contract LyraPositionHandlerL2 is
         bool isCall,
         uint256 amount,
         bool updateExistingPosition
-    ) public override onlyAuthorized {
-        LyraController._openPosition(
+    )
+        public
+        override
+        onlyAuthorized
+        returns (LyraAdapter.TradeResult memory tradeResult)
+    {
+        tradeResult = LyraController._openPosition(
             strikeId,
             isCall,
             amount,

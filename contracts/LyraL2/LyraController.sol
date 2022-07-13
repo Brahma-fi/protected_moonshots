@@ -78,7 +78,7 @@ contract LyraController is LyraAdapter {
         bool isCall,
         uint256 amount,
         bool updateExistingPosition
-    ) internal {
+    ) internal returns (LyraAdapter.TradeResult memory tradeResult) {
         LyraAdapter.OptionType optionType;
         LyraAdapter.TradeInputParameters memory openPositionParams;
 
@@ -112,9 +112,7 @@ contract LyraController is LyraAdapter {
             );
         }
 
-        LyraAdapter.TradeResult memory tradeResult = LyraAdapter._openPosition(
-            openPositionParams
-        );
+        tradeResult = LyraAdapter._openPosition(openPositionParams);
 
         uint256 sUSDSent = sUSDBal - sUSD.balanceOf(address(this));
 

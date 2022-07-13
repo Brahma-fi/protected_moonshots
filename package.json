@@ -42,7 +42,7 @@
     "typescript": "^4.5.5"
   },
   "dependencies": {
-    "@lyrafinance/lyra-js": "^0.0.9",
+    "@lyrafinance/lyra-js": "0.0.15",
     "@lyrafinance/protocol": "^0.1.2-alpha",
     "@openzeppelin/contracts-upgradeable": "3.4.2",
     "@perp/curie-contract": "^1.0.15",
