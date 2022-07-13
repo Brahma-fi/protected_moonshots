@@ -1,7 +1,6 @@
 /* eslint-disable node/no-missing-import */
 import dayjs from "dayjs";
 import { BigNumber } from "ethers";
-import Lyra from "@lyrafinance/lyra-js";
 
 import { ethers } from "hardhat";
 import {
@@ -171,7 +170,7 @@ export const getOptimalNumberOfOptionsToBuy = async (
     keeper,
     keeper,
     movrRegistry,
-    10000
+    1000
   )) as LyraPositionHandlerL2;
 
   signer = await getSigner(keeper);
@@ -193,8 +192,16 @@ export const getOptimalNumberOfOptionsToBuy = async (
   await usdc
     .connect(signer)
     .transfer(lyraPH.address, await usdc.balanceOf(signer.address));
+  console.log(
+    "lyra usdc bal:",
+    (await usdc.balanceOf(lyraPH.address)).toString()
+  );
 
-  lyraPH.connect(signer).deposit();
+  await lyraPH.connect(signer).deposit();
+  console.log(
+    "lyra usdc bal after deposit:",
+    (await usdc.balanceOf(lyraPH.address)).toString()
+  );
 
   console.log(
     "lyra pos value:",

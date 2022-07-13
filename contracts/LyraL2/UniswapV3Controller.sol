@@ -9,6 +9,8 @@ import "./interfaces/IPositionHandler.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import "hardhat/console.sol";
+
 /// @title UniswapV3Controller
 /// @author Pradeep
 /// @notice Used to perform swaps for synthetix tokens
@@ -19,6 +21,8 @@ contract UniswapV3Controller {
     uint256 public constant MAX_BPS = 10000;
     /// @notice normalization factor for decimals
     uint256 public constant NORMALIZATION_FACTOR = 1e18;
+    /// @notice normalization factor for USDC decimals
+    uint256 public constant USDC_NORMALIZATION_FACTOR = 1e6;
     /// @notice uniswap swap fee
     uint24 public constant UNISWAP_FEE = 500;
 
@@ -61,9 +65,18 @@ contract UniswapV3Controller {
 
         // get USDC price and estimate amount out to account for slippage
         uint256 USDCPriceInsUSD = _getUSDCPriceInSUSD();
+        console.log("usdc price in susd:", USDCPriceInsUSD);
         uint256 amountOutExpected = direction
-            ? (amountToSwap * USDCPriceInsUSD) / NORMALIZATION_FACTOR
-            : (amountToSwap * NORMALIZATION_FACTOR) / USDCPriceInsUSD;
+            ? (amountToSwap * USDCPriceInsUSD) / USDC_NORMALIZATION_FACTOR
+            : (amountToSwap * NORMALIZATION_FACTOR * NORMALIZATION_FACTOR) /
+                USDCPriceInsUSD /
+                USDC_NORMALIZATION_FACTOR;
+
+        console.log("amount out expected:", amountOutExpected);
+        console.log(
+            "amount out minimum:",
+            (amountOutExpected * (MAX_BPS - slippage)) / MAX_BPS
+        );
 
         IUniswapSwapRouter.ExactInputSingleParams
             memory params = IUniswapSwapRouter.ExactInputSingleParams({
@@ -84,7 +97,7 @@ contract UniswapV3Controller {
         (, int256 susdPriceInUSD, , , ) = susdUsd.latestRoundData();
         (, int256 usdcPriceInUSD, , , ) = usdcUsd.latestRoundData();
 
-        return ((uint256(susdPriceInUSD) * NORMALIZATION_FACTOR) /
-            uint256(usdcPriceInUSD));
+        return ((uint256(usdcPriceInUSD) * NORMALIZATION_FACTOR) /
+            uint256(susdPriceInUSD));
     }
 }
