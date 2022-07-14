@@ -1,9 +1,9 @@
 //SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.8.4;
 
-import "./BaseTradeExecutor.sol";
-import "./LyraExecutor/LyraPositionHandler.sol";
-import "../interfaces/IVault.sol";
+import "../BaseTradeExecutor.sol";
+import "./LyraPositionHandler.sol";
+import "../../interfaces/IVault.sol";
 
 /// @title LyraTradeExecutor
 /// @author Pradeep
