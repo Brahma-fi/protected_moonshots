@@ -157,10 +157,7 @@ describe("LyraHandlerL2 [OPTIMISM]", function () {
 
     // close position
     const beforeUsdcBalance = await usdc.balanceOf(lyraL2Handler.address);
-    await lyraL2Handler.closePosition(
-      false,
-      BigNumber.from(20).mul(1e9).mul(1e9)
-    );
+    await lyraL2Handler.closePosition(false);
     const afterUsdcBalance = await usdc.balanceOf(lyraL2Handler.address);
     expect(afterUsdcBalance.gt(beforeUsdcBalance)).equals(true);
     expect((await lyraL2Handler.currentPosition()).isActive).equals(false);

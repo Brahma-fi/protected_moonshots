@@ -165,99 +165,99 @@ export const getOptimalNumberOfOptionsToBuy = async (
   };
 };
 
-(async () => {
-  // dotenv.config();
+// (async () => {
+// dotenv.config();
 
-  // switchToNetwork(
-  //   `https://opt-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`
-  // );
+// switchToNetwork(
+//   `https://opt-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`
+// );
 
-  // const keeper = "0x7F5c764cBc14f9669B88837ca1490cCa17c31607";
-  // const LyraPH = await ethers.getContractFactory("LyraPositionHandlerL2", {
-  //   libraries: {
-  //     "@lyrafinance/protocol/contracts/libraries/BlackScholes.sol:BlackScholes":
-  //       "0xE97831964bF41C564EDF6629f818Ed36C85fD520"
-  //   }
-  // });
-  // const lyraPH = (await LyraPH.deploy(
-  //   wantTokenL2,
-  //   keeper,
-  //   lyraETHOptionMarketAddress,
-  //   keeper,
-  //   keeper,
-  //   movrRegistry,
-  //   1000
-  // )) as LyraPositionHandlerL2;
+// const keeper = "0x7F5c764cBc14f9669B88837ca1490cCa17c31607";
+// const LyraPH = await ethers.getContractFactory("LyraPositionHandlerL2", {
+//   libraries: {
+//     "@lyrafinance/protocol/contracts/libraries/BlackScholes.sol:BlackScholes":
+//       "0xE97831964bF41C564EDF6629f818Ed36C85fD520"
+//   }
+// });
+// const lyraPH = (await LyraPH.deploy(
+//   wantTokenL2,
+//   keeper,
+//   lyraETHOptionMarketAddress,
+//   keeper,
+//   keeper,
+//   movrRegistry,
+//   1000
+// )) as LyraPositionHandlerL2;
 
-  // const signer = await getSigner(keeper);
+// const signer = await getSigner(keeper);
 
-  // const usdc = (await ethers.getContractAt(
-  //   "@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20",
-  //   wantTokenL2
-  // )) as IERC20;
-  // const sUSD = (await ethers.getContractAt(
-  //   "@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20",
-  //   sUSDaddress
-  // )) as IERC20;
+// const usdc = (await ethers.getContractAt(
+//   "@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20",
+//   wantTokenL2
+// )) as IERC20;
+// const sUSD = (await ethers.getContractAt(
+//   "@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20",
+//   sUSDaddress
+// )) as IERC20;
 
-  // console.log(
-  //   "keeper usdc bal:",
-  //   (await usdc.balanceOf(signer.address)).toString()
-  // );
+// console.log(
+//   "keeper usdc bal:",
+//   (await usdc.balanceOf(signer.address)).toString()
+// );
 
-  // await usdc
-  //   .connect(signer)
-  //   .transfer(lyraPH.address, BigNumber.from(3000).mul(1e6));
-  // console.log(
-  //   "lyra usdc bal:",
-  //   (await usdc.balanceOf(lyraPH.address)).toString()
-  // );
+// await usdc
+//   .connect(signer)
+//   .transfer(lyraPH.address, BigNumber.from(3000).mul(1e6));
+// console.log(
+//   "lyra usdc bal:",
+//   (await usdc.balanceOf(lyraPH.address)).toString()
+// );
 
-  // await lyraPH.connect(signer).deposit();
-  // console.log(
-  //   "lyra usdc bal after deposit:",
-  //   (await usdc.balanceOf(lyraPH.address)).toString()
-  // );
+// await lyraPH.connect(signer).deposit();
+// console.log(
+//   "lyra usdc bal after deposit:",
+//   (await usdc.balanceOf(lyraPH.address)).toString()
+// );
 
-  // console.log(
-  //   "lyra pos value:",
-  //   (await lyraPH.positionInWantToken()).toString()
-  // );
-  // console.log(
-  //   "l2 susd bal before open:",
-  //   (await sUSD.balanceOf(lyraPH.address)).toString()
-  // );
+// console.log(
+//   "lyra pos value:",
+//   (await lyraPH.positionInWantToken()).toString()
+// );
+// console.log(
+//   "l2 susd bal before open:",
+//   (await sUSD.balanceOf(lyraPH.address)).toString()
+// );
 
-  // const strike = await getLyraStrikeId();
-  // console.log("strike:", strike.toString());
+// const strike = await getLyraStrikeId();
+// console.log("strike:", strike.toString());
 
-  // const { optimalAmount } = await getOptimalNumberOfOptionsToBuy(
-  //   BigNumber.from(3000).mul(1e9).mul(1e9),
-  //   strike,
-  //   true,
-  //   lyraPH,
-  //   signer
-  // );
+// const { optimalAmount } = await getOptimalNumberOfOptionsToBuy(
+//   BigNumber.from(3000).mul(1e9).mul(1e9),
+//   strike,
+//   true,
+//   lyraPH,
+//   signer
+// );
 
-  // await lyraPH
-  //   .connect(signer)
-  //   .callStatic.openPosition(strike, true, optimalAmount, false);
+// await lyraPH
+//   .connect(signer)
+//   .callStatic.openPosition(strike, true, optimalAmount, false);
 
-  // console.log(
-  //   "l2 susd bal after open:",
-  //   (await sUSD.balanceOf(lyraPH.address)).toString()
-  // );
+// console.log(
+//   "l2 susd bal after open:",
+//   (await sUSD.balanceOf(lyraPH.address)).toString()
+// );
 
-  // console.log("optimal amount:", optimalAmount);
-  const signer = (await ethers.getSigners())[0];
-  const lyraPH = (await ethers.getContractAt(
-    "LyraPositionHandlerL2",
-    "0x84689a13d923c8b1c36861fd33a97fa3496fec64"
-  )) as LyraPositionHandlerL2;
+// console.log("optimal amount:", optimalAmount);
+// const signer = (await ethers.getSigners())[0];
+// const lyraPH = (await ethers.getContractAt(
+//   "LyraPositionHandlerL2",
+//   "0x84689a13d923c8b1c36861fd33a97fa3496fec64"
+// )) as LyraPositionHandlerL2;
 
-  await lyraPH
-    .connect(signer)
-    .closePosition(false, BigNumber.from(1).mul(1e8).mul(1e9));
+// await lyraPH
+//   .connect(signer)
+//   .closePosition(false, BigNumber.from(1).mul(1e8).mul(1e9));
 
-  console.log("closed position");
-})();
+//   console.log("closed position");
+// })();
