@@ -125,15 +125,22 @@ contract LyraPositionHandlerL2 is
     /*///////////////////////////////////////////////////////////////
                             VIEW FUNCTIONS
     //////////////////////////////////////////////////////////////*/
-    function positionInWantToken() public view override returns (uint256) {
+    function positionInWantToken()
+        public
+        view
+        override
+        returns (uint256, uint256)
+    {
         /// Get balance in susd and convert it into USDC
         uint256 sUSDbalance = LyraController._positionInWantToken();
         uint256 USDCPriceInsUSD = UniswapV3Controller._getUSDCPriceInSUSD();
         /// Adding USDC balance of contract as wantToken is wrapped USDC
-        return
+        return (
             (sUSDbalance * USDC_NORMALIZATION_FACTOR) /
-            USDCPriceInsUSD +
-            IERC20(wantTokenL2).balanceOf(address(this));
+                USDCPriceInsUSD +
+                IERC20(wantTokenL2).balanceOf(address(this)),
+            block.number
+        );
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -143,8 +150,7 @@ contract LyraPositionHandlerL2 is
     /// @notice Converts the whole wantToken to sUSD.
     function deposit() public override onlyKeeper {
         require(
-            address(this).balance > 0 ||
-                IERC20(wantTokenL2).balanceOf(address(this)) > 0,
+            IERC20(wantTokenL2).balanceOf(address(this)) > 0,
             "INSUFFICIENT_BALANCE"
         );
 
@@ -164,7 +170,10 @@ contract LyraPositionHandlerL2 is
         address _socketRegistry,
         bytes calldata socketData
     ) public override onlyAuthorized {
-        require(address(this).balance >= amountOut, "NOT_ENOUGH_TOKENS");
+        require(
+            IERC20(wantTokenL2).balanceOf(address(this)) >= amountOut,
+            "NOT_ENOUGH_TOKENS"
+        );
         require(socketRegistry == _socketRegistry, "INVALID_REGISTRY");
         SocketV1Controller.sendTokens(
             wantTokenL2,

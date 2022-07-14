@@ -7,7 +7,7 @@ import {LyraAdapter} from "@lyrafinance/protocol/contracts/periphery/LyraAdapter
 interface IPositionHandler {
     function wantTokenL2() external view returns (address);
 
-    function positionInWantToken() external view returns (uint256);
+    function positionInWantToken() external view returns (uint256, uint256);
 
     function openPosition(
         uint256 listingId,
