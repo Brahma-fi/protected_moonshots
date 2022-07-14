@@ -191,7 +191,7 @@ export const getOptimalNumberOfOptionsToBuy = async (
 
   await usdc
     .connect(signer)
-    .transfer(lyraPH.address, await usdc.balanceOf(signer.address));
+    .transfer(lyraPH.address, BigNumber.from(1e4).mul(1e6));
   console.log(
     "lyra usdc bal:",
     (await usdc.balanceOf(lyraPH.address)).toString()
