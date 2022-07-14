@@ -8,6 +8,7 @@ import "hardhat-gas-reporter";
 import "solidity-coverage";
 import "hardhat-contract-sizer";
 import { readFileSync } from "fs";
+import axios from "axios";
 
 dotenv.config();
 
@@ -43,11 +44,25 @@ const buildForkConfig = (): HardhatNetworkForkingUserConfig => {
 };
 
 const getTenderlyForkConfig = (): string => {
-  // let url = JSON.parse(readFileSync("tenderlyConfig.json").toString());
-  // console.log(`https://rpc.tenderly.co/fork/${process.env.TENDERLY_FORK_ID}`)
-  // return url.forkRPCUrl;
+  const { TENDERLY_USER, TENDERLY_PROJECT, TENDERLY_ACCESS_KEY } = process.env;
+  const TENDERLY_FORK_API = `http://api.tenderly.co/api/v1/account/${TENDERLY_USER}/project/${TENDERLY_PROJECT}/fork`;
 
-  return `https://rpc.tenderly.co/fork/${process.env.TENDERLY_FORK_ID}`;
+  const opts = {
+    headers: {
+      "X-Access-Key": TENDERLY_ACCESS_KEY as string,
+    },
+  };
+  const body = {
+    network_id: "1",
+  };
+
+  let forkId;
+
+  axios
+    .post(TENDERLY_FORK_API, body, opts)
+    .then((res) => (forkId = res.data.simulation_fork.id));
+
+  return `https://rpc.tenderly.co/fork/${forkId}`;
 };
 
 const config: HardhatUserConfig = {
@@ -91,7 +106,7 @@ const config: HardhatUserConfig = {
       chainId: 1,
     },
     tenderly: {
-      url: `https://rpc.tenderly.co/fork/${process.env.TENDERLY_FORK_ID}`,
+      url: getTenderlyForkConfig(),
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
