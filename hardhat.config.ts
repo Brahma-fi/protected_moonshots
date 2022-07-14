@@ -39,16 +39,15 @@ const buildForkConfig = (): HardhatNetworkForkingUserConfig => {
       blockNumber: 15003356,
     };
   }
-  console.log(forkMode);
   return forkMode;
 };
 
 const getTenderlyForkConfig = (): string => {
-  let url = JSON.parse(readFileSync("tenderlyConfig.json").toString());
+  // let url = JSON.parse(readFileSync("tenderlyConfig.json").toString());
   // console.log(`https://rpc.tenderly.co/fork/${process.env.TENDERLY_FORK_ID}`)
-  return url.forkRPCUrl;
+  // return url.forkRPCUrl;
 
-  // return `https://rpc.tenderly.co/fork/${process.env.TENDERLY_FORK_ID}`
+  return `https://rpc.tenderly.co/fork/${process.env.TENDERLY_FORK_ID}`;
 };
 
 const config: HardhatUserConfig = {

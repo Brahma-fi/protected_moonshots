@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../LyraL2/interfaces/IPositionHandler.sol";
 
 /// @title LyraPositionHandlerL1
-/// @author 0xAd1
+/// @author Pradeep
 /// @notice Used to control the short position handler deployed on Optimism which interacts with LyraV2
 contract LyraPositionHandler is
     BasePositionHandler,

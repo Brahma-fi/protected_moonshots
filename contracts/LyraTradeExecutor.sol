@@ -6,7 +6,7 @@ import "./LyraExecutor/LyraPositionHandler.sol";
 import "../interfaces/IVault.sol";
 
 /// @title LyraTradeExecutor
-/// @author 0xAd1
+/// @author Pradeep
 /// @notice A contract to execute manage a Lyra Position Handler on Optimism
 contract LyraTradeExecutor is BaseTradeExecutor, LyraPositionHandler {
     /// @notice Constructor of the Trade Executor
