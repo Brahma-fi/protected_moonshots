@@ -51,6 +51,9 @@ const getTenderlyForkConfig = (): string => {
 };
 
 const config: HardhatUserConfig = {
+  mocha: {
+    timeout: 500000,
+  },
   solidity: {
     compilers: [
       {
@@ -88,7 +91,7 @@ const config: HardhatUserConfig = {
       chainId: 1,
     },
     tenderly: {
-      url: getTenderlyForkConfig(),
+      url: `https://rpc.tenderly.co/fork/${process.env.TENDERLY_FORK_ID}`,
       accounts:
         process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
     },
