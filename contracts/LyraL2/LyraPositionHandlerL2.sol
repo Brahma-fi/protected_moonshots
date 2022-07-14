@@ -131,11 +131,9 @@ contract LyraPositionHandlerL2 is
         uint256 USDCPriceInsUSD = UniswapV3Controller._getUSDCPriceInSUSD();
         /// Adding USDC balance of contract as wantToken is wrapped USDC
         return
-            (sUSDbalance * NORMALIZATION_FACTOR) /
+            (sUSDbalance * USDC_NORMALIZATION_FACTOR) /
             USDCPriceInsUSD +
-            (IERC20(wantTokenL2).balanceOf(address(this)) *
-                NORMALIZATION_FACTOR) /
-            1e6;
+            IERC20(wantTokenL2).balanceOf(address(this));
     }
 
     /*///////////////////////////////////////////////////////////////
