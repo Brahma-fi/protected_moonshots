@@ -9,8 +9,6 @@ import "./interfaces/IPositionHandler.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "hardhat/console.sol";
-
 /// @title UniswapV3Controller
 /// @author Pradeep
 /// @notice Used to perform swaps for synthetix tokens
@@ -65,18 +63,11 @@ contract UniswapV3Controller {
 
         // get USDC price and estimate amount out to account for slippage
         uint256 USDCPriceInsUSD = _getUSDCPriceInSUSD();
-        console.log("usdc price in susd:", USDCPriceInsUSD);
         uint256 amountOutExpected = direction
             ? (amountToSwap * USDCPriceInsUSD) / USDC_NORMALIZATION_FACTOR
             : (amountToSwap * NORMALIZATION_FACTOR * NORMALIZATION_FACTOR) /
                 USDCPriceInsUSD /
                 USDC_NORMALIZATION_FACTOR;
-
-        console.log("amount out expected:", amountOutExpected);
-        console.log(
-            "amount out minimum:",
-            (amountOutExpected * (MAX_BPS - slippage)) / MAX_BPS
-        );
 
         IUniswapSwapRouter.ExactInputSingleParams
             memory params = IUniswapSwapRouter.ExactInputSingleParams({
