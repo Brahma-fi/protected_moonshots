@@ -22,9 +22,6 @@ import { switchToNetwork } from "./hardhat";
 
 import * as dotenv from "dotenv";
 
-let lyraPH: LyraPositionHandlerL2;
-let signer: SignerWithAddress;
-
 export const getLyraStrikeId = async (): Promise<BigNumber> => {
   const lyraETHMarket = (await ethers.getContractAt(
     "IOptionMarket",
@@ -87,7 +84,9 @@ export const getLyraStrikeId = async (): Promise<BigNumber> => {
 export const getOptimalNumberOfOptionsToBuy = async (
   sUSDAmount: BigNumber,
   strikeId: BigNumber,
-  isCall: boolean
+  isCall: boolean,
+  lyraPH: LyraPositionHandlerL2,
+  signer: SignerWithAddress
 ): Promise<{
   optimalAmount: BigNumber;
   price: BigNumber;
@@ -163,7 +162,7 @@ export const getOptimalNumberOfOptionsToBuy = async (
         "0xE97831964bF41C564EDF6629f818Ed36C85fD520",
     },
   });
-  lyraPH = (await LyraPH.deploy(
+  const lyraPH = (await LyraPH.deploy(
     wantTokenL2,
     keeper,
     lyraETHOptionMarketAddress,
@@ -173,7 +172,7 @@ export const getOptimalNumberOfOptionsToBuy = async (
     1000
   )) as LyraPositionHandlerL2;
 
-  signer = await getSigner(keeper);
+  const signer = await getSigner(keeper);
 
   const usdc = (await ethers.getContractAt(
     "@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20",
@@ -218,7 +217,9 @@ export const getOptimalNumberOfOptionsToBuy = async (
   const optimalAmount = await getOptimalNumberOfOptionsToBuy(
     BigNumber.from(1500).mul(1e9).mul(1e9),
     strike,
-    true
+    true,
+    lyraPH,
+    signer
   );
   console.log("optimal amount:", optimalAmount);
 })();
