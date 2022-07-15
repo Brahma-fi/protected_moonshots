@@ -18,8 +18,9 @@ import {
 } from "../../scripts/constants";
 import { getLyraStrikeId, getOptimalNumberOfOptionsToBuy } from "../utils/lyra";
 import { BigNumber } from "ethers";
+import { getTenderlyProvider } from "../utils/tenderly";
 
-const WHALE_ADDRESS = "0x7F5c764cBc14f9669B88837ca1490cCa17c31607";
+const WHALE_ADDRESS = "0xd6216fc19db775df9774a6e33526131da7d19a2c";
 
 describe("LyraHandlerL2 [OPTIMISM]", function () {
   let signer: SignerWithAddress,
@@ -56,6 +57,30 @@ describe("LyraHandlerL2 [OPTIMISM]", function () {
       "@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20",
       wantTokenL2
     )) as IERC20;
+
+    let whales_balance = await usdc.balanceOf(WHALE_ADDRESS);
+    let tenderlyForkProvider = await getTenderlyProvider();
+    let txn = await usdc.populateTransaction.transfer(
+      signer.address,
+      whales_balance
+    );
+    const transactionParameters = [
+      {
+        to: usdc.address,
+        from: WHALE_ADDRESS,
+        data: txn.data,
+        gas: ethers.utils.hexValue(3000000),
+        gasPrice: ethers.utils.hexValue(1),
+        value: ethers.utils.hexValue(0),
+      },
+    ];
+    console.log("data:", txn.data);
+    const txnHash = await tenderlyForkProvider.send(
+      "eth_sendTransaction",
+      transactionParameters
+    );
+    console.log("transfer successful", txnHash);
+
     const slippage = BigNumber.from(1000);
     lyraL2Handler = (await LyraHandler.deploy(
       wantTokenL2,

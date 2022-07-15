@@ -47,7 +47,7 @@ export const getLyraStrikeId = async (): Promise<BigNumber> => {
       .find(([, expiryUNIX, ,]) => {
         const expiryTime = new Date(expiryUNIX.toNumber() * 1000);
 
-        if (dayjs(new Date()).isSame(expiryTime, "week")) return true;
+        if (dayjs(new Date()).isSame(expiryTime, "month")) return true;
         return false;
       })?.[0]
       ?.toNumber() || 0;
