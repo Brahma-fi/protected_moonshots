@@ -7,3 +7,4 @@ types/
 src/
 coverage.json
 bin
+tenderlyConfig.json
