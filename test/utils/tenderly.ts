@@ -1,7 +1,8 @@
 import { readFileSync } from "fs";
 import { ethers } from "hardhat";
+import { providers } from "ethers";
 
-export async function getTenderlyProvider(): Promise<JsonRpcProvider> {
+export async function getTenderlyProvider(): Promise<providers.JsonRpcProvider> {
   const tenderlyConfig = JSON.parse(
     readFileSync("./tenderlyConfig.json").toString()
   );

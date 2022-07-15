@@ -58,11 +58,11 @@ describe("LyraHandlerL2 [OPTIMISM]", function () {
       wantTokenL2
     )) as IERC20;
 
-    let whales_balance = await usdc.balanceOf(WHALE_ADDRESS);
-    let tenderlyForkProvider = await getTenderlyProvider();
-    let txn = await usdc.populateTransaction.transfer(
+    const whalesBalance = await usdc.balanceOf(WHALE_ADDRESS);
+    const tenderlyForkProvider = await getTenderlyProvider();
+    const txn = await usdc.populateTransaction.transfer(
       signer.address,
-      whales_balance
+      whalesBalance
     );
     const transactionParameters = [
       {
