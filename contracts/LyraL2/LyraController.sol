@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IOptionMarket} from "@lyrafinance/protocol/contracts/interfaces/IOptionMarket.sol";
 import {LyraAdapter} from "@lyrafinance/protocol/contracts/periphery/LyraAdapter.sol";
 import {DecimalMath} from "@lyrafinance/protocol/contracts/synthetix/DecimalMath.sol";
+import "hardhat/console.sol";
 
 /// @title LyraPositionHandlerL2
 /// @author Pradeep and Bapireddy
@@ -96,7 +97,8 @@ contract LyraController is LyraAdapter {
                 currentPosition.strikeId,
                 currentPosition.positionId,
                 optionType,
-                amount
+                amount,
+                sUSD.balanceOf(address(this))
             );
         } else {
             optionType = isCall
@@ -108,7 +110,8 @@ contract LyraController is LyraAdapter {
                 strikeId,
                 0,
                 optionType,
-                amount
+                amount,
+                sUSD.balanceOf(address(this))
             );
         }
 
@@ -144,7 +147,8 @@ contract LyraController is LyraAdapter {
                     currentPosition.strikeId,
                     currentPosition.positionId,
                     currentPosition.optionType,
-                    currentPosition.amount
+                    currentPosition.amount,
+                    type(uint256).max
                 );
             LyraAdapter._closeOrForceClosePosition(closePositionParams);
         }
@@ -187,8 +191,10 @@ contract LyraController is LyraAdapter {
         uint256 strikeId,
         uint256 positionId,
         LyraAdapter.OptionType optionType,
-        uint256 amount
+        uint256 amount,
+        uint256 maxCost
     ) internal returns (LyraAdapter.TradeInputParameters memory) {
+        console.log("maxCost", maxCost);
         return
             LyraAdapter.TradeInputParameters({
                 strikeId: strikeId,
@@ -198,7 +204,7 @@ contract LyraController is LyraAdapter {
                 amount: amount,
                 setCollateralTo: 0,
                 minTotalCost: 0,
-                maxTotalCost: sUSD.balanceOf(address(this)),
+                maxTotalCost: maxCost,
                 rewardRecipient: address(this)
             });
     }
