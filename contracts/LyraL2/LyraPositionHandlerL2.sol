@@ -75,6 +75,7 @@ contract LyraPositionHandlerL2 is
     /*///////////////////////////////////////////////////////////////
                             INITIALIZING
     //////////////////////////////////////////////////////////////*/
+    // @TODO: remove _lyraRegistry
     constructor(
         address _wantTokenL2,
         address _positionHandlerL1,
@@ -82,7 +83,8 @@ contract LyraPositionHandlerL2 is
         address _keeper,
         address _governance,
         address _socketRegistry,
-        uint256 _slippage
+        uint256 _slippage,
+        address _lyraRegistry
     ) {
         wantTokenL2 = _wantTokenL2;
         positionHandlerL1 = _positionHandlerL1;
@@ -111,11 +113,8 @@ contract LyraPositionHandlerL2 is
 
         // set Lyra Adapter
         LyraAdapter.setLyraAddresses(
-            // lyra registry
-            0xF5A0442D4753cA1Ea36427ec071aa5E786dA5916,
-            // option market
+            _lyraRegistry,
             _lyraOptionMarket,
-            // curve swap
             0xA5407eAE9Ba41422680e2e00537571bcC53efBfD,
             // fee counter
             address(feeCounter)
@@ -220,10 +219,11 @@ contract LyraPositionHandlerL2 is
     /// @param toSettle boolean if true settle position, else close position
     function closePosition(bool toSettle) public override onlyAuthorized {
         LyraController._closePosition(toSettle);
-        UniswapV3Controller._estimateAndSwap(
-            false,
-            LyraController.sUSD.balanceOf(address(this))
-        );
+        // @TODO: UNCOMMENT THIS
+        // UniswapV3Controller._estimateAndSwap(
+        //   false,
+        //   LyraController.sUSD.balanceOf(address(this))
+        // );
     }
 
     /*///////////////////////////////////////////////////////////////

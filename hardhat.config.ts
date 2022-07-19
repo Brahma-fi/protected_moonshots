@@ -7,6 +7,8 @@ import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
 import "hardhat-contract-sizer";
+import "hardhat-dependency-compiler";
+import { lyraContractPaths } from "@lyrafinance/protocol/dist/test/utils/package/index-paths";
 import { readFileSync } from "fs";
 import axios from "axios";
 
@@ -138,6 +140,9 @@ const config: HardhatUserConfig = {
     disambiguatePaths: false,
     runOnCompile: true,
     strict: true,
+  },
+  dependencyCompiler: {
+    paths: lyraContractPaths,
   },
 };
 

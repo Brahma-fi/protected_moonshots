@@ -147,7 +147,7 @@ contract LyraController is LyraAdapter {
                     currentPosition.strikeId,
                     currentPosition.positionId,
                     currentPosition.optionType,
-                    currentPosition.amount,
+                    currentPosition.optionsPurchased,
                     type(uint256).max
                 );
             LyraAdapter._closeOrForceClosePosition(closePositionParams);

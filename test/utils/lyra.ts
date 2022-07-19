@@ -4,6 +4,7 @@ import { BigNumber } from "ethers";
 
 import { ethers } from "hardhat";
 import {
+  keeper,
   lyraETHOptionMarketAddress,
   movrRegistry,
   sUSDaddress,
@@ -15,10 +16,15 @@ import {
   IOptionMarket,
   LyraPositionHandlerL2,
   IERC20,
+  LyraPositionHandlerL2__factory,
+  OptionMarket,
 } from "../../src/types";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { getSigner } from "./signers";
 import { switchToNetwork } from "./hardhat";
+import { TestSystem } from "@lyrafinance/protocol";
+import { LyraRegistry } from "@lyrafinance/protocol/dist/typechain-types";
+import * as dotenv from "dotenv";
 
 export const getLyraStrikeId = async (): Promise<BigNumber> => {
   const lyraETHMarket = (await ethers.getContractAt(
@@ -166,12 +172,6 @@ export const getOptimalNumberOfOptionsToBuy = async (
 };
 
 // (async () => {
-// dotenv.config();
-
-// switchToNetwork(
-//   `https://opt-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`
-// );
-
 // const keeper = "0x7F5c764cBc14f9669B88837ca1490cCa17c31607";
 // const LyraPH = await ethers.getContractFactory("LyraPositionHandlerL2", {
 //   libraries: {
@@ -261,3 +261,55 @@ export const getOptimalNumberOfOptionsToBuy = async (
 
 //   console.log("closed position");
 // })();
+
+(async () => {
+  // const signer = (await ethers.getSigners())[0];
+
+  // console.log(testSystem.optionMarket.address);
+  dotenv.config();
+
+  switchToNetwork(
+    `https://opt-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`
+  );
+
+  const signer = await getSigner("0xd6216fc19db775df9774a6e33526131da7d19a2c");
+
+  const testSystem = await TestSystem.deploy(signer);
+  await TestSystem.seed(signer, testSystem);
+
+  const LyraHandler = (await ethers.getContractFactory(
+    "LyraPositionHandlerL2",
+    {
+      libraries: {
+        "@lyrafinance/protocol/contracts/libraries/BlackScholes.sol:BlackScholes":
+          testSystem.blackScholes.address,
+      },
+      signer,
+    }
+  )) as LyraPositionHandlerL2__factory;
+
+  const lyraL2 = await LyraHandler.deploy(
+    wantTokenL2,
+    keeper,
+    testSystem.optionMarket.address,
+    keeper,
+    keeper,
+    movrRegistry,
+    500,
+    testSystem.lyraRegistry.address
+  );
+
+  const lyraRegistry = (await ethers.getContractAt(
+    "LyraRegistry",
+    await lyraL2.lyraRegistry()
+  )) as LyraRegistry;
+
+  const lyraOptionMarket = (await ethers.getContractAt(
+    "OptionMarket",
+    await lyraL2.optionMarket()
+  )) as OptionMarket;
+
+  const [liveBoard] = await lyraOptionMarket.getLiveBoards();
+  const [strike] = await lyraOptionMarket.getBoardStrikes(liveBoard);
+  console.log(await lyraOptionMarket.getStrike(strike));
+})();
