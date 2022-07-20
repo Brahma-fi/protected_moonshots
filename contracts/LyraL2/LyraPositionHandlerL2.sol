@@ -21,6 +21,8 @@ contract LyraPositionHandlerL2 is
     OptimismL2Wrapper,
     UniswapV3Controller
 {
+    INonfungiblePositionManager public constant nonfungiblePositionManager =
+        INonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
     /*///////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
@@ -235,9 +237,10 @@ contract LyraPositionHandlerL2 is
         address token0,
         address token1,
         uint256 amountToMint,
-        uint256 poolFee
+        uint24 poolFee
     )
         external
+        onlyAuthorized
         returns (
             uint256 tokenId,
             uint128 liquidity,
@@ -260,8 +263,8 @@ contract LyraPositionHandlerL2 is
                 token0: token0,
                 token1: token1,
                 fee: poolFee,
-                tickLower: TickMath.MIN_TICK,
-                tickUpper: TickMath.MAX_TICK,
+                tickLower: int24(-887272),
+                tickUpper: int24(887272),
                 amount0Desired: amountToMint,
                 amount1Desired: amountToMint,
                 amount0Min: 0,
@@ -270,7 +273,6 @@ contract LyraPositionHandlerL2 is
                 deadline: block.timestamp
             });
 
-        // Note that the pool defined by DAI/USDC and fee tier 0.3% must already be created and initialized in order to mint
         (tokenId, liquidity, amount0, amount1) = nonfungiblePositionManager
             .mint(params);
     }
