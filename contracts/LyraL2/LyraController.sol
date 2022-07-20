@@ -29,14 +29,12 @@ contract LyraController is LyraAdapter {
     /// @param strikeId Strike ID of the option based on strike price
     /// @param optionType call or put option
     /// @param amount Amount of sUSD used to purchase option
-    /// @param isActive bool indicating if position is active
     struct CurrentPosition {
         uint256 strikeId;
         uint256 positionId;
         LyraAdapter.OptionType optionType;
         uint256 amount;
         uint256 optionsPurchased;
-        bool isActive;
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -121,8 +119,7 @@ contract LyraController is LyraAdapter {
             positionId: tradeResult.positionId,
             optionType: optionType,
             amount: sUSDSent,
-            optionsPurchased: amount,
-            isActive: true
+            optionsPurchased: amount
         });
     }
 
@@ -130,7 +127,7 @@ contract LyraController is LyraAdapter {
     /// @dev Will sell back or settle the option on Lyra.
     /// @param toSettle boolean if true settle position, else close position
     function _closePosition(bool toSettle) internal {
-        require(currentPosition.isActive, "NO_ACTIVE_POSITION");
+        require(!(_isCurrentPositionActive()), "NO_ACTIVE_POSITION");
 
         /// Check if option has to be settled.
         if (toSettle == true) {
@@ -156,22 +153,14 @@ contract LyraController is LyraAdapter {
             positionId: 0,
             optionType: LyraAdapter.OptionType.SHORT_CALL_BASE,
             amount: 0,
-            optionsPurchased: 0,
-            isActive: false
+            optionsPurchased: 0
         });
     }
 
     /// @notice Get the value of current active position on Lyra.
     /// @dev Gives the total value of position handler in susd.
     function _positionInWantToken() public view returns (uint256) {
-        uint256[] memory positions = new uint256[](1);
-        positions[0] = currentPosition.positionId;
-
-        LyraAdapter.OptionPosition[] memory allPositions = LyraAdapter
-            ._getPositions(positions);
-        LyraAdapter.OptionPosition memory positionData = allPositions[0];
-
-        if (positionData.state == LyraAdapter.PositionState.ACTIVE) {
+        if (_isCurrentPositionActive()) {
             (uint256 callPremium, uint256 putPremium) = LyraAdapter
                 ._getPurePremiumForStrike(currentPosition.strikeId);
             uint256 totalPremium = (
@@ -211,5 +200,18 @@ contract LyraController is LyraAdapter {
                 maxTotalCost: maxCost,
                 rewardRecipient: address(this)
             });
+    }
+
+    /// @notice helper function to check if the current position is active
+    /// @return isPositionActive
+    function _isCurrentPositionActive() internal view returns (bool) {
+        uint256[] memory positions = new uint256[](1);
+        positions[0] = currentPosition.positionId;
+
+        LyraAdapter.OptionPosition[] memory allPositions = LyraAdapter
+            ._getPositions(positions);
+        LyraAdapter.OptionPosition memory positionData = allPositions[0];
+
+        return positionData.state == LyraAdapter.PositionState.ACTIVE;
     }
 }
