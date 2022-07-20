@@ -6,6 +6,7 @@ import "./OptimismL2Wrapper.sol";
 import "./SocketV1Controller.sol";
 import "./UniswapV3Controller.sol";
 
+import "./interfaces/INonfungiblePositionManager.sol";
 import "./interfaces/IPositionHandler.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {BasicFeeCounter} from "@lyrafinance/protocol/contracts/periphery/BasicFeeCounter.sol";
@@ -84,7 +85,8 @@ contract LyraPositionHandlerL2 is
         address _governance,
         address _socketRegistry,
         uint256 _slippage,
-        address _lyraRegistry
+        address _lyraRegistry,
+        address _sUSD
     ) {
         wantTokenL2 = _wantTokenL2;
         positionHandlerL1 = _positionHandlerL1;
@@ -119,6 +121,9 @@ contract LyraPositionHandlerL2 is
             // fee counter
             address(feeCounter)
         );
+
+        // set UniswapV3Controller config
+        UniswapV3Controller._setConfig(_sUSD);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -224,6 +229,50 @@ contract LyraPositionHandlerL2 is
         //   false,
         //   LyraController.sUSD.balanceOf(address(this))
         // );
+    }
+
+    function mintNewPosition(
+        address token0,
+        address token1,
+        uint256 amountToMint,
+        uint256 poolFee
+    )
+        external
+        returns (
+            uint256 tokenId,
+            uint128 liquidity,
+            uint256 amount0,
+            uint256 amount1
+        )
+    {
+        // Approve the position manager
+        IERC20(token0).approve(
+            address(nonfungiblePositionManager),
+            amountToMint
+        );
+        IERC20(token1).approve(
+            address(nonfungiblePositionManager),
+            amountToMint
+        );
+
+        INonfungiblePositionManager.MintParams
+            memory params = INonfungiblePositionManager.MintParams({
+                token0: token0,
+                token1: token1,
+                fee: poolFee,
+                tickLower: TickMath.MIN_TICK,
+                tickUpper: TickMath.MAX_TICK,
+                amount0Desired: amountToMint,
+                amount1Desired: amountToMint,
+                amount0Min: 0,
+                amount1Min: 0,
+                recipient: address(this),
+                deadline: block.timestamp
+            });
+
+        // Note that the pool defined by DAI/USDC and fee tier 0.3% must already be created and initialized in order to mint
+        (tokenId, liquidity, amount0, amount1) = nonfungiblePositionManager
+            .mint(params);
     }
 
     /*///////////////////////////////////////////////////////////////
