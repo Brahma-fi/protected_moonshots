@@ -44,48 +44,6 @@ describe("LyraHandlerL2 [OPTIMISM]", function () {
 
     signer = await getSigner(WHALE_ADDRESS);
     // signer = (await ethers.getSigners())[0];
-    // invalidSigner = await randomSigner();
-
-    testSystem = await TestSystem.deploy(signer);
-
-    const LyraHandler = await ethers.getContractFactory(
-      "LyraPositionHandlerL2",
-      {
-        libraries: {
-          "@lyrafinance/protocol/contracts/libraries/BlackScholes.sol:BlackScholes":
-            "0xE97831964bF41C564EDF6629f818Ed36C85fD520",
-        },
-        signer,
-      }
-    );
-
-    const slippage = BigNumber.from(1000);
-    lyraL2Handler = (await LyraHandler.deploy(
-      wantTokenL2,
-      signer.address,
-      testSystem.optionMarket.address,
-      signer.address,
-      signer.address,
-      movrRegistry,
-      slippage,
-      testSystem.lyraRegistry.address
-    )) as LyraPositionHandlerL2;
-
-    await TestSystem.seed(await getSigner(lyraL2Handler.address), testSystem);
-
-    console.log(
-      "TEST SYSTEM DEPLOYED. Option market: ",
-      testSystem.optionMarket.address
-    );
-    console.log(
-      "Test quote asset balance:",
-      await testSystem.snx.quoteAsset.balanceOf(lyraL2Handler.address)
-    );
-
-    // const uniPositionManager = (await ethers.getContractAt(
-    //   "INonfungiblePositionManager",
-    //   nonFungiblePositionManagerAddress
-    // )) as INonfungiblePositionManager;
 
     sUSD = (await hre.ethers.getContractAt(
       "@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20",
@@ -96,11 +54,7 @@ describe("LyraHandlerL2 [OPTIMISM]", function () {
       wantTokenL2
     )) as IERC20;
 
-    // await testSystem.snx.quoteAsset
-    //   .connect(signer)
-    //   .approve(uniPositionManager.address, await testSystem.snx.quoteAsset.balanceOf(lyra));
-    // await usdc.connect(signer).approve()
-
+    // tenderly seeding
     // const whalesBalance = await usdc.balanceOf(WHALE_ADDRESS);
     // const tenderlyForkProvider = await getTenderlyProvider();
     // const txn = await usdc.populateTransaction.transfer(
@@ -123,6 +77,88 @@ describe("LyraHandlerL2 [OPTIMISM]", function () {
     //   transactionParameters
     // );
     // console.log("transfer successful", txnHash);
+
+    // test system deployment
+    testSystem = await TestSystem.deploy(signer);
+
+    // lyra l2 handler
+    const LyraHandler = await ethers.getContractFactory(
+      "LyraPositionHandlerL2",
+      {
+        libraries: {
+          "@lyrafinance/protocol/contracts/libraries/BlackScholes.sol:BlackScholes":
+            "0xE97831964bF41C564EDF6629f818Ed36C85fD520",
+        },
+        signer,
+      }
+    );
+
+    const slippage = BigNumber.from(1000);
+    lyraL2Handler = (await LyraHandler.deploy(
+      wantTokenL2,
+      signer.address,
+      testSystem.optionMarket.address,
+      signer.address,
+      signer.address,
+      movrRegistry,
+      slippage,
+      testSystem.lyraRegistry.address,
+      testSystem.snx.quoteAsset.address
+    )) as LyraPositionHandlerL2;
+
+    // test system seeding
+    await TestSystem.seed(await getSigner(lyraL2Handler.address), testSystem);
+
+    console.log(
+      "TEST SYSTEM DEPLOYED. Option market: ",
+      testSystem.optionMarket.address
+    );
+
+    const nonfungiblePositionManager = (await ethers.getContractAt(
+      "INonfungiblePositionManager",
+      nonFungiblePositionManagerAddress
+    )) as INonfungiblePositionManager;
+
+    await usdc
+      .connect(signer)
+      .transfer(lyraL2Handler.address, BigNumber.from(1e4).mul(1e6));
+
+    console.log(
+      "Test quote asset balance:",
+      await testSystem.snx.quoteAsset.balanceOf(lyraL2Handler.address)
+    );
+    console.log(
+      "USDC handler balance:",
+      await usdc.balanceOf(lyraL2Handler.address)
+    );
+
+    const { tokenId } = await lyraL2Handler
+      .connect(signer)
+      .callStatic.mintNewPosition(
+        testSystem.snx.quoteAsset.address,
+        usdc.address,
+        BigNumber.from(5000).mul(1e9).mul(1e9),
+        BigNumber.from(5000).mul(1e6),
+        500
+      );
+    console.log(
+      "[]NEW UNI POSITION]",
+      await nonfungiblePositionManager.positions(tokenId)
+    );
+    await lyraL2Handler
+      .connect(signer)
+      .mintNewPosition(
+        testSystem.snx.quoteAsset.address,
+        usdc.address,
+        BigNumber.from(5000).mul(1e9).mul(1e9),
+        BigNumber.from(5000).mul(1e6),
+        500
+      );
+
+    // await testSystem.snx.quoteAsset
+    //   .connect(signer)
+    //   .approve(uniPositionManager.address, await testSystem.snx.quoteAsset.balanceOf(lyra));
+    // await usdc.connect(signer).approve()
   });
 
   // Operation - Expected Behaviour
