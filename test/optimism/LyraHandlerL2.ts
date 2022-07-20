@@ -87,8 +87,6 @@ describe("LyraHandlerL2 [OPTIMISM]", function () {
     //   nonFungiblePositionManagerAddress
     // )) as INonfungiblePositionManager;
 
-    // await testSystem.snx.
-
     sUSD = (await hre.ethers.getContractAt(
       "@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20",
       sUSDaddress
@@ -97,6 +95,11 @@ describe("LyraHandlerL2 [OPTIMISM]", function () {
       "@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20",
       wantTokenL2
     )) as IERC20;
+
+    // await testSystem.snx.quoteAsset
+    //   .connect(signer)
+    //   .approve(uniPositionManager.address, await testSystem.snx.quoteAsset.balanceOf(lyra));
+    // await usdc.connect(signer).approve()
 
     // const whalesBalance = await usdc.balanceOf(WHALE_ADDRESS);
     // const tenderlyForkProvider = await getTenderlyProvider();

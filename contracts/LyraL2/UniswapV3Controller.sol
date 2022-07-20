@@ -15,6 +15,10 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 contract UniswapV3Controller {
     using SafeERC20 for IERC20;
 
+    /// @notice sUSD IERC20 address
+    // 0x8c6f28f2F1A3C87F0f938b96d27520d9751ec8d9
+    address public sUSDAddr;
+
     /// @notice maximum basis points for all numeric operations
     uint256 public constant MAX_BPS = 10000;
     /// @notice normalization factor for decimals
@@ -34,12 +38,12 @@ contract UniswapV3Controller {
     IAggregatorV3 public constant usdcUsd =
         IAggregatorV3(0x16a9FA2FDa030272Ce99B29CF780dFA30361E0f3);
 
-    /// @notice sUSD IERC20 address
-    address public constant sUSDAddr =
-        0x8c6f28f2F1A3C87F0f938b96d27520d9751ec8d9;
-
     /// @notice slippage for swaps
     uint256 public slippage;
+
+    function _setConfig(address _sUSDAddr) internal {
+        sUSDAddr = _sUSDAddr;
+    }
 
     function _setSlippage(uint256 _slippage) internal {
         slippage = _slippage;
