@@ -150,6 +150,10 @@ contract LyraPositionHandlerL2 is
         );
     }
 
+    function isCurrentPositionActive() public view override returns (bool) {
+        return LyraController._isCurrentPositionActive();
+    }
+
     /*///////////////////////////////////////////////////////////////
                         DEPOSIT / WITHDRAW LOGIC
     //////////////////////////////////////////////////////////////*/

@@ -27,4 +27,6 @@ interface IPositionHandler {
     ) external;
 
     function sweep(address _token) external;
+
+    function isCurrentPositionActive() external view returns (bool);
 }
