@@ -83,9 +83,6 @@ contract LyraController is LyraAdapter {
         LyraAdapter.OptionType optionType;
         LyraAdapter.TradeInputParameters memory openPositionParams;
 
-        /// Check if contract doesnt have a position on lyra
-        require(!currentPosition.isActive, "POSITION_ACTIVE");
-
         uint256 sUSDBal = sUSD.balanceOf(address(this));
         require(sUSDBal > 0, "NO_BALANCE");
 

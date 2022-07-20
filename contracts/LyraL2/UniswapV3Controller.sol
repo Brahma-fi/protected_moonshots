@@ -7,14 +7,11 @@ import "../../interfaces/IAggregatorV3.sol";
 import "./interfaces/IPositionHandler.sol";
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title UniswapV3Controller
 /// @author Pradeep
 /// @notice Used to perform swaps for synthetix tokens
 contract UniswapV3Controller {
-    using SafeERC20 for IERC20;
-
     /// @notice sUSD IERC20 address
     // 0x8c6f28f2F1A3C87F0f938b96d27520d9751ec8d9
     address public sUSDAddr;
