@@ -43,7 +43,7 @@ describe("LyraHandlerL2 [OPTIMISM]", function () {
 
     testSystem = await TestSystem.deploy(signer);
 
-    const LyraHandler = await hre.ethers.getContractFactory(
+    const LyraHandler = await ethers.getContractFactory(
       "LyraPositionHandlerL2",
       {
         libraries: {
@@ -72,6 +72,10 @@ describe("LyraHandlerL2 [OPTIMISM]", function () {
       "TEST SYSTEM DEPLOYED. Option market: ",
       testSystem.optionMarket.address
     );
+
+    const UniV3PooLDeployer = (await ethers.getContractFactory(
+      "UniV3PoolDeployer"
+    )) as UniV3PoolDeployer;
 
     sUSD = (await hre.ethers.getContractAt(
       "@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20",

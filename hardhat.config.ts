@@ -142,7 +142,7 @@ const config: HardhatUserConfig = {
     strict: true,
   },
   dependencyCompiler: {
-    paths: lyraContractPaths,
+    paths: [...lyraContractPaths],
   },
 };
 
