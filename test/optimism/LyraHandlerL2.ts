@@ -4,7 +4,11 @@ import * as dotenv from "dotenv";
 import { expect } from "chai";
 import hre, { ethers } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { IERC20, LyraPositionHandlerL2 } from "../../src/types";
+import {
+  IERC20,
+  INonfungiblePositionManager,
+  LyraPositionHandlerL2,
+} from "../../src/types";
 
 import { switchToNetwork } from "../utils/hardhat";
 
@@ -13,6 +17,7 @@ import {
   governance as governanceAddress,
   lyraETHOptionMarketAddress,
   movrRegistry,
+  nonFungiblePositionManagerAddress,
   sUSDaddress,
   wantTokenL2,
 } from "../../scripts/constants";
@@ -72,10 +77,17 @@ describe("LyraHandlerL2 [OPTIMISM]", function () {
       "TEST SYSTEM DEPLOYED. Option market: ",
       testSystem.optionMarket.address
     );
+    console.log(
+      "Test quote asset balance:",
+      await testSystem.snx.quoteAsset.balanceOf(lyraL2Handler.address)
+    );
 
-    const UniV3PooLDeployer = (await ethers.getContractFactory(
-      "UniV3PoolDeployer"
-    )) as UniV3PoolDeployer;
+    // const uniPositionManager = (await ethers.getContractAt(
+    //   "INonfungiblePositionManager",
+    //   nonFungiblePositionManagerAddress
+    // )) as INonfungiblePositionManager;
+
+    // await testSystem.snx.
 
     sUSD = (await hre.ethers.getContractAt(
       "@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20",
@@ -174,13 +186,18 @@ describe("LyraHandlerL2 [OPTIMISM]", function () {
     const beforeBalance = await sUSD.balanceOf(lyraL2Handler.address);
     console.log("SUSD Balance:", beforeBalance.toString());
 
-    const optimalAmount = ethers.utils.parseEther("1");
+    const optimalAmount = ethers.utils.parseEther("10");
 
     console.log("[call] optimal amount to buy:", optimalAmount.toString());
 
     await lyraL2Handler
       .connect(signer)
       .openPosition(listingId, true, optimalAmount, false);
+
+    console.log(
+      "test quote asset balance:",
+      await testSystem.snx.quoteAsset.balanceOf(lyraL2Handler.address)
+    );
 
     // expect((await lyraL2Handler.currentPosition()).isActive).equals(true);
     // expect(
