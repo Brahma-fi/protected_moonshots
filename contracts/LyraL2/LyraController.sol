@@ -164,7 +164,14 @@ contract LyraController is LyraAdapter {
     /// @notice Get the value of current active position on Lyra.
     /// @dev Gives the total value of position handler in susd.
     function _positionInWantToken() public view returns (uint256) {
-        if (currentPosition.isActive) {
+        uint256[] memory positions = new uint256[](1);
+        positions[0] = currentPosition.positionId;
+
+        LyraAdapter.OptionPosition[] memory allPositions = LyraAdapter
+            ._getPositions(positions);
+        LyraAdapter.OptionPosition memory positionData = allPositions[0];
+
+        if (positionData.state == LyraAdapter.PositionState.ACTIVE) {
             (uint256 callPremium, uint256 putPremium) = LyraAdapter
                 ._getPurePremiumForStrike(currentPosition.strikeId);
             uint256 totalPremium = (
