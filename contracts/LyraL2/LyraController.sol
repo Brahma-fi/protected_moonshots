@@ -90,7 +90,7 @@ contract LyraController is LyraAdapter {
             openPositionParams = _getTradeInputParams(
                 currentPosition.strikeId,
                 currentPosition.positionId,
-                optionType,
+                currentPosition.optionType,
                 amount,
                 sUSD.balanceOf(address(this))
             );
@@ -117,12 +117,10 @@ contract LyraController is LyraAdapter {
             strikeId: strikeId,
             positionId: tradeResult.positionId,
             optionType: optionType,
-            amount: sUSDSent + updateExistingPosition
-                ? currentPosition.amount
-                : 0,
-            optionsPurchased: amount + updateExistingPosition
-                ? currentPosition.optionsPurchased
-                : 0
+            amount: sUSDSent +
+                (updateExistingPosition ? currentPosition.amount : 0),
+            optionsPurchased: amount +
+                (updateExistingPosition ? currentPosition.optionsPurchased : 0)
         });
     }
 
@@ -165,7 +163,7 @@ contract LyraController is LyraAdapter {
     function _positionInWantToken() public view returns (uint256) {
         if (_isCurrentPositionActive()) {
             (uint256 callPremium, uint256 putPremium) = LyraAdapter
-                ._optionPriceGWAV(currentPosition.strikeId, 15);
+                ._optionPriceGWAV(currentPosition.strikeId, 60);
             uint256 totalPremium = (
                 currentPosition.optionType == LyraAdapter.OptionType.LONG_CALL
                     ? callPremium

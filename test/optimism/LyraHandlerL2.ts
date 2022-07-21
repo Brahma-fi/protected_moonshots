@@ -7,7 +7,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import {
   IERC20,
   INonfungiblePositionManager,
-  LyraPositionHandlerL2,
+  LyraPositionHandlerL2
 } from "../../src/types";
 
 import { switchToNetwork } from "../utils/hardhat";
@@ -19,7 +19,7 @@ import {
   movrRegistry,
   nonFungiblePositionManagerAddress,
   sUSDaddress,
-  wantTokenL2,
+  wantTokenL2
 } from "../../scripts/constants";
 import { getLyraStrikeId, getOptimalNumberOfOptionsToBuy } from "../utils/lyra";
 import { BigNumber } from "ethers";
@@ -87,9 +87,9 @@ describe("LyraHandlerL2 [OPTIMISM]", function () {
       {
         libraries: {
           "@lyrafinance/protocol/contracts/libraries/BlackScholes.sol:BlackScholes":
-            "0xE97831964bF41C564EDF6629f818Ed36C85fD520",
+            "0xE97831964bF41C564EDF6629f818Ed36C85fD520"
         },
-        signer,
+        signer
       }
     );
 
@@ -191,13 +191,17 @@ describe("LyraHandlerL2 [OPTIMISM]", function () {
   // //              - Should only work if sent using Keeper address
   // //              - Lyra's accountBalance contract should reflect change in positionValue of our contract
   // //              - Shouldnt work if LyraPosition is already active
-  it("Can purchase Call and sell Call", async function () {
+  it("Can purchase Call", async function () {
     expect(await lyraL2Handler.isCurrentPositionActive()).equals(false);
     const listingId = BigNumber.from(1);
     const beforeBalance = await sUSD.balanceOf(lyraL2Handler.address);
     console.log("SUSD Balance:", beforeBalance.toString());
 
     const optimalAmount = ethers.utils.parseEther("1");
+
+    const strike = await testSystem.optionMarket.getStrikeAndExpiry(listingId);
+    console.log("[strike]", strike);
+    console.log("current block:", await ethers.provider.getBlockNumber());
 
     console.log("[call] optimal amount to buy:", optimalAmount.toString());
     console.log(
@@ -228,6 +232,43 @@ describe("LyraHandlerL2 [OPTIMISM]", function () {
     console.log(
       "[AFTER]POSITION IN WANT TOKEN:",
       await lyraL2Handler.positionInWantToken()
+    );
+  });
+
+  it("Can Update Call and sell call", async function () {
+    expect(await lyraL2Handler.isCurrentPositionActive()).equals(true);
+    const optimalAmount = ethers.utils.parseEther("2");
+
+    console.log("[call] optimal amount to buy:", optimalAmount.toString());
+    console.log(
+      "[BEFORE]POSITION IN WANT TOKEN:",
+      await lyraL2Handler.positionInWantToken()
+    );
+
+    const tx = await lyraL2Handler
+      .connect(signer)
+      .openPosition(0, true, optimalAmount, true);
+
+    await tx.wait();
+
+    console.log(
+      "[OPEN] current position:",
+      await lyraL2Handler.currentPosition()
+    );
+
+    console.log(
+      "current block:",
+      (await ethers.provider.getBlock(await ethers.provider.getBlockNumber()))
+        .timestamp
+    );
+
+    console.log(
+      "[AFTER]POSITION IN WANT TOKEN:",
+      await lyraL2Handler.positionInWantToken()
+    );
+
+    expect((await lyraL2Handler.currentPosition()).optionsPurchased).equals(
+      BigNumber.from("3")
     );
 
     // close position
@@ -283,6 +324,25 @@ describe("LyraHandlerL2 [OPTIMISM]", function () {
       "[CLOSE] current position:",
       await lyraL2Handler.currentPosition()
     );
+  });
+
+  it("Can convert susd to usdc in withdraw", async function () {
+    const startBalance = await sUSD.balanceOf(lyraL2Handler.address);
+    console.log("Start sUSD balance: ", startBalance.toString());
+
+    await lyraL2Handler.connect(signer).setSlippage(10000);
+    await lyraL2Handler
+      .connect(signer)
+      .withdraw(0, lyraL2Handler.address, lyraL2Handler.address);
+
+    const endBalance = await sUSD.balanceOf(lyraL2Handler.address);
+    console.log("End sUSD balance: ", endBalance.toString());
+    console.log(
+      "End usdc balance: ",
+      (await usdc.balanceOf(lyraL2Handler.address)).toString()
+    );
+
+    expect(startBalance).gt(endBalance);
   });
 
   // it("Can change governance", async function () {

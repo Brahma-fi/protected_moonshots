@@ -68,7 +68,7 @@ contract UniswapV3Controller {
             ? (amountToSwap * USDCPriceInsUSD) / USDC_NORMALIZATION_FACTOR
             : (amountToSwap * NORMALIZATION_FACTOR * NORMALIZATION_FACTOR) /
                 USDCPriceInsUSD /
-                USDC_NORMALIZATION_FACTOR;
+                NORMALIZATION_FACTOR;
 
         IUniswapSwapRouter.ExactInputSingleParams
             memory params = IUniswapSwapRouter.ExactInputSingleParams({
