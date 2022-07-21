@@ -6,7 +6,6 @@ import "./OptimismL2Wrapper.sol";
 import "./SocketV1Controller.sol";
 import "./UniswapV3Controller.sol";
 
-import "./interfaces/INonfungiblePositionManager.sol";
 import "./interfaces/IPositionHandler.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {BasicFeeCounter} from "@lyrafinance/protocol/contracts/periphery/BasicFeeCounter.sol";
@@ -21,8 +20,6 @@ contract LyraPositionHandlerL2 is
     OptimismL2Wrapper,
     UniswapV3Controller
 {
-    INonfungiblePositionManager public constant nonfungiblePositionManager =
-        INonfungiblePositionManager(0xC36442b4a4522E871399CD717aBDD847Ab11FE88);
     /*///////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/

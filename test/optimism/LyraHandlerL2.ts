@@ -4,11 +4,7 @@ import * as dotenv from "dotenv";
 import { expect } from "chai";
 import hre, { ethers } from "hardhat";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import {
-  IERC20,
-  INonfungiblePositionManager,
-  LyraPositionHandlerL2
-} from "../../src/types";
+import { IERC20, LyraPositionHandlerL2 } from "../../src/types";
 
 import { switchToNetwork } from "../utils/hardhat";
 
@@ -19,7 +15,7 @@ import {
   movrRegistry,
   nonFungiblePositionManagerAddress,
   sUSDaddress,
-  wantTokenL2
+  wantTokenL2,
 } from "../../scripts/constants";
 import { getLyraStrikeId, getOptimalNumberOfOptionsToBuy } from "../utils/lyra";
 import { BigNumber } from "ethers";
@@ -87,9 +83,9 @@ describe("LyraHandlerL2 [OPTIMISM]", function () {
       {
         libraries: {
           "@lyrafinance/protocol/contracts/libraries/BlackScholes.sol:BlackScholes":
-            "0xE97831964bF41C564EDF6629f818Ed36C85fD520"
+            "0xE97831964bF41C564EDF6629f818Ed36C85fD520",
         },
-        signer
+        signer,
       }
     );
 
