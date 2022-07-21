@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IOptionMarket} from "@lyrafinance/protocol/contracts/interfaces/IOptionMarket.sol";
 import {LyraAdapter} from "@lyrafinance/protocol/contracts/periphery/LyraAdapter.sol";
 import {DecimalMath} from "@lyrafinance/protocol/contracts/synthetix/DecimalMath.sol";
-import "hardhat/console.sol";
 
 /// @title LyraPositionHandlerL2
 /// @author Pradeep and Bapireddy
@@ -162,12 +161,12 @@ contract LyraController is LyraAdapter {
     function _positionInWantToken() public view returns (uint256) {
         if (_isCurrentPositionActive()) {
             (uint256 callPremium, uint256 putPremium) = LyraAdapter
-                ._getPurePremiumForStrike(currentPosition.strikeId);
+                ._optionPriceGWAV(currentPosition.strikeId, 15);
             uint256 totalPremium = (
                 currentPosition.optionType == LyraAdapter.OptionType.LONG_CALL
                     ? callPremium
                     : putPremium
-            ).multiplyDecimal(currentPosition.amount);
+            ).multiplyDecimal(currentPosition.optionsPurchased);
 
             return totalPremium + sUSD.balanceOf(address(this));
         } else {
@@ -187,7 +186,6 @@ contract LyraController is LyraAdapter {
         uint256 amount,
         uint256 maxCost
     ) internal returns (LyraAdapter.TradeInputParameters memory) {
-        console.log("maxCost", maxCost);
         return
             LyraAdapter.TradeInputParameters({
                 strikeId: strikeId,

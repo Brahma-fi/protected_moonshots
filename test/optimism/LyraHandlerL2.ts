@@ -197,9 +197,13 @@ describe("LyraHandlerL2 [OPTIMISM]", function () {
     const beforeBalance = await sUSD.balanceOf(lyraL2Handler.address);
     console.log("SUSD Balance:", beforeBalance.toString());
 
-    const optimalAmount = ethers.utils.parseEther("10");
+    const optimalAmount = ethers.utils.parseEther("1");
 
     console.log("[call] optimal amount to buy:", optimalAmount.toString());
+    console.log(
+      "[BEFORE]POSITION IN WANT TOKEN:",
+      await lyraL2Handler.positionInWantToken()
+    );
 
     await lyraL2Handler
       .connect(signer)
@@ -219,6 +223,11 @@ describe("LyraHandlerL2 [OPTIMISM]", function () {
     console.log(
       "[OPEN] current position:",
       await lyraL2Handler.currentPosition()
+    );
+
+    console.log(
+      "[AFTER]POSITION IN WANT TOKEN:",
+      await lyraL2Handler.positionInWantToken()
     );
 
     // close position
@@ -254,6 +263,11 @@ describe("LyraHandlerL2 [OPTIMISM]", function () {
     console.log(
       "[OPEN] current position:",
       await lyraL2Handler.currentPosition()
+    );
+
+    console.log(
+      "POSITION IN WANT TOKEN:",
+      await lyraL2Handler.positionInWantToken()
     );
 
     // close position
