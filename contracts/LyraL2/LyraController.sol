@@ -117,8 +117,12 @@ contract LyraController is LyraAdapter {
             strikeId: strikeId,
             positionId: tradeResult.positionId,
             optionType: optionType,
-            amount: sUSDSent,
-            optionsPurchased: amount
+            amount: sUSDSent + updateExistingPosition
+                ? currentPosition.amount
+                : 0,
+            optionsPurchased: amount + updateExistingPosition
+                ? currentPosition.optionsPurchased
+                : 0
         });
     }
 
