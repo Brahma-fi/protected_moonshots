@@ -78,7 +78,6 @@ contract LyraPositionHandlerL2 is
     /*///////////////////////////////////////////////////////////////
                             INITIALIZING
     //////////////////////////////////////////////////////////////*/
-    // @TODO: remove _lyraRegistry
     constructor(
         address _wantTokenL2,
         address _positionHandlerL1,
@@ -181,19 +180,27 @@ contract LyraPositionHandlerL2 is
         address _socketRegistry,
         bytes calldata socketData
     ) public override onlyAuthorized {
+        UniswapV3Controller._estimateAndSwap(
+            false,
+            LyraController.sUSD.balanceOf(address(this))
+        );
+
         require(
             IERC20(wantTokenL2).balanceOf(address(this)) >= amountOut,
             "NOT_ENOUGH_TOKENS"
         );
-        require(socketRegistry == _socketRegistry, "INVALID_REGISTRY");
-        SocketV1Controller.sendTokens(
-            wantTokenL2,
-            socketRegistry,
-            positionHandlerL1,
-            amountOut,
-            1,
-            socketData
-        );
+
+        if (amountOut > 0) {
+            require(socketRegistry == _socketRegistry, "INVALID_REGISTRY");
+            SocketV1Controller.sendTokens(
+                wantTokenL2,
+                socketRegistry,
+                positionHandlerL1,
+                amountOut,
+                1,
+                socketData
+            );
+        }
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -230,57 +237,6 @@ contract LyraPositionHandlerL2 is
     /// @param toSettle boolean if true settle position, else close position
     function closePosition(bool toSettle) public override onlyAuthorized {
         LyraController._closePosition(toSettle);
-        // @TODO: UNCOMMENT THIS
-        // UniswapV3Controller._estimateAndSwap(
-        //   false,
-        //   LyraController.sUSD.balanceOf(address(this))
-        // );
-    }
-
-    // @TODO: REMOVE
-    function mintNewPosition(
-        address token0,
-        address token1,
-        uint256 amount0ToMint,
-        uint256 amount1ToMint,
-        uint24 poolFee
-    )
-        external
-        onlyAuthorized
-        returns (
-            uint256 tokenId,
-            uint128 liquidity,
-            uint256 amount0,
-            uint256 amount1
-        )
-    {
-        // Approve the position manager
-        IERC20(token0).approve(
-            address(nonfungiblePositionManager),
-            amount0ToMint
-        );
-        IERC20(token1).approve(
-            address(nonfungiblePositionManager),
-            amount1ToMint
-        );
-
-        INonfungiblePositionManager.MintParams
-            memory params = INonfungiblePositionManager.MintParams({
-                token0: token0,
-                token1: token1,
-                fee: poolFee,
-                tickLower: int24(-887272),
-                tickUpper: int24(887272),
-                amount0Desired: amount0ToMint,
-                amount1Desired: amount1ToMint,
-                amount0Min: 0,
-                amount1Min: 0,
-                recipient: address(this),
-                deadline: block.timestamp
-            });
-
-        (tokenId, liquidity, amount0, amount1) = nonfungiblePositionManager
-            .mint(params);
     }
 
     /*///////////////////////////////////////////////////////////////

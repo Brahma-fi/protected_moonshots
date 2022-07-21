@@ -127,7 +127,7 @@ contract LyraController is LyraAdapter {
     /// @dev Will sell back or settle the option on Lyra.
     /// @param toSettle boolean if true settle position, else close position
     function _closePosition(bool toSettle) internal {
-        require(!(_isCurrentPositionActive()), "NO_ACTIVE_POSITION");
+        require(_isCurrentPositionActive(), "NO_ACTIVE_POSITION");
 
         /// Check if option has to be settled.
         if (toSettle == true) {

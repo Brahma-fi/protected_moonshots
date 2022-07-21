@@ -103,7 +103,7 @@ describe("LyraHandlerL2 [OPTIMISM]", function () {
       movrRegistry,
       slippage,
       testSystem.lyraRegistry.address,
-      testSystem.snx.quoteAsset.address
+      sUSDaddress
     )) as LyraPositionHandlerL2;
 
     // test system seeding
@@ -113,11 +113,6 @@ describe("LyraHandlerL2 [OPTIMISM]", function () {
       "TEST SYSTEM DEPLOYED. Option market: ",
       testSystem.optionMarket.address
     );
-
-    const nonfungiblePositionManager = (await ethers.getContractAt(
-      "INonfungiblePositionManager",
-      nonFungiblePositionManagerAddress
-    )) as INonfungiblePositionManager;
 
     await usdc
       .connect(signer)
@@ -131,29 +126,6 @@ describe("LyraHandlerL2 [OPTIMISM]", function () {
       "USDC handler balance:",
       await usdc.balanceOf(lyraL2Handler.address)
     );
-
-    const { tokenId } = await lyraL2Handler
-      .connect(signer)
-      .callStatic.mintNewPosition(
-        testSystem.snx.quoteAsset.address,
-        usdc.address,
-        BigNumber.from(5000).mul(1e9).mul(1e9),
-        BigNumber.from(5000).mul(1e6),
-        500
-      );
-    console.log(
-      "[]NEW UNI POSITION]",
-      await nonfungiblePositionManager.positions(tokenId)
-    );
-    await lyraL2Handler
-      .connect(signer)
-      .mintNewPosition(
-        testSystem.snx.quoteAsset.address,
-        usdc.address,
-        BigNumber.from(5000).mul(1e9).mul(1e9),
-        BigNumber.from(5000).mul(1e6),
-        500
-      );
 
     // await testSystem.snx.quoteAsset
     //   .connect(signer)
@@ -220,7 +192,7 @@ describe("LyraHandlerL2 [OPTIMISM]", function () {
   // //              - Lyra's accountBalance contract should reflect change in positionValue of our contract
   // //              - Shouldnt work if LyraPosition is already active
   it("Can purchase Call and sell Call", async function () {
-    expect((await lyraL2Handler.currentPosition()).isActive).equals(false);
+    expect(await lyraL2Handler.isCurrentPositionActive()).equals(false);
     const listingId = BigNumber.from(1);
     const beforeBalance = await sUSD.balanceOf(lyraL2Handler.address);
     console.log("SUSD Balance:", beforeBalance.toString());
@@ -254,7 +226,7 @@ describe("LyraHandlerL2 [OPTIMISM]", function () {
     await lyraL2Handler.closePosition(false);
     // const afterUsdcBalance = await usdc.balanceOf(lyraL2Handler.address);
     // expect(afterUsdcBalance.gt(beforeUsdcBalance)).equals(true);
-    // expect((await lyraL2Handler.currentPosition()).isActive).equals(false);
+    expect(await lyraL2Handler.isCurrentPositionActive()).equals(false);
     console.log(
       "[CLOSE] current position:",
       await lyraL2Handler.currentPosition()
