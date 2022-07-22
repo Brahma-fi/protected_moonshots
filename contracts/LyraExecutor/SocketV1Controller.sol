@@ -77,7 +77,7 @@ contract SocketV1Controller {
     /// @notice Sends tokens using Bungee middleware. Assumes tokens already present in contract. Manages allowance and transfer.
     /// @dev Currently not verifying the middleware request calldata. Use very carefully
     /// @param token address of IERC20 token to be sent
-    // / @param allowanceTarget address to allow tokens to swipe
+    /// @param allowanceTarget address to allow tokens to swipe
     /// @param socketRegistry address to send bridge txn to
     /// @param destinationAddress address of receiver
     /// @param amount amount of tokens to bridge
@@ -85,7 +85,7 @@ contract SocketV1Controller {
     /// @param data calldata of txn to be sent
     function sendTokens(
         address token,
-        // address allowanceTarget,
+        address allowanceTarget,
         address socketRegistry,
         address destinationAddress,
         uint256 amount,
@@ -98,8 +98,8 @@ contract SocketV1Controller {
             token,
             destinationAddress
         );
-        // IERC20(token).approve(allowanceTarget, amount);
-        (bool success, ) = socketRegistry.call{value: amount}(data);
+        IERC20(token).approve(allowanceTarget, amount);
+        (bool success, ) = socketRegistry.call(data);
         require(success, "Failed to call socketRegistry");
     }
 

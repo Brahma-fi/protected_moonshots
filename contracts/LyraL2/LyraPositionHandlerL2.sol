@@ -165,10 +165,12 @@ contract LyraPositionHandlerL2 is
     /// @notice Bridges wantToken back to strategy on L1
     /// @dev Check MovrV1Controller for more details on implementation of token bridging
     /// @param amountOut amount needed to be sent to strategy
+    /// @param allowanceTarget address of contract to provide ERC20 allowance to
     /// @param _socketRegistry address of movr contract to send txn to
     /// @param socketData movr txn calldata
     function withdraw(
         uint256 amountOut,
+        address allowanceTarget,
         address _socketRegistry,
         bytes calldata socketData
     ) public override onlyAuthorized {
@@ -186,6 +188,7 @@ contract LyraPositionHandlerL2 is
             require(socketRegistry == _socketRegistry, "INVALID_REGISTRY");
             SocketV1Controller.sendTokens(
                 wantTokenL2,
+                allowanceTarget,
                 socketRegistry,
                 positionHandlerL1,
                 amountOut,

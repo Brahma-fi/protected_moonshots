@@ -22,6 +22,7 @@ interface IPositionHandler {
 
     function withdraw(
         uint256 amountOut,
+        address allowanceTarget,
         address socketRegistry,
         bytes calldata socketData
     ) external;

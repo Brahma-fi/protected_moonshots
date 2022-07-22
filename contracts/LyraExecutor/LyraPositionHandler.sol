@@ -130,6 +130,7 @@ contract LyraPositionHandler is
 
         sendTokens(
             wantTokenL1,
+            depositParams._allowanceTarget,
             depositParams._socketRegistry,
             positionHandlerL2Address,
             depositParams._amount,
