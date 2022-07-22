@@ -13,8 +13,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 /// @notice Used to perform swaps for synthetix tokens
 contract UniswapV3Controller {
     /// @notice sUSD IERC20 address
-    // 0x8c6f28f2F1A3C87F0f938b96d27520d9751ec8d9
-    address public sUSDAddr;
+    address public sUSDAddr =
+        IERC20(0x8c6f28f2F1A3C87F0f938b96d27520d9751ec8d9);
 
     /// @notice maximum basis points for all numeric operations
     uint256 public constant MAX_BPS = 10000;
@@ -37,10 +37,6 @@ contract UniswapV3Controller {
 
     /// @notice slippage for swaps
     uint256 public slippage;
-
-    function _setConfig(address _sUSDAddr) internal {
-        sUSDAddr = _sUSDAddr;
-    }
 
     function _setSlippage(uint256 _slippage) internal {
         slippage = _slippage;

@@ -82,9 +82,7 @@ contract LyraPositionHandlerL2 is
         address _keeper,
         address _governance,
         address _socketRegistry,
-        uint256 _slippage,
-        address _lyraRegistry,
-        address _sUSD
+        uint256 _slippage
     ) {
         wantTokenL2 = _wantTokenL2;
         positionHandlerL1 = _positionHandlerL1;
@@ -113,15 +111,12 @@ contract LyraPositionHandlerL2 is
 
         // set Lyra Adapter
         LyraAdapter.setLyraAddresses(
-            _lyraRegistry,
+            0xF5A0442D4753cA1Ea36427ec071aa5E786dA5916,
             _lyraOptionMarket,
             0xA5407eAE9Ba41422680e2e00537571bcC53efBfD,
             // fee counter
             address(feeCounter)
         );
-
-        // set UniswapV3Controller config
-        UniswapV3Controller._setConfig(_sUSD);
     }
 
     /*///////////////////////////////////////////////////////////////
