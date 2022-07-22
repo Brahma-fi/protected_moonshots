@@ -69,20 +69,20 @@ contract LyraTradeExecutor is BaseTradeExecutor, LyraPositionHandler {
 
     /// @notice L2 position value setter, called by keeper
     /// @param _posValue new position value retrived from L2
-    function setPosValue(uint256 _posValue) public onlyKeeper {
+    function setPosValue(uint256 _posValue) public keeperOrGovernance {
         LyraPositionHandler._setPosValue(_posValue);
     }
 
     /// @notice Socket registry setter, called by keeper
     /// @param _socketRegistry address of new socket registry
-    function setSocketRegistry(address _socketRegistry) public onlyKeeper {
+    function setSocketRegistry(address _socketRegistry) public onlyGovernance {
         emit UpdatedSocketRegistry(socketRegistry, _socketRegistry);
         socketRegistry = _socketRegistry;
     }
 
     /// @notice L2 Position Handler setter, called by keeper
     /// @param _l2HandlerAddress address of new position handler on L2
-    function setL2Handler(address _l2HandlerAddress) public onlyKeeper {
+    function setL2Handler(address _l2HandlerAddress) public onlyGovernance {
         positionHandlerL2Address = _l2HandlerAddress;
     }
 
