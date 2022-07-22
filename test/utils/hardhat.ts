@@ -8,7 +8,10 @@ export async function mineBlocks(numberOfBlocks: BigNumberish) {
   }
 }
 
-export async function switchToNetwork(jsonRpcUrl: string, blockNumber: number) {
+export async function switchToNetwork(
+  jsonRpcUrl: string,
+  blockNumber?: number
+) {
   await network.provider.request({
     method: "hardhat_reset",
     params: [
