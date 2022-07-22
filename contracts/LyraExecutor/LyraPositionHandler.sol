@@ -26,10 +26,12 @@ contract LyraPositionHandler is
     /// @param _isCall boolean indicating a call or put option
     /// @param _amount Amount of option tokens to purchase
     /// @param _gasLimit Gas limit to use when opening position on L2.
+    /// @param _updateExistingPosition boolean indication of if existing position should be updated
     struct OpenPositionParams {
         uint256 _listingId;
         bool _isCall;
         uint256 _amount;
+        bool _updateExistingPosition;
         uint32 _gasLimit;
     }
 
@@ -176,7 +178,8 @@ contract LyraPositionHandler is
             IPositionHandler.openPosition.selector,
             openPositionParams._listingId,
             openPositionParams._isCall,
-            openPositionParams._amount
+            openPositionParams._amount,
+            openPositionParams._updateExistingPosition
         );
 
         sendMessageToL2(
