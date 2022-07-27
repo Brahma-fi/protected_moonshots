@@ -139,14 +139,14 @@ describe("lyraTE [MAINNET]", function () {
   });
 
   it("TE can initate call to open position", async function () {
+    const strikeId = BigNumber.from(Math.floor(Math.random() * 50));
     const amount = BigNumber.from(1e9).mul(1e9).mul(1e3);
-    const isShort = true;
-    const slippage = BigNumber.from(500);
+    const isCall = true;
     const gasLimit = BigNumber.from(1e6).mul(5);
 
     const paramsInBytes = hre.ethers.utils.AbiCoder.prototype.encode(
-      ["tuple(uint256,bool,uint24,uint32)"],
-      [[amount, isShort, slippage, gasLimit]]
+      ["tuple(uint256,bool,uint256,bool,uint32)"],
+      [[strikeId, isCall, amount, false, gasLimit]]
     );
 
     const openPositionTxn = await lyraTE
@@ -161,9 +161,13 @@ describe("lyraTE [MAINNET]", function () {
       data: paramsGenerated.calldata,
     });
 
-    expect(txnDescription.args.isShort).equal(isShort);
-    expect(txnDescription.args.slippage).equal(slippage);
-    expect(amount).equal(txnDescription.args.amountIn);
+    console.log("check1");
+    expect(txnDescription.args.strikeId).equal(strikeId);
+    console.log("check2");
+    expect(txnDescription.args.isCall).equal(isCall);
+    console.log("check3");
+    expect(txnDescription.args.amount).equal(amount);
+    console.log("check4");
     expect(txnDescription.name).equal("openPosition");
   });
 

@@ -8,6 +8,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "../LyraL2/interfaces/IPositionHandler.sol";
 
+import "hardhat/console.sol";
+
 /// @title LyraPositionHandlerL1
 /// @author Pradeep
 /// @notice Used to control the short position handler deployed on Optimism which interacts with LyraV2
@@ -171,6 +173,7 @@ contract LyraPositionHandler is
     /// @dev Check `openPosition` implementation in LyraPositionHandlerL2 for more info
     /// @param data Encoded OpenPositionParams as data
     function _openPosition(bytes calldata data) internal override {
+        console.log("entered open");
         OpenPositionParams memory openPositionParams = abi.decode(
             data,
             (OpenPositionParams)
@@ -198,6 +201,7 @@ contract LyraPositionHandler is
             data,
             (ClosePositionParams)
         );
+        console.log("open position params", closePositionParams._toSettle);
         bytes memory L2calldata = abi.encodeWithSelector(
             IPositionHandler.closePosition.selector,
             closePositionParams._toSettle
