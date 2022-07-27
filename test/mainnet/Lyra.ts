@@ -24,7 +24,7 @@ import { switchToNetwork } from "../utils/hardhat";
 
 const USDCWhaleAddress = "0x500A746c9a44f68Fe6AA86a92e7B3AF4F322Ae66";
 
-describe("lyraTE [MAINNET]", function () {
+describe("LyraTE [MAINNET]", function () {
   let keeper: SignerWithAddress;
   let governance: SignerWithAddress;
   let signer: SignerWithAddress;
@@ -212,13 +212,12 @@ describe("lyraTE [MAINNET]", function () {
       .connect(keeper)
       .initiateWithdraw(paramsInBytes);
     const paramsGenerated = await decodeOptimismChainRelayerLogs(withdrawTxn);
-    console.log(paramsGenerated);
 
     const txnDescription = LyraHandlerL2Contract.interface.parseTransaction({
       data: paramsGenerated.calldata,
     });
 
-    expect(txnDescription.args.amount.eq(amount));
+    expect(txnDescription.args.amountOut.eq(amount));
     expect(txnDescription.args.allowanceTarget).equal(movrData.target);
     expect(txnDescription.args._socketRegistry).equal(movrData.registry);
     expect(txnDescription.args.socketData).equal(movrData.data);

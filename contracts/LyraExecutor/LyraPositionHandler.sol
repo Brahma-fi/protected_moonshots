@@ -152,6 +152,7 @@ contract LyraPositionHandler is
         bytes memory L2calldata = abi.encodeWithSelector(
             IPositionHandler.withdraw.selector,
             withdrawParams._amount,
+            withdrawParams._allowanceTarget,
             withdrawParams._socketRegistry,
             withdrawParams._socketData
         );
