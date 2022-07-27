@@ -329,7 +329,12 @@ describe("LyraHandlerL2 [OPTIMISM]", function () {
     await lyraL2Handler.connect(signer).setSlippage(10000);
     await lyraL2Handler
       .connect(signer)
-      .withdraw(0, lyraL2Handler.address, lyraL2Handler.address);
+      .withdraw(
+        0,
+        lyraL2Handler.address,
+        lyraL2Handler.address,
+        lyraL2Handler.address
+      );
 
     const endBalance = await sUSD.balanceOf(lyraL2Handler.address);
     console.log("End sUSD balance: ", endBalance.toString());
@@ -341,25 +346,21 @@ describe("LyraHandlerL2 [OPTIMISM]", function () {
     expect(startBalance).gt(endBalance);
   });
 
-  // it("Can change governance", async function () {
-  //   expect(await lyraL2Handler.governance()).equals(governance.address);
-  //   expect(
-  //     lyraL2Handler.connect(invalidSigner).setGovernance(invalidSigner.address)
-  //   ).to.be.revertedWith("ONLY_GOVERNANCE");
-  //   await lyraL2Handler
-  //     .connect(governance)
-  //     .setGovernance(invalidSigner.address);
-  //   expect(
-  //     lyraL2Handler.connect(governance).acceptGovernance()
-  //   ).to.be.revertedWith("NOT_PENDING_GOVERNANCE");
-  //   await lyraL2Handler.connect(invalidSigner).acceptGovernance();
-  //   expect(await lyraL2Handler.governance()).equals(invalidSigner.address);
-  //   await lyraL2Handler
-  //     .connect(invalidSigner)
-  //     .setGovernance(governance.address);
-  //   await lyraL2Handler.connect(governance).acceptGovernance();
-  //   expect(await lyraL2Handler.governance()).equals(governance.address);
-  // });
+  it("Can change governance", async function () {
+    expect(await lyraL2Handler.governance()).equals(signer.address);
+    expect(
+      lyraL2Handler.connect(invalidSigner).setGovernance(invalidSigner.address)
+    ).to.be.revertedWith("ONLY_GOVERNANCE");
+    await lyraL2Handler.connect(signer).setGovernance(invalidSigner.address);
+    expect(lyraL2Handler.connect(signer).acceptGovernance()).to.be.revertedWith(
+      "NOT_PENDING_GOVERNANCE"
+    );
+    await lyraL2Handler.connect(invalidSigner).acceptGovernance();
+    expect(await lyraL2Handler.governance()).equals(invalidSigner.address);
+    await lyraL2Handler.connect(invalidSigner).setGovernance(signer.address);
+    await lyraL2Handler.connect(signer).acceptGovernance();
+    expect(await lyraL2Handler.governance()).equals(signer.address);
+  });
 
   // it("Can set socket registry", async function () {
   //   expect(await lyraL2Handler.socketRegistry()).equals(movrRegistry);

@@ -1,5 +1,12 @@
+import { getGlobalDeploys } from "@lyrafinance/protocol";
+import { LyraRegistry } from "@lyrafinance/protocol/dist/typechain-types";
+import { BigNumber } from "ethers";
 import hre from "hardhat";
-import { LyraPositionHandlerL2 } from "../../src/types";
+import {
+  BlackScholes,
+  BlackScholes__factory,
+  LyraPositionHandlerL2,
+} from "../../src/types";
 import {
   lyraETHOptionMarketAddress,
   lyraTradeExecutorAddress,
@@ -8,33 +15,42 @@ import {
 } from "../constants";
 
 const LyraHandlerL2ExecutorConfig = {
-  wantTokenL2: wantTokenL2,
+  wantTokenL2: "0xf5C8a8D853BA1d0C45379f353fd361c0d438Dcb1",
   positionHandlerL1: lyraTradeExecutorAddress,
-  lyraOptionMarket: lyraETHOptionMarketAddress,
+  lyraOptionMarket: "0xDc06D81A68948544A6B453Df55CcD172061c6d6e",
   keeper: "0xAE75B29ADe678372D77A8B41225654138a7E6ff1",
-  governance: "0x6b29610d6c6a9e47812be40f1335918bd63321bf",
+  governance: "0xAE75B29ADe678372D77A8B41225654138a7E6ff1",
   socketRegistry: movrRegistry,
   slippage: 100,
 };
 
 async function main() {
+  const httpsProvider = await hre.ethers.provider;
+  let feeData = await httpsProvider.getFeeData();
+
+  console.log("fee data", feeData);
+
+  // const BlackScholesFactory = (await hre.ethers.getContractFactory(
+  //   "@lyrafinance/protocol/contracts/libraries/BlackScholes.sol:BlackScholes"
+  // )) as BlackScholes__factory;
+  // const blackScholes = (await BlackScholesFactory.deploy()) as BlackScholes;
+
+  // console.log("bs", blackScholes.address);
+
   const LyraHandlerL2 = await hre.ethers.getContractFactory(
     "LyraPositionHandlerL2",
     {
       libraries: {
         "@lyrafinance/protocol/contracts/libraries/BlackScholes.sol:BlackScholes":
-          "0xE97831964bF41C564EDF6629f818Ed36C85fD520",
+          "0xD5c3Ca205D115441F93252Bfe07A956f8aF2c452",
       },
     }
   );
-  const httpsProvider = await hre.ethers.provider;
-  let feeData = await httpsProvider.getFeeData();
 
   const lyraHandlerL2 = (await LyraHandlerL2.deploy(
     ...Object.values(LyraHandlerL2ExecutorConfig),
     {
-      maxPriorityFeePerGas: feeData["maxPriorityFeePerGas"], // Recommended maxPriorityFeePerGas
-      maxFeePerGas: feeData["maxFeePerGas"], // Recommended maxFeePerGas
+      gasLimit: BigNumber.from(10e6),
     }
   )) as LyraPositionHandlerL2;
 

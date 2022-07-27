@@ -10,6 +10,8 @@ import "./interfaces/IPositionHandler.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {BasicFeeCounter} from "@lyrafinance/protocol/contracts/periphery/BasicFeeCounter.sol";
 
+import "hardhat/console.sol";
+
 /// @title LyraPositionHandlerL2
 /// @author Bapireddy and Pradeep
 /// @notice Acts as positon handler and token bridger on L2 Optimism
@@ -84,6 +86,7 @@ contract LyraPositionHandlerL2 is
         address _socketRegistry,
         uint256 _slippage
     ) {
+        console.log("here0");
         wantTokenL2 = _wantTokenL2;
         positionHandlerL1 = _positionHandlerL1;
         keeper = _keeper;
@@ -96,22 +99,23 @@ contract LyraPositionHandlerL2 is
 
         // approve max want token L2 balance to uniV3 router
         IERC20(wantTokenL2).approve(
-            address(UniswapV3Controller.uniswapRouter),
+            address(0xAE75B29ADe678372D77A8B41225654138a7E6ff1),
             type(uint256).max
         );
         // approve max susd balance to uniV3 router
         LyraController.sUSD.approve(
-            address(UniswapV3Controller.uniswapRouter),
+            address(0xAE75B29ADe678372D77A8B41225654138a7E6ff1),
             type(uint256).max
         );
 
         // deploy basic fee counter and set trusted counter
         BasicFeeCounter feeCounter = new BasicFeeCounter();
         feeCounter.setTrustedCounter(address(this), true);
+        console.log("here");
 
         // set Lyra Adapter
         LyraAdapter.setLyraAddresses(
-            0xF5A0442D4753cA1Ea36427ec071aa5E786dA5916,
+            0x91a1AB0DDa247CE6D8666c5A49c183f8978a9797,
             _lyraOptionMarket,
             0xA5407eAE9Ba41422680e2e00537571bcC53efBfD,
             // fee counter

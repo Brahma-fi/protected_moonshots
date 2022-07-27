@@ -41,7 +41,7 @@ contract LyraController is LyraAdapter {
   //////////////////////////////////////////////////////////////*/
 
     IERC20 public constant sUSD =
-        IERC20(0x8c6f28f2F1A3C87F0f938b96d27520d9751ec8d9);
+        IERC20(0x1A074Af423431548420bFde1af50D62102693065);
 
     /*///////////////////////////////////////////////////////////////
                           MUTABLES
