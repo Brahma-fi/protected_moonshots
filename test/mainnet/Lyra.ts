@@ -161,23 +161,19 @@ describe("lyraTE [MAINNET]", function () {
       data: paramsGenerated.calldata,
     });
 
-    console.log("check1");
     expect(txnDescription.args.strikeId).equal(strikeId);
-    console.log("check2");
     expect(txnDescription.args.isCall).equal(isCall);
-    console.log("check3");
     expect(txnDescription.args.amount).equal(amount);
-    console.log("check4");
     expect(txnDescription.name).equal("openPosition");
   });
 
   it("TE can initate call to close position", async function () {
-    const slippage = BigNumber.from(500);
+    const toSettle = false;
     const gasLimit = BigNumber.from(1e6).mul(5);
 
     const paramsInBytes = hre.ethers.utils.AbiCoder.prototype.encode(
-      ["tuple(uint24,uint32)"],
-      [[slippage, gasLimit]]
+      ["tuple(bool,uint32)"],
+      [[toSettle, gasLimit]]
     );
 
     const closePositionTxn = await lyraTE
@@ -192,7 +188,7 @@ describe("lyraTE [MAINNET]", function () {
       data: paramsGenerated.calldata,
     });
 
-    expect(txnDescription.args.slippage).equal(slippage);
+    expect(txnDescription.args.toSettle).equal(toSettle);
     expect(txnDescription.name).equal("closePosition");
   });
 
@@ -216,12 +212,13 @@ describe("lyraTE [MAINNET]", function () {
       .connect(keeper)
       .initiateWithdraw(paramsInBytes);
     const paramsGenerated = await decodeOptimismChainRelayerLogs(withdrawTxn);
+    console.log(paramsGenerated);
 
     const txnDescription = LyraHandlerL2Contract.interface.parseTransaction({
       data: paramsGenerated.calldata,
     });
 
-    expect(txnDescription.args.amountOut.eq(amount));
+    expect(txnDescription.args.amount.eq(amount));
     expect(txnDescription.args.allowanceTarget).equal(movrData.target);
     expect(txnDescription.args._socketRegistry).equal(movrData.registry);
     expect(txnDescription.args.socketData).equal(movrData.data);
