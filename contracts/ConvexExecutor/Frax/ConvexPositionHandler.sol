@@ -7,7 +7,7 @@ import "../../../library/Math.sol";
 
 import "../interfaces/IConvexRewards.sol";
 import "../interfaces/IConvexBooster.sol";
-import "../interfaces/ICurvePool.sol";
+import "../interfaces/ICurve2Pool.sol";
 import "../interfaces/ICurveDepositZapper.sol";
 import "../interfaces/IHarvester.sol";
 
@@ -16,7 +16,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title ConvexPositionHandler
 /// @author PradeepSelva & BapireddyK;
-/// @notice A Position handler to handle Convex for Frax Pool
+/// @notice A Position handler to handle Convex for Frax2Pool
 contract ConvexPositionHandler is BasePositionHandler {
     using SafeERC20 for IERC20;
 
@@ -25,9 +25,7 @@ contract ConvexPositionHandler is BasePositionHandler {
   //////////////////////////////////////////////////////////////*/
     enum FraxPoolCoinIndexes {
         FRAX,
-        DAI,
-        USDC,
-        USDT
+        USDC
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -64,20 +62,17 @@ contract ConvexPositionHandler is BasePositionHandler {
     /// @notice The want token that is deposited and withdrawn
     IERC20 public wantToken;
     /// @notice Curve LP Tokens that are converted and staked on Convex
-    IERC20 public lpToken = IERC20(0xd632f22692FaC7611d2AA1C0D552930D43CAEd3B);
+    IERC20 public lpToken = IERC20(0x3175Df0976dFA876431C2E9eE6Bc45b65d3473CC);
 
     /// @notice Harvester that harvests rewards claimed from Convex
     IHarvester public harvester;
 
     /// @notice convex Frax base reward pool
     IConvexRewards public constant baseRewardPool =
-        IConvexRewards(0xB900EF131301B307dB5eFcbed9DBb50A3e209B2e);
+        IConvexRewards(0x7e880867363A7e321f5d260Cade2B0Bb2F717B02);
     /// @notice curve's Frax Pool
-    ICurvePool public constant fraxPool =
-        ICurvePool(0xd632f22692FaC7611d2AA1C0D552930D43CAEd3B);
-    /// @notice curve 3 pool zap
-    ICurveDepositZapper public constant curve3PoolZap =
-        ICurveDepositZapper(0xA79828DF1850E8a3A3064576f380D90aECDD3359);
+    ICurve2Pool public constant fraxPool =
+        ICurve2Pool(0xDcEF968d416a41Cdac0ED8702fAC8128A64241A2);
     /// @notice convex booster
     IConvexBooster public constant convexBooster =
         IConvexBooster(0xF403C135812408BFbE8713b5A23a04b3D48AAE31);
@@ -98,11 +93,11 @@ contract ConvexPositionHandler is BasePositionHandler {
         // Approve max LP tokens to convex booster
         lpToken.approve(address(convexBooster), type(uint256).max);
 
-        // Approve max want tokens to zapper.
-        wantToken.approve(address(curve3PoolZap), type(uint256).max);
+        // Approve max want tokens to frax2Pool.
+        wantToken.approve(address(fraxPool), type(uint256).max);
 
-        // Approve max lp tokens to zapper
-        lpToken.approve(address(curve3PoolZap), type(uint256).max);
+        // Approve max lp tokens to frax2Pool
+        lpToken.approve(address(fraxPool), type(uint256).max);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -389,8 +384,7 @@ contract ConvexPositionHandler is BasePositionHandler {
         uint256 expectedWantTokensOut = (_amount *
             fraxPool.get_virtual_price()) / NORMALIZATION_FACTOR; // 30 = normalizing 18 decimals for virutal price + 18 decimals for LP token - 6 decimals for want token
         // burn Lp tokens to receive USDC with a slippage of `maxSlippage`
-        receivedWantTokens = curve3PoolZap.remove_liquidity_one_coin(
-            address(fraxPool),
+        receivedWantTokens = fraxPool.remove_liquidity_one_coin(
             _amount,
             usdcIndexInPool,
             (expectedWantTokensOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)
@@ -407,14 +401,13 @@ contract ConvexPositionHandler is BasePositionHandler {
         internal
         returns (uint256 receivedLpTokens)
     {
-        uint256[4] memory liquidityAmounts = [0, 0, _amount, 0];
+        uint256[2] memory liquidityAmounts = [0, _amount];
 
         // estimate amount of Lp Tokens based on stable peg i.e., 1FXS = 1 3Pool LP Token
         uint256 expectedLpOut = (_amount * NORMALIZATION_FACTOR) /
             fraxPool.get_virtual_price(); // 30 = normalizing 18 decimals for virutal price + 18 decimals for LP token - 6 decimals for want token
         // Provide USDC liquidity to receive Lp tokens with a slippage of `maxSlippage`
-        receivedLpTokens = curve3PoolZap.add_liquidity(
-            address(fraxPool),
+        receivedLpTokens = fraxPool.add_liquidity(
             liquidityAmounts,
             (expectedLpOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)
         );
@@ -433,8 +426,7 @@ contract ConvexPositionHandler is BasePositionHandler {
         if (_value == 0) return 0;
 
         return
-            curve3PoolZap.calc_withdraw_one_coin(
-                address(fraxPool),
+            fraxPool.calc_withdraw_one_coin(
                 _value,
                 int128(int256(uint256(FraxPoolCoinIndexes.USDC)))
             );
@@ -465,12 +457,7 @@ contract ConvexPositionHandler is BasePositionHandler {
     {
         if (_value == 0) return 0;
 
-        return
-            curve3PoolZap.calc_token_amount(
-                address(fraxPool),
-                [0, 0, _value, 0],
-                true
-            );
+        return fraxPool.calc_token_amount([0, _value], true);
     }
 
     /**
