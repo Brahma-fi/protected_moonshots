@@ -4,12 +4,15 @@ pragma solidity ^0.8.0;
 import "../../BaseTradeExecutor.sol";
 import {ConvexPositionHandler} from "./ConvexPositionHandler.sol";
 
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+
 /// @title ConvexTradeExecutor
 /// @author PradeepSelva
 /// @notice A contract to execute strategy's trade, on Convex (frax)
 contract ConvexFraxPoolTradeExecutor is
     BaseTradeExecutor,
-    ConvexPositionHandler
+    ConvexPositionHandler,
+    ReentrancyGuard
 {
     /// @notice event emitted when harvester is updated
     event UpdatedHarvester(
@@ -109,14 +112,18 @@ contract ConvexFraxPoolTradeExecutor is
     /// @notice To open staking position in Convex
     /// @dev stakes the specified Curve Lp Tokens into Convex's UST3-Wormhole pool
     /// @param _data Encoded AmountParams as _data with LP Token amount
-    function openPosition(bytes calldata _data) public onlyKeeper {
+    function openPosition(bytes calldata _data) public onlyKeeper nonReentrant {
         ConvexPositionHandler._openPosition(_data);
     }
 
     /// @notice To close Convex Staking Position
     /// @dev Unstakes from Convex position and gives back them as Curve Lp Tokens along with rewards like CRV, CVX.
     /// @param _data Encoded AmountParams as _data with LP token amount
-    function closePosition(bytes calldata _data) public onlyKeeper {
+    function closePosition(bytes calldata _data)
+        public
+        onlyKeeper
+        nonReentrant
+    {
         ConvexPositionHandler._closePosition(_data);
     }
 
@@ -126,7 +133,7 @@ contract ConvexFraxPoolTradeExecutor is
     /// @notice To claim rewards from Convex Staking position
     /// @dev Claims Convex Staking position rewards, and converts them to wantToken i.e., USDC.
     /// @param _data is not needed here (empty param, to satisfy interface)
-    function claimRewards(bytes calldata _data) public onlyKeeper {
+    function claimRewards(bytes calldata _data) public onlyKeeper nonReentrant {
         ConvexPositionHandler._claimRewards(_data);
     }
 }

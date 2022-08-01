@@ -12,10 +12,16 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /// @title Harvester
 /// @author PradeepSelva
-/// @notice A contract to harvest rewards from Convex staking position into Want TOken
+/// @notice A contract to harvest rewards from Convex staking position into Want Token
 contract Harvester is IHarvester {
     using SafeERC20 for IERC20;
     using SafeERC20 for IERC20Metadata;
+
+    /// @notice event emitted when slippage is updated
+    event UpdatedSlippage(
+        uint256 indexed oldSlippage,
+        uint256 indexed newSlippage
+    );
 
     /*///////////////////////////////////////////////////////////////
                         GLOBAL CONSTANTS
@@ -76,6 +82,9 @@ contract Harvester is IHarvester {
     /*///////////////////////////////////////////////////////////////
                         MUTABLE ACCESS MODFIERS
   //////////////////////////////////////////////////////////////*/
+    /// @notice array of reward token addresses
+    address[] public rewards;
+
     /// @notice instance of vault
     IVault public override vault;
     /// @notice maximum acceptable slippage
@@ -96,20 +105,20 @@ contract Harvester is IHarvester {
         weth.approve(address(uniswapRouter), type(uint256).max);
         // max approve SNX to uniswap router
         snx.approve(address(uniswapRouter), type(uint256).max);
+
+        rewards = new address[](4);
+        rewards[0] = address(crv);
+        rewards[1] = address(cvx);
+        rewards[2] = address(_3crv);
+        rewards[3] = address(snx);
     }
 
     /*///////////////////////////////////////////////////////////////
                          VIEW FUNCTONS
   //////////////////////////////////////////////////////////////*/
-
     /// @notice Function which returns address of reward tokens
     /// @return rewardTokens array of reward token addresses
-    function rewardTokens() external pure override returns (address[] memory) {
-        address[] memory rewards = new address[](4);
-        rewards[0] = address(crv);
-        rewards[1] = address(cvx);
-        rewards[2] = address(_3crv);
-        rewards[3] = address(snx);
+    function rewardTokens() external view override returns (address[] memory) {
         return rewards;
     }
 
@@ -119,7 +128,10 @@ contract Harvester is IHarvester {
     /// @notice Keeper function to set maximum slippage
     /// @param _slippage new maximum slippage
     function setSlippage(uint256 _slippage) external override onlyKeeper {
+        uint256 oldSlippage = maxSlippage;
         maxSlippage = _slippage;
+
+        emit UpdatedSlippage(oldSlippage, maxSlippage);
     }
 
     /*///////////////////////////////////////////////////////////////

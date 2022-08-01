@@ -31,11 +31,13 @@ abstract contract BaseTradeExecutor is ITradeExecutor {
         return IVault(vault).keeper();
     }
 
+    /// @notice restrict access to only governance
     modifier onlyGovernance() {
         require(msg.sender == governance(), "ONLY_GOV");
         _;
     }
 
+    /// @notice restrict access to only keeper
     modifier onlyKeeper() {
         require(msg.sender == keeper(), "ONLY_KEEPER");
         _;
