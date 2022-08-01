@@ -64,3 +64,4 @@ We assume that the `Vault` will send and pull out funds from vault during deposi
 - Actions after deployment
   - `setSlippage()` on harvester if slippage is needed to be > or < 0.1%
   - `setUseVirtualPriceForPosValue()` if position value calculation is required to be done using virtual price instead of simulated calculations.
+  - `addExecutor()` on Vault, to add newly deployed convex TE to vault.
