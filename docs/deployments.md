@@ -4,4 +4,6 @@
   - Changes
     - Older frax USD metapool was removed and replaced by FRAX/USDC 2 pool.
   - Deployment Details
-    - Address:
+    - Etherscan link:
+    - Commit:
+    - Contract:

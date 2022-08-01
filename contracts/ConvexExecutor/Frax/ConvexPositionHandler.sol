@@ -31,6 +31,7 @@ contract ConvexPositionHandler is BasePositionHandler {
     /*///////////////////////////////////////////////////////////////
                           STRUCTS FOR DECODING
   //////////////////////////////////////////////////////////////*/
+    /// @notice Struct to decode amount in and amount out during deposit and withdraw
     struct AmountParams {
         uint256 _amount;
     }

@@ -76,6 +76,9 @@ contract Harvester is IHarvester {
     /*///////////////////////////////////////////////////////////////
                         MUTABLE ACCESS MODFIERS
   //////////////////////////////////////////////////////////////*/
+    /// @notice array of reward token addresses
+    address[] public rewards;
+
     /// @notice instance of vault
     IVault public override vault;
     /// @notice maximum acceptable slippage
@@ -96,20 +99,19 @@ contract Harvester is IHarvester {
         weth.approve(address(uniswapRouter), type(uint256).max);
         // max approve SNX to uniswap router
         snx.approve(address(uniswapRouter), type(uint256).max);
+
+        rewards[0] = address(crv);
+        rewards[1] = address(cvx);
+        rewards[2] = address(_3crv);
+        rewards[3] = address(snx);
     }
 
     /*///////////////////////////////////////////////////////////////
                          VIEW FUNCTONS
   //////////////////////////////////////////////////////////////*/
-
     /// @notice Function which returns address of reward tokens
     /// @return rewardTokens array of reward token addresses
-    function rewardTokens() external pure override returns (address[] memory) {
-        address[] memory rewards = new address[](4);
-        rewards[0] = address(crv);
-        rewards[1] = address(cvx);
-        rewards[2] = address(_3crv);
-        rewards[3] = address(snx);
+    function rewardTokens() external view override returns (address[] memory) {
         return rewards;
     }
 
