@@ -51,3 +51,16 @@ During swaps, the estimated amounts may temporarily be considerably different fr
 ## 7. Trust Assumptions
 
 We assume that the `Vault` will send and pull out funds from vault during deposit and withdraw respectively. `Keeper` ensures that enough funds are maintained in the contract for `Vault` to pull.
+
+---
+
+# Deployment
+
+- Pre-requisite contracts
+
+  - Vault.sol
+  - Harvester.sol
+
+- Actions after deployment
+  - `setSlippage()` on harvester if slippage is needed to be > or < 0.1%
+  - `setUseVirtualPriceForPosValue()` if position value calculation is required to be done using virtual price instead of simulated calculations.
