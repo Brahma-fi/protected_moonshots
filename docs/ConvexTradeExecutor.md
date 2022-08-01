@@ -51,3 +51,9 @@ During swaps, the estimated amounts may temporarily be considerably different fr
 ## 7. Trust Assumptions
 
 We assume that the `Vault` will send and pull out funds from vault during deposit and withdraw respectively. `Keeper` ensures that enough funds are maintained in the contract for `Vault` to pull.
+
+---
+
+# Deployment
+
+- [Aug 1, 2022] Removed FRAX USD metapool and replaced with FRAX/USDC 2 pool.
