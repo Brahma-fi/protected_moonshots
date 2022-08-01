@@ -21,10 +21,10 @@ import {
 } from "../utils";
 
 const ConvexTradeExecutorConfig = {
-  baseRewardPool: "0xB900EF131301B307dB5eFcbed9DBb50A3e209B2e",
+  baseRewardPool: "0x7e880867363A7e321f5d260Cade2B0Bb2F717B02",
   convexBooster: "0xF403C135812408BFbE8713b5A23a04b3D48AAE31",
-  fraxPool: "0xd632f22692FaC7611d2AA1C0D552930D43CAEd3B",
-  curve3PoolZap: "0xA79828DF1850E8a3A3064576f380D90aECDD3359",
+  fraxPool: "0xDcEF968d416a41Cdac0ED8702fAC8128A64241A2",
+  lpToken: "0x3175Df0976dFA876431C2E9eE6Bc45b65d3473CC",
 };
 
 const MAX_INT =
@@ -59,12 +59,21 @@ const deploy = async () => {
   const HarvesterFactory = await ethers.getContractFactory("Harvester");
   const vaultFactory = await ethers.getContractFactory("Vault", signer);
   LP = (await ethers.getContractAt(
-    "ERC20",
-    ConvexTradeExecutorConfig.fraxPool
+    "@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20",
+    ConvexTradeExecutorConfig.lpToken
   )) as IERC20;
-  CRV = (await ethers.getContractAt("ERC20", CRV_ADDR)) as IERC20;
-  CVX = (await ethers.getContractAt("ERC20", CVX_ADDR)) as IERC20;
-  _3CRV = (await ethers.getContractAt("ERC20", _3CRV_ADDR)) as IERC20;
+  CRV = (await ethers.getContractAt(
+    "@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20",
+    CRV_ADDR
+  )) as IERC20;
+  CVX = (await ethers.getContractAt(
+    "@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20",
+    CVX_ADDR
+  )) as IERC20;
+  _3CRV = (await ethers.getContractAt(
+    "@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20",
+    _3CRV_ADDR
+  )) as IERC20;
 
   baseRewardPool = (await ethers.getContractAt(
     "IConvexRewards",
@@ -99,7 +108,7 @@ const deploy = async () => {
   await convexTradeExecutor.connect(governance).setSlippage(BigNumber.from(10));
 };
 
-describe("Convex Frax Trade Executor [MAINNET]", function () {
+describe("Convex Frax2Pool Trade Executor [MAINNET]", function () {
   before(async () => {
     dotenv.config();
     await switchToNetwork(
@@ -119,7 +128,7 @@ describe("Convex Frax Trade Executor [MAINNET]", function () {
 
     expect(await convexTradeExecutor.wantToken()).equals(wantTokenL1);
     expect(await convexTradeExecutor.lpToken()).equals(
-      ConvexTradeExecutorConfig.fraxPool
+      ConvexTradeExecutorConfig.lpToken
     );
 
     expect(await convexTradeExecutor.baseRewardPool()).equals(
@@ -127,9 +136,6 @@ describe("Convex Frax Trade Executor [MAINNET]", function () {
     );
     expect(await convexTradeExecutor.fraxPool()).equals(
       ConvexTradeExecutorConfig.fraxPool
-    );
-    expect(await convexTradeExecutor.curve3PoolZap()).equals(
-      ConvexTradeExecutorConfig.curve3PoolZap
     );
   });
 
