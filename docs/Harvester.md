@@ -56,3 +56,4 @@ We assume that the `ConvexTradeExecutor` sends funds correctly before calling th
 
 - Actions after deployment
   - `setSlippage()` on harvester if slippage is needed to be > or < 0.1%
+  - `setHandler()` on ConvexTradeExecutor to set harvester, if updating harvester on an existing ConvexTradeExecutor
