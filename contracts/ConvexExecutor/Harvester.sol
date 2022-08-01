@@ -17,6 +17,12 @@ contract Harvester is IHarvester {
     using SafeERC20 for IERC20;
     using SafeERC20 for IERC20Metadata;
 
+    /// @notice event emitted when slippage is updated
+    event UpdatedSlippage(
+        uint256 indexed oldSlippage,
+        uint256 indexed newSlippage
+    );
+
     /*///////////////////////////////////////////////////////////////
                         GLOBAL CONSTANTS
   //////////////////////////////////////////////////////////////*/
@@ -122,7 +128,10 @@ contract Harvester is IHarvester {
     /// @notice Keeper function to set maximum slippage
     /// @param _slippage new maximum slippage
     function setSlippage(uint256 _slippage) external override onlyKeeper {
+        uint256 oldSlippage = maxSlippage;
         maxSlippage = _slippage;
+
+        emit UpdatedSlippage(oldSlippage, maxSlippage);
     }
 
     /*///////////////////////////////////////////////////////////////
