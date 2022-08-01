@@ -100,6 +100,7 @@ contract Harvester is IHarvester {
         // max approve SNX to uniswap router
         snx.approve(address(uniswapRouter), type(uint256).max);
 
+        rewards = new address[](4);
         rewards[0] = address(crv);
         rewards[1] = address(cvx);
         rewards[2] = address(_3crv);
