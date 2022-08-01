@@ -56,4 +56,11 @@ We assume that the `Vault` will send and pull out funds from vault during deposi
 
 # Deployment
 
-- [Aug 1, 2022] Removed FRAX USD metapool and replaced with FRAX/USDC 2 pool.
+- Pre-requisite contracts
+
+  - Vault.sol
+  - Harvester.sol
+
+- Actions after deployment
+  - `setSlippage()` on harvester if slippage is needed to be > or < 0.1%
+  - `setUseVirtualPriceForPosValue()` if position value calculation is required to be done using virtual price instead of simulated calculations.
