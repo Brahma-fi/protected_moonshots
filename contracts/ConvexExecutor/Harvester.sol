@@ -31,7 +31,7 @@ contract Harvester is IHarvester {
     /// @notice desired uniswap fee for snx
     uint24 public constant SNX_SWAP_FEE = 10000;
     /// @notice the max basis points used as normalizing factor
-    uint256 public constant MAX_BPS = 1000;
+    uint256 public constant MAX_BPS = 10000;
     /// @notice normalization factor for decimals (USD)
     uint256 public constant USD_NORMALIZATION_FACTOR = 1e8;
     /// @notice normalization factor for decimals (ETH)
@@ -160,7 +160,7 @@ contract Harvester is IHarvester {
 
         // swap convex to eth
         if (cvxBalance > 0) {
-            uint256 expectedOut = (_getPriceForAmount(crvEthPrice, cvxBalance));
+            uint256 expectedOut = (_getPriceForAmount(cvxEthPrice, cvxBalance));
             cvxeth.exchange(
                 1,
                 0,
