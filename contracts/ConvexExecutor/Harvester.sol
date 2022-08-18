@@ -10,6 +10,8 @@ import "../../interfaces/IAggregatorV3.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+import "hardhat/console.sol";
+
 /// @title Harvester
 /// @author PradeepSelva
 /// @notice A contract to harvest rewards from Convex staking position into Want Token
@@ -88,7 +90,7 @@ contract Harvester is IHarvester {
     /// @notice instance of vault
     IVault public override vault;
     /// @notice maximum acceptable slippage
-    uint256 public maxSlippage = 1000;
+    uint256 public maxSlippage = 100;
 
     /// @notice creates a new Harvester
     /// @param _vault address of vault
@@ -161,6 +163,8 @@ contract Harvester is IHarvester {
         // swap convex to eth
         if (cvxBalance > 0) {
             uint256 expectedOut = (_getPriceForAmount(cvxEthPrice, cvxBalance));
+            console.log("without slippage: ", expectedOut);
+            console.log("with slippage: ", _getMinReceived(expectedOut));
             cvxeth.exchange(
                 1,
                 0,
