@@ -71,7 +71,7 @@ contract Harvester is IHarvester {
         IAggregatorV3(0x8a12Be339B0cD1829b91Adc01977caa5E9ac121e);
     /// @notice chainlink data feed for CVX/ETH
     IAggregatorV3 public constant cvxEthPrice =
-        IAggregatorV3(0x231e764B44b2C1b7Ca171fa8021A24ed520Cde10);
+        IAggregatorV3(0xC9CbF687f43176B302F03f5e58470b77D07c61c6);
     /// @notice chainlinkd ata feed for SNX/ETH
     IAggregatorV3 public constant snxUsdPrice =
         IAggregatorV3(0xDC3EA94CD0AC27d9A86C180091e7f78C683d3699);
@@ -157,7 +157,6 @@ contract Harvester is IHarvester {
         uint256 cvxBalance = cvx.balanceOf(address(this));
         uint256 _3crvBalance = _3crv.balanceOf(address(this));
         uint256 snxBalance = snx.balanceOf(address(this));
-
         // swap convex to eth
         if (cvxBalance > 0) {
             uint256 expectedOut = (_getPriceForAmount(cvxEthPrice, cvxBalance));
