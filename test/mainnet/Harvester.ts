@@ -1,8 +1,9 @@
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import * as dotenv from "dotenv";
 import { ethers } from "hardhat";
-import { Harvester } from "../../src/types";
-import { randomSigner, switchToNetwork } from "../utils";
+import { Harvester, Vault } from "../../src/types";
+import { getSigner, randomSigner, switchToNetwork } from "../utils";
 
 const HarvesterConfig = {
   vaultAddress: "0x3c4Fe0db16c9b521480c43856ba3196A9fa50E08",
@@ -28,7 +29,7 @@ const ExpectedHarvesterState = {
   maxBps: 1e4,
 };
 
-let harvester: Harvester;
+let harvester: Harvester, vault: Vault, signer: SignerWithAddress;
 
 describe("Harvester [MAINNET]", () => {
   before(async () => {
@@ -38,15 +39,20 @@ describe("Harvester [MAINNET]", () => {
       Number(process.env.BLOCK_NUMBER)
     );
 
-    const signer = await randomSigner();
+    signer = await randomSigner();
 
     const HarvesterFactory = await ethers.getContractFactory("Harvester");
     harvester = (await HarvesterFactory.connect(signer).deploy(
       ...Object.values(HarvesterConfig)
     )) as Harvester;
+
+    vault = (await ethers.getContractAt(
+      "interfaces/IVault.sol:IVault",
+      HarvesterConfig.vaultAddress
+    )) as Vault;
   });
 
-  it("is harvester deployed correctly", async () => {
+  it("is harvester deployed correctly, with all state", async () => {
     expect(await harvester.MAX_BPS()).equal(ExpectedHarvesterState.maxBps);
     expect(await harvester.WETH_SWAP_FEE()).equal(
       ExpectedHarvesterState.wethSwapFee
@@ -86,5 +92,35 @@ describe("Harvester [MAINNET]", () => {
     expect(await harvester.ethUsdPrice()).equal(
       ExpectedHarvesterState.ethUsdPrice
     );
+  });
+
+  it("is reward tokens returned correctly", async () => {
+    const queriedRewards = await harvester.rewardTokens();
+
+    const { crv, cvx, _3crv, snx } = ExpectedHarvesterState;
+    const expectedRewards = [crv, cvx, _3crv, snx];
+
+    const areAllRewardsCorrect = queriedRewards.every(
+      (it, idx) => it === expectedRewards[idx]
+    );
+    expect(areAllRewardsCorrect);
+  });
+
+  it("is setSlippage working as expected, and has access limitations", async () => {
+    const keeper = await getSigner(await vault.keeper());
+    const newSlippage = 1000;
+
+    expect(
+      harvester.connect(signer).setSlippage(newSlippage)
+    ).to.be.revertedWith("auth : onlyKeeper");
+
+    await harvester.connect(keeper).setSlippage(newSlippage);
+    expect(await harvester.maxSlippage()).equal(newSlippage);
+
+    await harvester
+      .connect(keeper)
+      .setSlippage(
+        ExpectedHarvesterState.slippage * (await harvester.MAX_BPS()).toNumber()
+      );
   });
 });

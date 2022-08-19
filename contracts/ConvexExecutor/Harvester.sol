@@ -266,16 +266,13 @@ contract Harvester is IHarvester {
 
     /// @notice to check if caller is governance
     modifier onlyGovernance() {
-        require(
-            msg.sender == vault.governance(),
-            "Harvester :: onlyGovernance"
-        );
+        require(msg.sender == vault.governance(), "auth : onlyGovernance");
         _;
     }
 
     /// @notice to check if caller is keeper
     modifier onlyKeeper() {
-        require(msg.sender == vault.keeper(), "auth: keeper");
+        require(msg.sender == vault.keeper(), "auth: onlyKeeper");
         _;
     }
 }
