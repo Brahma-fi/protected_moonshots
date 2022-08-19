@@ -257,13 +257,6 @@ contract Harvester is IHarvester {
     /*///////////////////////////////////////////////////////////////
                         ACCESS MODIFIERS
   //////////////////////////////////////////////////////////////*/
-
-    /// @notice to check for valid address
-    modifier validAddress(address _addr) {
-        require(_addr != address(0), "_addr invalid");
-        _;
-    }
-
     /// @notice to check if caller is governance
     modifier onlyGovernance() {
         require(msg.sender == vault.governance(), "auth : onlyGovernance");

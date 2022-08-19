@@ -1,6 +1,7 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import * as dotenv from "dotenv";
+import { BigNumber } from "ethers";
 import { ethers } from "hardhat";
 import { Harvester, IERC20, Vault } from "../../src/types";
 import { getSigner, randomSigner, switchToNetwork } from "../utils";
@@ -48,19 +49,29 @@ const ExpectedHarvesterState = {
   maxBps: 1e4,
 };
 
-let harvester: Harvester, vault: Vault, signer: SignerWithAddress;
+let harvester: Harvester,
+  vault: Vault,
+  wantToken: IERC20,
+  signer: SignerWithAddress;
 
-const getAllBalancesTo = async (recipient: string) => {
+const getAllBalancesTo = async (
+  recipient: string,
+  sender?: string,
+  amount?: BigNumber
+) => {
   for (const { addr, token } of Object.values(WhaleAddresses)) {
     const tokenContract = (await ethers.getContractAt(
       "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20",
       token
     )) as IERC20;
-    const _signer = await getSigner(addr);
+    const _signer = await getSigner(sender || addr);
 
     await tokenContract
       .connect(_signer)
-      .transfer(recipient, await tokenContract.balanceOf(addr));
+      .transfer(
+        recipient,
+        amount || (await tokenContract.balanceOf(_signer.address))
+      );
   }
 };
 
@@ -83,6 +94,11 @@ describe("Harvester [MAINNET]", () => {
       "interfaces/IVault.sol:IVault",
       HarvesterConfig.vaultAddress
     )) as Vault;
+
+    wantToken = (await ethers.getContractAt(
+      "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20",
+      await vault.wantToken()
+    )) as IERC20;
   });
 
   it("is harvester deployed correctly, with all state", async () => {
@@ -183,5 +199,25 @@ describe("Harvester [MAINNET]", () => {
     const currentGovernanceCrvBalance = await crv.balanceOf(governance.address);
 
     expect(currentGovernanceCrvBalance.gt(previousGovernanceCrvBalance));
+  });
+
+  it("is harvest working correctly when it has no reward tokens", async () => {
+    await harvester.harvest();
+    expect((await wantToken.balanceOf(signer.address)).eq(BigNumber.from(0)));
+  });
+
+  it("is harvest working correctly when it has all tokens", async () => {
+    await getAllBalancesTo(
+      harvester.address,
+      await vault.governance(),
+      BigNumber.from(1e3).mul(BigNumber.from(1e9).mul(BigNumber.from(1e9)))
+    );
+    const initialWantBalance = await wantToken.balanceOf(signer.address);
+    expect(initialWantBalance.eq(BigNumber.from(0)));
+
+    await harvester.connect(signer).harvest();
+
+    const finalWantBalance = await wantToken.balanceOf(signer.address);
+    expect(finalWantBalance.gt(initialWantBalance));
   });
 });
