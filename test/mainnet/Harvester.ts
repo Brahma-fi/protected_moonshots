@@ -2,8 +2,27 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { expect } from "chai";
 import * as dotenv from "dotenv";
 import { ethers } from "hardhat";
-import { Harvester, Vault } from "../../src/types";
+import { Harvester, IERC20, Vault } from "../../src/types";
 import { getSigner, randomSigner, switchToNetwork } from "../utils";
+
+const WhaleAddresses = {
+  cvx: {
+    addr: "0xCF50b810E57Ac33B91dCF525C6ddd9881B139332",
+    token: "0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B",
+  },
+  crv: {
+    addr: "0x5f3b5DfEb7B28CDbD7FAba78963EE202a494e2A2",
+    token: "0xD533a949740bb3306d119CC777fa900bA034cd52",
+  },
+  _3crv: {
+    addr: "0xd632f22692FaC7611d2AA1C0D552930D43CAEd3B",
+    token: "0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490",
+  },
+  snx: {
+    addr: "0x5Fd79D46EBA7F351fe49BFF9E87cdeA6c821eF9f",
+    token: "0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F",
+  },
+};
 
 const HarvesterConfig = {
   vaultAddress: "0x3c4Fe0db16c9b521480c43856ba3196A9fa50E08",
@@ -30,6 +49,20 @@ const ExpectedHarvesterState = {
 };
 
 let harvester: Harvester, vault: Vault, signer: SignerWithAddress;
+
+const getAllBalancesTo = async (recipient: string) => {
+  for (const { addr, token } of Object.values(WhaleAddresses)) {
+    const tokenContract = (await ethers.getContractAt(
+      "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20",
+      token
+    )) as IERC20;
+    const _signer = await getSigner(addr);
+
+    await tokenContract
+      .connect(_signer)
+      .transfer(recipient, await tokenContract.balanceOf(addr));
+  }
+};
 
 describe("Harvester [MAINNET]", () => {
   before(async () => {
@@ -122,5 +155,33 @@ describe("Harvester [MAINNET]", () => {
       .setSlippage(
         ExpectedHarvesterState.slippage * (await harvester.MAX_BPS()).toNumber()
       );
+  });
+
+  it("is sweep working as expected, and has access limitations", async () => {
+    const governance = await getSigner(await vault.governance());
+    await getAllBalancesTo(governance.address);
+
+    const crv = (await ethers.getContractAt(
+      "@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20",
+      ExpectedHarvesterState.crv
+    )) as IERC20;
+    await crv
+      .connect(governance)
+      .transfer(
+        harvester.address,
+        (await crv.balanceOf(governance.address)).div(2)
+      );
+
+    expect(
+      harvester.connect(signer).sweep(ExpectedHarvesterState.crv)
+    ).to.be.revertedWith("auth : onlyGovernance");
+
+    const previousGovernanceCrvBalance = await crv.balanceOf(
+      governance.address
+    );
+    await harvester.connect(governance).sweep(crv.address);
+    const currentGovernanceCrvBalance = await crv.balanceOf(governance.address);
+
+    expect(currentGovernanceCrvBalance.gt(previousGovernanceCrvBalance));
   });
 });
