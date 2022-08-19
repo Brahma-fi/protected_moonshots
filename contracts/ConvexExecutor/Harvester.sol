@@ -50,20 +50,20 @@ contract Harvester is IHarvester {
     IERC20 public constant override _3crv =
         IERC20(0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490);
     /// @notice address of WETH token
-    IERC20 private constant weth =
+    IERC20 public constant weth =
         IERC20(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
 
     /// @notice address of Curve's CRV/ETH pool
-    ICurveV2Pool private constant crveth =
+    ICurveV2Pool public constant crveth =
         ICurveV2Pool(0x8301AE4fc9c624d1D396cbDAa1ed877821D7C511);
     /// @notice address of Curve's CVX/ETH pool
-    ICurveV2Pool private constant cvxeth =
+    ICurveV2Pool public constant cvxeth =
         ICurveV2Pool(0xB576491F1E6e5E62f1d8F26062Ee822B40B0E0d4);
     /// @notice address of Curve's 3CRV metapool
-    ICurveV2Pool private constant _3crvPool =
+    ICurveV2Pool public constant _3crvPool =
         ICurveV2Pool(0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7);
     /// @notice address of uniswap router
-    IUniswapV3Router private constant uniswapRouter =
+    IUniswapV3Router public constant uniswapRouter =
         IUniswapV3Router(0xE592427A0AEce92De3Edee1F18E0157C05861564);
 
     /// @notice chainlink data feed for CRV/ETH
@@ -72,7 +72,7 @@ contract Harvester is IHarvester {
     /// @notice chainlink data feed for CVX/ETH
     IAggregatorV3 public constant cvxEthPrice =
         IAggregatorV3(0xC9CbF687f43176B302F03f5e58470b77D07c61c6);
-    /// @notice chainlinkd ata feed for SNX/ETH
+    /// @notice chainlinkd ata feed for SNX/USD
     IAggregatorV3 public constant snxUsdPrice =
         IAggregatorV3(0xDC3EA94CD0AC27d9A86C180091e7f78C683d3699);
     /// @notice chainlink data feed for ETH/USD
