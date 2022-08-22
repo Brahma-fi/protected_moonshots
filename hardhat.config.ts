@@ -7,7 +7,10 @@ import "@typechain/hardhat";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
 import "hardhat-contract-sizer";
+import "hardhat-dependency-compiler";
+import { lyraContractPaths } from "@lyrafinance/protocol/dist/test/utils/package/index-paths";
 import { readFileSync } from "fs";
+import axios from "axios";
 
 dotenv.config();
 
@@ -30,7 +33,7 @@ const buildForkConfig = (): HardhatNetworkForkingUserConfig => {
   let forkMode: HardhatNetworkForkingUserConfig;
   if (FORK_OPTIMISM == "1") {
     forkMode = {
-      url: process.env.QUICKNODE_OPTIMISM_URL,
+      url: `https://opt-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_KEY}`,
       blockNumber: Number(process.env.OPTIMISM_BLOCK_NUMBER),
     };
   } else {
@@ -43,16 +46,30 @@ const buildForkConfig = (): HardhatNetworkForkingUserConfig => {
 };
 
 const getTenderlyForkConfig = (): string => {
-  let url = JSON.parse(readFileSync("tenderlyConfig.json").toString());
-  // console.log(`https://rpc.tenderly.co/fork/${process.env.TENDERLY_FORK_ID}`)
-  return url.forkRPCUrl;
-
-  // return `https://rpc.tenderly.co/fork/${process.env.TENDERLY_FORK_ID}`
+  const tenderlyConfig = JSON.parse(
+    readFileSync("./tenderlyConfig.json").toString()
+  );
+  return (
+    tenderlyConfig?.forkURL ||
+    `https://rpc.tenderly.co/fork/${process.env.TENDERLY_FORK_ID}`
+  );
 };
 
 const config: HardhatUserConfig = {
+  mocha: {
+    timeout: 500000,
+  },
   solidity: {
     compilers: [
+      {
+        version: "0.8.9",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 100,
+          },
+        },
+      },
       {
         version: "0.8.4",
         settings: {
@@ -123,6 +140,9 @@ const config: HardhatUserConfig = {
     disambiguatePaths: false,
     runOnCompile: true,
     strict: true,
+  },
+  dependencyCompiler: {
+    paths: [...lyraContractPaths],
   },
 };
 

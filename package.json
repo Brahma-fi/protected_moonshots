@@ -2,7 +2,8 @@
   "name": "hardhat-project",
   "scripts": {
     "compile": "npx hardhat compile",
-    "test": "npx hardhat test"
+    "test": "npx hardhat test",
+    "run:tenderly": "npx hardhat run scripts/setupTenderly.ts --no-compile && npx hardhat"
   },
   "devDependencies": {
     "@nomiclabs/hardhat-ethers": "^2.0.4",
@@ -17,6 +18,7 @@
     "@typescript-eslint/eslint-plugin": "^4.33.0",
     "@typescript-eslint/parser": "^4.33.0",
     "chai": "^4.3.6",
+    "dayjs": "^1.11.3",
     "dotenv": "^10.0.0",
     "eslint": "^7.32.0",
     "eslint-config-prettier": "^8.3.0",
@@ -29,6 +31,7 @@
     "ethers": "^5.5.4",
     "hardhat": "^2.9.9",
     "hardhat-contract-sizer": "^2.4.0",
+    "hardhat-dependency-compiler": "^1.1.3",
     "hardhat-gas-reporter": "^1.0.7",
     "husky": "4",
     "lint-staged": "^12.4.0",
@@ -41,13 +44,17 @@
     "typescript": "^4.5.5"
   },
   "dependencies": {
+    "@lyrafinance/lyra-js": "0.0.15",
+    "@lyrafinance/protocol": "^0.1.2-alpha",
     "@openzeppelin/contracts-upgradeable": "3.4.2",
     "@perp/curie-contract": "^1.0.15",
     "@uniswap/v3-core": "^1.0.1",
     "@uniswap/v3-periphery": "^1.4.0",
     "abi-decoder": "^2.4.0",
     "axios": "^0.26.1",
-    "hardhat-change-network": "^0.0.7"
+    "hardhat-change-network": "^0.0.7",
+    "openzeppelin-contracts-4.4.1": "npm:@openzeppelin/contracts@4.4.1",
+    "openzeppelin-uni": "npm:@openzeppelin/contracts@3.4.2-solc-0.7"
   },
   "husky": {
     "hooks": {
