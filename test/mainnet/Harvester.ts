@@ -218,6 +218,7 @@ describe("Harvester [MAINNET]", () => {
     await harvester.connect(signer).harvest();
 
     const finalWantBalance = await wantToken.balanceOf(signer.address);
+    console.log(finalWantBalance);
     expect(finalWantBalance.gt(initialWantBalance));
   });
 });

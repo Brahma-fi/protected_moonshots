@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "./interfaces/IHarvester.sol";
 import "./interfaces/IUniswapV3Router.sol";
 import "./interfaces/ICurveV2Pool.sol";
+
 import "../../interfaces/IVault.sol";
 import "../../interfaces/IAggregatorV3.sol";
 
@@ -18,10 +19,16 @@ contract Harvester is IHarvester {
     using SafeERC20 for IERC20Metadata;
 
     /// @notice event emitted when slippage is updated
+    /// @return oldSlippage slippage before update
+    /// @return newSlippage slippage after update
     event UpdatedSlippage(
         uint256 indexed oldSlippage,
         uint256 indexed newSlippage
     );
+
+    /// @notice event emitted when harvest is completed
+    /// @return wantTokensReceieved amount of want tokens received
+    event Harvested(uint256 wantTokensReceived);
 
     /*///////////////////////////////////////////////////////////////
                         GLOBAL CONSTANTS
@@ -117,6 +124,7 @@ contract Harvester is IHarvester {
                          VIEW FUNCTONS
   //////////////////////////////////////////////////////////////*/
     /// @notice Function which returns address of reward tokens
+    /// @notice be cautious of not overfilling this token with unneeded addresses
     /// @return rewardTokens array of reward token addresses
     function rewardTokens() external view override returns (address[] memory) {
         return rewards;
@@ -152,7 +160,8 @@ contract Harvester is IHarvester {
 
     /// @notice Harvest the entire swap tokens list, i.e convert them into wantToken
     /// @dev Pulls all swap token balances from the msg.sender, swaps them into wantToken, and sends back the wantToken balance
-    function harvest() external override {
+    /// @return wantTokensReceived amount of want tokens received after harvest
+    function harvest() external override returns (uint256 wantTokensReceived) {
         uint256 crvBalance = crv.balanceOf(address(this));
         uint256 cvxBalance = cvx.balanceOf(address(this));
         uint256 _3crvBalance = _3crv.balanceOf(address(this));
@@ -207,20 +216,24 @@ contract Harvester is IHarvester {
         }
 
         // send token usdc back to vault
-        IERC20(vault.wantToken()).safeTransfer(
-            msg.sender,
-            IERC20(vault.wantToken()).balanceOf(address(this))
-        );
+        wantTokensReceived = IERC20(vault.wantToken()).balanceOf(address(this));
+        IERC20(vault.wantToken()).safeTransfer(msg.sender, wantTokensReceived);
+
+        emit Harvested(wantTokensReceived);
     }
 
     /// @notice helper to perform swap snx -> usdc on uniswap v3
+    /// @param tokenIn address of token to swap
+    /// @param amount amount of token to swap
+    /// @param fee fee % to use to perform swap
     function _swapToWantOnUniV3(
         address tokenIn,
         uint256 amount,
         uint256 fee,
         IAggregatorV3 priceFeed
     ) internal {
-        uint256 expectedOut = (_getPriceForAmount(priceFeed, amount) * 1e6) /
+        uint256 expectedOut = (_getPriceForAmount(priceFeed, amount) *
+            10**IERC20Metadata(vault.wantToken()).decimals()) /
             ETH_NORMALIZATION_FACTOR;
 
         uniswapRouter.exactInput(
@@ -240,6 +253,8 @@ contract Harvester is IHarvester {
 
     /// @notice helper to get price of tokens in ETH, from chainlink
     /// @param priceFeed the price feed to fetch latest price from
+    /// @param amount amount of tokens to return price for
+    /// @return price
     function _getPriceForAmount(IAggregatorV3 priceFeed, uint256 amount)
         internal
         view
@@ -250,6 +265,8 @@ contract Harvester is IHarvester {
     }
 
     /// @notice helper to get minimum amount to receive from swap
+    /// @param amount amount of expected tokens, accounted for slippage
+    /// @return minExpected
     function _getMinReceived(uint256 amount) internal view returns (uint256) {
         return (amount * (MAX_BPS - maxSlippage)) / MAX_BPS;
     }

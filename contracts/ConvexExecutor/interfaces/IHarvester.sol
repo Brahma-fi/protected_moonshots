@@ -15,7 +15,7 @@ interface IHarvester {
     function vault() external view returns (IVault);
 
     // Swap tokens to wantToken
-    function harvest() external;
+    function harvest() external returns (uint256);
 
     function sweep(address _token) external;
 
