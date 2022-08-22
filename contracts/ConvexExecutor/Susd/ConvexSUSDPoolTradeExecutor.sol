@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "../../BaseTradeExecutor.sol";
-import {ConvexPositionHandler} from "./ConvexPositionHandler.sol";
+import {ConvexPositionHandler, IHarvester} from "./ConvexPositionHandler.sol";
 
 /// @title ConvexTradeExecutor
 /// @author PradeepSelva
@@ -70,7 +70,7 @@ contract ConvexSUSDPoolTradeExecutor is
     function setHandler(address _harvester) external onlyGovernance {
         address oldHarvester = address(ConvexPositionHandler.harvester);
 
-        ConvexPositionHandler._configHandler(_harvester, vaultWantToken());
+        harvester = IHarvester(_harvester);
         emit UpdatedHarvester(oldHarvester, _harvester);
     }
 
