@@ -2,7 +2,7 @@ import hre from "hardhat";
 import { Vault } from "../../src/types";
 
 const ConvexSUSDPoolTradeExecutorConfig = {
-  harvester: "0x2022C855CeefD7759dBbb5bB7A8F14C82688646A",
+  harvester: "0x079d4c4179f0018EE5587f416560A94261a9F72F",
   vault: "0x3c4Fe0db16c9b521480c43856ba3196A9fa50E08",
 };
 
