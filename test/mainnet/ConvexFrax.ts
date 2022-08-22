@@ -204,11 +204,12 @@ describe("Convex Frax2Pool Trade Executor [MAINNET]", function () {
 
   it("Should get rewards correctly and harvest to USDC", async () => {
     let beforeReward = await baseRewardPool.earned(convexTradeExecutor.address);
-    await mineBlocks(1);
+    await mineBlocks(2500);
     let afterReard = await baseRewardPool.earned(convexTradeExecutor.address);
     console.log("Before reward:", beforeReward.toString());
     console.log("After reward:", afterReard.toString());
     const initialUSDC = await USDC.balanceOf(convexTradeExecutor.address);
+    await harvester.connect(signer).setSlippage(1000);
     await convexTradeExecutor.connect(signer).claimRewards("0x00", {
       gasLimit: 5e6,
     });

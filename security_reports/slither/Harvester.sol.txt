@@ -1,0 +1,158 @@
+22 Aug, 2022
+---
+
+Harvester.constructor(address) (contracts/ConvexExecutor/Harvester.sol#102-121) ignores return value by crv.approve(address(crveth),type()(uint256).max) (contracts/ConvexExecutor/Harvester.sol#106)
+Harvester.constructor(address) (contracts/ConvexExecutor/Harvester.sol#102-121) ignores return value by cvx.approve(address(cvxeth),type()(uint256).max) (contracts/ConvexExecutor/Harvester.sol#108)
+Harvester.constructor(address) (contracts/ConvexExecutor/Harvester.sol#102-121) ignores return value by _3crv.approve(address(_3crvPool),type()(uint256).max) (contracts/ConvexExecutor/Harvester.sol#110)
+Harvester.constructor(address) (contracts/ConvexExecutor/Harvester.sol#102-121) ignores return value by weth.approve(address(uniswapRouter),type()(uint256).max) (contracts/ConvexExecutor/Harvester.sol#112)
+Harvester.constructor(address) (contracts/ConvexExecutor/Harvester.sol#102-121) ignores return value by snx.approve(address(uniswapRouter),type()(uint256).max) (contracts/ConvexExecutor/Harvester.sol#114)
+Harvester._swapToWantOnUniV3(address,uint256,uint256,IAggregatorV3) (contracts/ConvexExecutor/Harvester.sol#212-231) ignores return value by uniswapRouter.exactInput(IUniswapV3Router.ExactInputParams(abi.encodePacked(tokenIn,uint24(fee),address(vault.wantToken())),address(this),block.timestamp,amount,_getMinReceived(expectedOut))) (contracts/ConvexExecutor/Harvester.sol#222-230)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#unused-return
+
+---
+
+Reentrancy in Harvester.constructor(address) (contracts/ConvexExecutor/Harvester.sol#102-121):
+	External calls:
+	- crv.approve(address(crveth),type()(uint256).max) (contracts/ConvexExecutor/Harvester.sol#106)
+	- cvx.approve(address(cvxeth),type()(uint256).max) (contracts/ConvexExecutor/Harvester.sol#108)
+	- _3crv.approve(address(_3crvPool),type()(uint256).max) (contracts/ConvexExecutor/Harvester.sol#110)
+	- weth.approve(address(uniswapRouter),type()(uint256).max) (contracts/ConvexExecutor/Harvester.sol#112)
+	- snx.approve(address(uniswapRouter),type()(uint256).max) (contracts/ConvexExecutor/Harvester.sol#114)
+	State variables written after the call(s):
+	- rewards = new address[](4) (contracts/ConvexExecutor/Harvester.sol#116)
+	- rewards[0] = address(crv) (contracts/ConvexExecutor/Harvester.sol#117)
+	- rewards[1] = address(cvx) (contracts/ConvexExecutor/Harvester.sol#118)
+	- rewards[2] = address(_3crv) (contracts/ConvexExecutor/Harvester.sol#119)
+	- rewards[3] = address(snx) (contracts/ConvexExecutor/Harvester.sol#120)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-2
+
+Reentrancy in Harvester.harvest() (contracts/ConvexExecutor/Harvester.sol#164-206):
+	External calls:
+	- cvxeth.exchange(1,0,cvxBalance,_getMinReceived(expectedOut),false) (contracts/ConvexExecutor/Harvester.sol#172)
+	- crveth.exchange(1,0,crvBalance,_getMinReceived(expectedOut_scope_0),false) (contracts/ConvexExecutor/Harvester.sol#177)
+	- _swapToWantOnUniV3(address(weth),wethBalance,WETH_SWAP_FEE,ethUsdPrice) (contracts/ConvexExecutor/Harvester.sol#184-189)
+		- uniswapRouter.exactInput(IUniswapV3Router.ExactInputParams(abi.encodePacked(tokenIn,uint24(fee),address(vault.wantToken())),address(this),block.timestamp,amount,_getMinReceived(expectedOut))) (contracts/ConvexExecutor/Harvester.sol#222-230)
+	- _3crvPool.remove_liquidity_one_coin(_3crvBalance,1,0) (contracts/ConvexExecutor/Harvester.sol#194)
+	- _swapToWantOnUniV3(address(snx),snxBalance,SNX_SWAP_FEE,snxUsdPrice) (contracts/ConvexExecutor/Harvester.sol#198)
+		- uniswapRouter.exactInput(IUniswapV3Router.ExactInputParams(abi.encodePacked(tokenIn,uint24(fee),address(vault.wantToken())),address(this),block.timestamp,amount,_getMinReceived(expectedOut))) (contracts/ConvexExecutor/Harvester.sol#222-230)
+	- IERC20(vault.wantToken()).safeTransfer(msg.sender,wantTokensReceived) (contracts/ConvexExecutor/Harvester.sol#203)
+	Event emitted after the call(s):
+	- Harvested(wantTokensReceived) (contracts/ConvexExecutor/Harvester.sol#205)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-3
+
+Address.verifyCallResult(bool,bytes,string) (node_modules/@openzeppelin/contracts/utils/Address.sol#201-221) uses assembly
+	- INLINE ASM (node_modules/@openzeppelin/contracts/utils/Address.sol#213-216)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#assembly-usage
+
+Different versions of Solidity is used:
+	- Version used: ['^0.8.0', '^0.8.1']
+	- ^0.8.0 (contracts/ConvexExecutor/Harvester.sol#2)
+	- ^0.8.0 (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#1)
+	- ^0.8.0 (contracts/ConvexExecutor/interfaces/IHarvester.sol#2)
+	- ^0.8.0 (contracts/ConvexExecutor/interfaces/IUniswapV3Router.sol#1)
+	- ^0.8.0 (interfaces/IAggregatorV3.sol#2)
+	- v2 (interfaces/IAggregatorV3.sol#3)
+	- ^0.8.0 (interfaces/IVault.sol#2)
+	- ^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol#4)
+	- ^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol#4)
+	- ^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#4)
+	- ^0.8.1 (node_modules/@openzeppelin/contracts/utils/Address.sol#4)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#different-pragma-directives-are-used
+
+Address.functionCall(address,bytes) (node_modules/@openzeppelin/contracts/utils/Address.sol#85-87) is never used and should be removed
+Address.functionCallWithValue(address,bytes,uint256) (node_modules/@openzeppelin/contracts/utils/Address.sol#114-120) is never used and should be removed
+Address.functionDelegateCall(address,bytes) (node_modules/@openzeppelin/contracts/utils/Address.sol#174-176) is never used and should be removed
+Address.functionDelegateCall(address,bytes,string) (node_modules/@openzeppelin/contracts/utils/Address.sol#184-193) is never used and should be removed
+Address.functionStaticCall(address,bytes) (node_modules/@openzeppelin/contracts/utils/Address.sol#147-149) is never used and should be removed
+Address.functionStaticCall(address,bytes,string) (node_modules/@openzeppelin/contracts/utils/Address.sol#157-166) is never used and should be removed
+Address.sendValue(address,uint256) (node_modules/@openzeppelin/contracts/utils/Address.sol#60-65) is never used and should be removed
+SafeERC20.safeApprove(IERC20,address,uint256) (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#45-58) is never used and should be removed
+SafeERC20.safeDecreaseAllowance(IERC20,address,uint256) (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#69-80) is never used and should be removed
+SafeERC20.safeIncreaseAllowance(IERC20,address,uint256) (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#60-67) is never used and should be removed
+SafeERC20.safeTransferFrom(IERC20,address,address,uint256) (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#29-36) is never used and should be removed
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#dead-code
+
+Pragma version^0.8.0 (contracts/ConvexExecutor/Harvester.sol#2) allows old versions
+Pragma version^0.8.0 (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#1) allows old versions
+Pragma version^0.8.0 (contracts/ConvexExecutor/interfaces/IHarvester.sol#2) allows old versions
+Pragma version^0.8.0 (contracts/ConvexExecutor/interfaces/IUniswapV3Router.sol#1) allows old versions
+Pragma version^0.8.0 (interfaces/IAggregatorV3.sol#2) allows old versions
+Pragma version^0.8.0 (interfaces/IVault.sol#2) allows old versions
+Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol#4) allows old versions
+Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol#4) allows old versions
+Pragma version^0.8.0 (node_modules/@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol#4) allows old versions
+Pragma version^0.8.1 (node_modules/@openzeppelin/contracts/utils/Address.sol#4) allows old versions
+solc-0.8.16 is not recommended for deployment
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#incorrect-versions-of-solidity
+
+Low level call in Address.sendValue(address,uint256) (node_modules/@openzeppelin/contracts/utils/Address.sol#60-65):
+	- (success) = recipient.call{value: amount}() (node_modules/@openzeppelin/contracts/utils/Address.sol#63)
+Low level call in Address.functionCallWithValue(address,bytes,uint256,string) (node_modules/@openzeppelin/contracts/utils/Address.sol#128-139):
+	- (success,returndata) = target.call{value: value}(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#137)
+Low level call in Address.functionStaticCall(address,bytes,string) (node_modules/@openzeppelin/contracts/utils/Address.sol#157-166):
+	- (success,returndata) = target.staticcall(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#164)
+Low level call in Address.functionDelegateCall(address,bytes,string) (node_modules/@openzeppelin/contracts/utils/Address.sol#184-193):
+	- (success,returndata) = target.delegatecall(data) (node_modules/@openzeppelin/contracts/utils/Address.sol#191)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#low-level-calls
+
+Parameter Harvester.setSlippage(uint256)._slippage (contracts/ConvexExecutor/Harvester.sol#138) is not in mixedCase
+Parameter Harvester.sweep(address)._token (contracts/ConvexExecutor/Harvester.sol#150) is not in mixedCase
+Constant Harvester.crv (contracts/ConvexExecutor/Harvester.sol#48-49) is not in UPPER_CASE_WITH_UNDERSCORES
+Constant Harvester.cvx (contracts/ConvexExecutor/Harvester.sol#51-52) is not in UPPER_CASE_WITH_UNDERSCORES
+Constant Harvester.snx (contracts/ConvexExecutor/Harvester.sol#54-55) is not in UPPER_CASE_WITH_UNDERSCORES
+Constant Harvester._3crv (contracts/ConvexExecutor/Harvester.sol#57-58) is not in UPPER_CASE_WITH_UNDERSCORES
+Constant Harvester.weth (contracts/ConvexExecutor/Harvester.sol#60-61) is not in UPPER_CASE_WITH_UNDERSCORES
+Constant Harvester.crveth (contracts/ConvexExecutor/Harvester.sol#64-65) is not in UPPER_CASE_WITH_UNDERSCORES
+Constant Harvester.cvxeth (contracts/ConvexExecutor/Harvester.sol#67-68) is not in UPPER_CASE_WITH_UNDERSCORES
+Constant Harvester._3crvPool (contracts/ConvexExecutor/Harvester.sol#70-71) is not in UPPER_CASE_WITH_UNDERSCORES
+Constant Harvester.uniswapRouter (contracts/ConvexExecutor/Harvester.sol#73-74) is not in UPPER_CASE_WITH_UNDERSCORES
+Constant Harvester.crvEthPrice (contracts/ConvexExecutor/Harvester.sol#77-78) is not in UPPER_CASE_WITH_UNDERSCORES
+Constant Harvester.cvxEthPrice (contracts/ConvexExecutor/Harvester.sol#80-81) is not in UPPER_CASE_WITH_UNDERSCORES
+Constant Harvester.snxUsdPrice (contracts/ConvexExecutor/Harvester.sol#83-84) is not in UPPER_CASE_WITH_UNDERSCORES
+Constant Harvester.ethUsdPrice (contracts/ConvexExecutor/Harvester.sol#86-87) is not in UPPER_CASE_WITH_UNDERSCORES
+Function ICurveV2Pool.get_virtual_price() (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#4) is not in mixedCase
+Function ICurveV2Pool.add_liquidity(uint256[2],uint256) (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#6-10) is not in mixedCase
+Parameter ICurveV2Pool.add_liquidity(uint256[2],uint256).min_mint_amount (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#9) is not in mixedCase
+Function ICurveV2Pool.add_liquidity(uint256[2],uint256,bool) (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#12-17) is not in mixedCase
+Parameter ICurveV2Pool.add_liquidity(uint256[2],uint256,bool).min_mint_amount (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#15) is not in mixedCase
+Parameter ICurveV2Pool.add_liquidity(uint256[2],uint256,bool)._use_underlying (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#16) is not in mixedCase
+Function ICurveV2Pool.add_liquidity(uint256[3],uint256,bool) (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#19-24) is not in mixedCase
+Parameter ICurveV2Pool.add_liquidity(uint256[3],uint256,bool).min_mint_amount (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#22) is not in mixedCase
+Parameter ICurveV2Pool.add_liquidity(uint256[3],uint256,bool)._use_underlying (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#23) is not in mixedCase
+Function ICurveV2Pool.add_liquidity(address,uint256[4],uint256) (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#26-31) is not in mixedCase
+Parameter ICurveV2Pool.add_liquidity(address,uint256[4],uint256).min_mint_amount (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#30) is not in mixedCase
+Function ICurveV2Pool.add_liquidity(uint256[4],uint256,bool) (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#33-38) is not in mixedCase
+Parameter ICurveV2Pool.add_liquidity(uint256[4],uint256,bool).min_mint_amount (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#36) is not in mixedCase
+Parameter ICurveV2Pool.add_liquidity(uint256[4],uint256,bool)._use_underlying (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#37) is not in mixedCase
+Function ICurveV2Pool.add_liquidity(uint256[3],uint256) (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#40-44) is not in mixedCase
+Parameter ICurveV2Pool.add_liquidity(uint256[3],uint256).min_mint_amount (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#43) is not in mixedCase
+Function ICurveV2Pool.add_liquidity(uint256[4],uint256) (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#46-50) is not in mixedCase
+Parameter ICurveV2Pool.add_liquidity(uint256[4],uint256).min_mint_amount (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#49) is not in mixedCase
+Function ICurveV2Pool.remove_liquidity_imbalance(uint256[2],uint256) (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#52-55) is not in mixedCase
+Parameter ICurveV2Pool.remove_liquidity_imbalance(uint256[2],uint256).max_burn_amount (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#54) is not in mixedCase
+Function ICurveV2Pool.remove_liquidity(uint256,uint256[2]) (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#57-58) is not in mixedCase
+Function ICurveV2Pool.remove_liquidity_one_coin(uint256,int128,uint256) (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#60-64) is not in mixedCase
+Parameter ICurveV2Pool.remove_liquidity_one_coin(uint256,int128,uint256)._token_amount (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#61) is not in mixedCase
+Parameter ICurveV2Pool.remove_liquidity_one_coin(uint256,int128,uint256).min_amount (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#63) is not in mixedCase
+Parameter ICurveV2Pool.exchange(int128,int128,uint256,uint256)._from_amount (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#69) is not in mixedCase
+Parameter ICurveV2Pool.exchange(int128,int128,uint256,uint256)._min_to_amount (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#70) is not in mixedCase
+Parameter ICurveV2Pool.exchange(uint256,uint256,uint256,uint256,bool)._from_amount (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#76) is not in mixedCase
+Parameter ICurveV2Pool.exchange(uint256,uint256,uint256,uint256,bool)._min_to_amount (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#77) is not in mixedCase
+Parameter ICurveV2Pool.exchange(uint256,uint256,uint256,uint256,bool).use_eth (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#78) is not in mixedCase
+Function ICurveV2Pool.get_dy(int128,int128,uint256) (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#83-87) is not in mixedCase
+Parameter ICurveV2Pool.get_dy(int128,int128,uint256)._from_amount (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#86) is not in mixedCase
+Function ICurveV2Pool.calc_token_amount(uint256[2],bool) (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#90-93) is not in mixedCase
+Parameter ICurveV2Pool.calc_token_amount(uint256[2],bool)._is_deposit (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#90) is not in mixedCase
+Function ICurveV2Pool.calc_token_amount(address,uint256[4],bool) (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#96-100) is not in mixedCase
+Parameter ICurveV2Pool.calc_token_amount(address,uint256[4],bool)._is_deposit (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#99) is not in mixedCase
+Function ICurveV2Pool.calc_token_amount(uint256[4],bool) (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#103-106) is not in mixedCase
+Parameter ICurveV2Pool.calc_token_amount(uint256[4],bool)._is_deposit (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#103) is not in mixedCase
+Function ICurveV2Pool.calc_token_amount(uint256[3],bool) (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#109-112) is not in mixedCase
+Parameter ICurveV2Pool.calc_token_amount(uint256[3],bool)._is_deposit (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#109) is not in mixedCase
+Function ICurveV2Pool.calc_withdraw_one_coin(uint256,int128) (contracts/ConvexExecutor/interfaces/ICurveV2Pool.sol#114-117) is not in mixedCase
+Function IHarvester._3crv() (contracts/ConvexExecutor/interfaces/IHarvester.sol#11) is not in mixedCase
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#conformance-to-solidity-naming-conventions
+
+Variable Harvester.crvEthPrice (contracts/ConvexExecutor/Harvester.sol#77-78) is too similar to Harvester.cvxEthPrice (contracts/ConvexExecutor/Harvester.sol#80-81)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#variable-names-are-too-similar
+contracts/ConvexExecutor/Harvester.sol analyzed (10 contracts with 77 detectors), 93 result(s) found
