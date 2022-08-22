@@ -10,11 +10,12 @@ import "../../interfaces/IAggregatorV3.sol";
 
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 /// @title Harvester
 /// @author PradeepSelva
 /// @notice A contract to harvest rewards from Convex staking position into Want Token
-contract Harvester is IHarvester {
+contract Harvester is IHarvester, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using SafeERC20 for IERC20Metadata;
 
@@ -161,7 +162,12 @@ contract Harvester is IHarvester {
     /// @notice Harvest the entire swap tokens list, i.e convert them into wantToken
     /// @dev Pulls all swap token balances from the msg.sender, swaps them into wantToken, and sends back the wantToken balance
     /// @return wantTokensReceived amount of want tokens received after harvest
-    function harvest() external override returns (uint256 wantTokensReceived) {
+    function harvest()
+        external
+        override
+        nonReentrant
+        returns (uint256 wantTokensReceived)
+    {
         uint256 crvBalance = crv.balanceOf(address(this));
         uint256 cvxBalance = cvx.balanceOf(address(this));
         uint256 _3crvBalance = _3crv.balanceOf(address(this));
