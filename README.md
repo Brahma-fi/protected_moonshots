@@ -19,7 +19,7 @@ You can join at the [Discord](https://discord.gg/brahma) channel for asking ques
 
 ## Setup
 
-You can install `hardhat` as an NPM package to get started with contracts. Setup an `.env` as shown in [.env_example](./env_example).
+You can install `hardhat` as an NPM package to get started with contracts. Setup an `.env` as shown in [.env.example](./env.example).
 You can run the full test suite with the following commands:
 
 ```
