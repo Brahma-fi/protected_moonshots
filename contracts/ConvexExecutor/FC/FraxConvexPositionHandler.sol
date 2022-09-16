@@ -77,7 +77,7 @@ abstract contract FraxConvexPositionHandler is BasePositionHandler {
         IFraxConvexBooster(0x569f5B842B5006eC17Be02B8b94510BA8e79FbCa);
 
     /// @notice FraxConvex staking vault
-    IConvexStakingProxy public convexVault;
+    IConvexStakingProxy public immutable convexVault;
 
     /*///////////////////////////////////////////////////////////////
                           INITIALIZING
@@ -103,5 +103,99 @@ abstract contract FraxConvexPositionHandler is BasePositionHandler {
 
         // Approve max lp tokens to frax2Pool
         lpToken.approve(address(fraxPool), type(uint256).max);
+    }
+
+    /**
+   @notice Helper to convert Lp tokens into USDC
+   @dev Burns LpTokens on Frax pool on curve to get USDC
+   @param _amount amount of Lp tokens to burn to get USDC
+   @return receivedWantTokens amount of want tokens received after converting Lp tokens
+   */
+    function _convertLpTokenIntoUSDC(uint256 _amount)
+        internal
+        returns (uint256 receivedWantTokens)
+    {
+        int128 usdcIndexInPool = int128(
+            int256(uint256(FraxPoolCoinIndexes.USDC))
+        );
+
+        // estimate amount of USDC received based on stable peg i.e., 1FXS = 1 3Pool LP Token
+        uint256 expectedWantTokensOut = (_amount *
+            fraxPool.get_virtual_price()) / NORMALIZATION_FACTOR; // 30 = normalizing 18 decimals for virutal price + 18 decimals for LP token - 6 decimals for want token
+        // burn Lp tokens to receive USDC with a slippage of `maxSlippage`
+        receivedWantTokens = fraxPool.remove_liquidity_one_coin(
+            _amount,
+            usdcIndexInPool,
+            (expectedWantTokensOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)
+        );
+    }
+
+    /**
+   @notice Helper to convert USDC into Lp tokens
+   @dev Provides USDC liquidity on Frax pool on curve to get Lp Tokens
+   @param _amount amount of USDC to deposit to get Lp Tokens
+   @return receivedLpTokens amount of LP tokens received after converting USDC
+   */
+    function _convertUSDCIntoLpToken(uint256 _amount)
+        internal
+        returns (uint256 receivedLpTokens)
+    {
+        uint256[2] memory liquidityAmounts = [0, _amount];
+
+        // estimate amount of Lp Tokens based on stable peg i.e., 1FXS = 1 3Pool LP Token
+        uint256 expectedLpOut = (_amount * NORMALIZATION_FACTOR) /
+            fraxPool.get_virtual_price(); // 30 = normalizing 18 decimals for virutal price + 18 decimals for LP token - 6 decimals for want token
+        // Provide USDC liquidity to receive Lp tokens with a slippage of `maxSlippage`
+        receivedLpTokens = fraxPool.add_liquidity(
+            liquidityAmounts,
+            (expectedLpOut * (MAX_BPS - maxSlippage)) / (MAX_BPS)
+        );
+    }
+
+    /**
+   @notice to get value of an amount in USDC
+   @param _value value to be converted
+   @return estimatedLpTokenAmount estimated amount of lp tokens if (_value) amount of USDC is converted
+   */
+    function _lpTokenValueInUSDC(uint256 _value)
+        internal
+        view
+        returns (uint256)
+    {
+        if (_value == 0) return 0;
+
+        return
+            fraxPool.calc_withdraw_one_coin(
+                _value,
+                int128(int256(uint256(FraxPoolCoinIndexes.USDC)))
+            );
+    }
+
+    /**
+   @notice to get value of an amount in USDC based on virtual price
+   @param _value value to be converted
+   @return estimatedLpTokenAmount lp tokens value in USDC based on its virtual price 
+   */
+    function _lpTokenValueInUSDCfromVirtualPrice(uint256 _value)
+        internal
+        view
+        returns (uint256)
+    {
+        return (fraxPool.get_virtual_price() * _value) / NORMALIZATION_FACTOR;
+    }
+
+    /**
+   @notice to get value of an amount in Lp Tokens
+   @param _value value to be converted
+   @return estimatedUSDCAmount estimated amount of USDC if (_value) amount of LP Tokens is converted
+   */
+    function _USDCValueInLpToken(uint256 _value)
+        internal
+        view
+        returns (uint256)
+    {
+        if (_value == 0) return 0;
+
+        return fraxPool.calc_token_amount([0, _value], true);
     }
 }
