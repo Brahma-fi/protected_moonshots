@@ -105,6 +105,71 @@ abstract contract FraxConvexPositionHandler is BasePositionHandler {
         lpToken.approve(address(fraxPool), type(uint256).max);
     }
 
+    /*///////////////////////////////////////////////////////////////
+                          VIEW FUNCTIONS
+  //////////////////////////////////////////////////////////////*/
+
+    /**
+   @notice To get the total balances of the contract in want token price
+   @return totalBalance Total balance of contract in want token
+   @return blockNumber Current block number
+   */
+    function positionInWantToken()
+        public
+        view
+        override
+        returns (uint256, uint256)
+    {
+        (
+            uint256 stakedLpBalance,
+            uint256 lpTokenBalance,
+            uint256 usdcBalance
+        ) = _getTotalBalancesInWantToken(useVirtualPriceForPosValue);
+
+        return (stakedLpBalance + lpTokenBalance + usdcBalance, block.number);
+    }
+
+    /*///////////////////////////////////////////////////////////////
+                          HELPER FUNCTIONS
+  //////////////////////////////////////////////////////////////*/
+
+    /// @notice To get total contract balances in terms of want token
+    /// @dev Gets lp token balance from contract, staked position on convex, and converts all of them to usdc. And gives balance as want token.
+    /// @param useVirtualPrice to check if balances shoudl be based on virtual price
+    /// @return stakedLpBalance balance of staked LP tokens in terms of want token
+    /// @return lpTokenBalance balance of LP tokens in contract
+    /// @return usdcBalance usdc balance in contract
+    function _getTotalBalancesInWantToken(bool useVirtualPrice)
+        internal
+        view
+        returns (
+            uint256 stakedLpBalance,
+            uint256 lpTokenBalance,
+            uint256 usdcBalance
+        )
+    {
+        // TODO: uint256 stakedLpBalanceRaw = baseRewardPool.balanceOf(address(this));
+        uint256 stakedLpBalanceRaw = 0;
+        uint256 lpTokenBalanceRaw = lpToken.balanceOf(address(this));
+
+        uint256 totalLpBalance = stakedLpBalanceRaw + lpTokenBalanceRaw;
+
+        // Here, in order to prevent price manipulation attacks via curve pools,
+        // When getting total position value -> its calculated based on virtual price
+        // During withdrawal -> calc_withdraw_one_coin() is used to get an actual estimate of USDC received if we were to remove liquidity
+        // The following checks account for this
+        uint256 totalLpBalanceInUSDC = useVirtualPrice
+            ? _lpTokenValueInUSDCfromVirtualPrice(totalLpBalance)
+            : _lpTokenValueInUSDC(totalLpBalance);
+
+        lpTokenBalance = useVirtualPrice
+            ? _lpTokenValueInUSDCfromVirtualPrice(lpTokenBalanceRaw)
+            : _lpTokenValueInUSDC(lpTokenBalanceRaw);
+
+        stakedLpBalance = totalLpBalanceInUSDC - lpTokenBalance;
+        usdcBalance = wantToken.balanceOf(address(this));
+    }
+
     /**
    @notice Helper to convert Lp tokens into USDC
    @dev Burns LpTokens on Frax pool on curve to get USDC
