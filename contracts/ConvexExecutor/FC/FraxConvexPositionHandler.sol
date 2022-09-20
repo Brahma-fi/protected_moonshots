@@ -225,6 +225,45 @@ abstract contract FraxConvexPositionHandler is BasePositionHandler {
     }
 
     /*///////////////////////////////////////////////////////////////
+                      REWARDS LOGIC
+  //////////////////////////////////////////////////////////////*/
+    /**
+   @notice To claim rewards from Convex Staking position
+   @dev Claims Convex Staking position rewards, and converts them to wantToken i.e., USDC.
+   @param _data param not needed here. Added to comply with the interface
+   */
+    function _claimRewards(bytes calldata _data) internal override {
+        convexVault.getReward();
+
+        uint256 initialUSDCBalance = wantToken.balanceOf(address(this));
+
+        // get list of tokens to transfer to harvester
+        address[] memory rewardTokens = harvester.rewardTokens();
+        //transfer them
+        uint256 balance;
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
+            balance = IERC20(rewardTokens[i]).balanceOf(address(this));
+
+            if (balance > 0) {
+                IERC20(rewardTokens[i]).safeTransfer(
+                    address(harvester),
+                    balance
+                );
+            }
+        }
+
+        // convert all rewards to usdc
+        harvester.harvest();
+
+        latestHarvestedRewards =
+            wantToken.balanceOf(address(this)) -
+            initialUSDCBalance;
+        totalCummulativeRewards += latestHarvestedRewards;
+
+        emit Claim(latestHarvestedRewards);
+    }
+
+    /*///////////////////////////////////////////////////////////////
                           HELPER FUNCTIONS
   //////////////////////////////////////////////////////////////*/
 
