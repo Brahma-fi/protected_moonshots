@@ -55,6 +55,8 @@ abstract contract FraxConvexPositionHandler is BasePositionHandler {
     uint256 public latestHarvestedRewards;
     /// @notice the total cummulative rewards earned so far
     uint256 public totalCummulativeRewards;
+    /// @notice _kek_id of current open convex position
+    bytes32 public currentKekId;
     /// @notice governance handled variable, that tells how to calculate position in want token
     /// @dev this is done to account for cases of depeg
     bool public useVirtualPriceForPosValue = true;
@@ -127,6 +129,44 @@ abstract contract FraxConvexPositionHandler is BasePositionHandler {
         ) = _getTotalBalancesInWantToken(useVirtualPriceForPosValue);
 
         return (stakedLpBalance + lpTokenBalance + usdcBalance, block.number);
+    }
+
+    /*///////////////////////////////////////////////////////////////
+                      DEPOSIT / WITHDRAW LOGIC
+  //////////////////////////////////////////////////////////////*/
+
+    /**
+   @notice To deposit into the Curve Pool
+   @dev Converts USDC to lp tokens via Curve
+   @param _data Encoded AmountParams as _data with USDC amount
+   */
+    function _deposit(bytes calldata _data) internal override {
+        AmountParams memory depositParams = abi.decode(_data, (AmountParams));
+        require(
+            depositParams._amount <= wantToken.balanceOf(address(this)),
+            "invalid deposit amount"
+        );
+
+        _convertUSDCIntoLpToken(depositParams._amount);
+
+        emit Deposit(depositParams._amount);
+    }
+
+    /**
+   @notice To withdraw from ConvexHandler
+   @dev  Converts Curve Lp Tokens  back to USDC.
+   @param _data param not needed here. Added to comply with the interface
+   */
+    function _withdraw(bytes calldata _data) internal override {
+        convexVault.withdrawLockedAndUnwrap(currentKekId);
+        uint256 lpTokensToConvert = lpToken.balanceOf(address(this));
+
+        // if lp tokens are required to convert, then convert to usdc and update amountToWithdraw
+        if (lpTokensToConvert > 0) {
+            _convertLpTokenIntoUSDC(lpTokensToConvert);
+        }
+
+        emit Withdraw(wantToken.balanceOf(address(this)));
     }
 
     /*///////////////////////////////////////////////////////////////
