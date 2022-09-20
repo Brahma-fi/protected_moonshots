@@ -51,6 +51,8 @@ abstract contract FraxConvexPositionHandler is BasePositionHandler {
   //////////////////////////////////////////////////////////////*/
     /// @notice the max permitted slippage for swaps
     uint256 public maxSlippage = 30;
+    /// @notice The duration to open a staking position for ( in secs )
+    uint256 public stakingPeriodSecs;
     /// @notice the latest amount of rewards claimed and harvested
     uint256 public latestHarvestedRewards;
     /// @notice the total cummulative rewards earned so far
@@ -158,15 +160,68 @@ abstract contract FraxConvexPositionHandler is BasePositionHandler {
    @param _data param not needed here. Added to comply with the interface
    */
     function _withdraw(bytes calldata _data) internal override {
-        convexVault.withdrawLockedAndUnwrap(currentKekId);
         uint256 lpTokensToConvert = lpToken.balanceOf(address(this));
-
         // if lp tokens are required to convert, then convert to usdc and update amountToWithdraw
         if (lpTokensToConvert > 0) {
             _convertLpTokenIntoUSDC(lpTokensToConvert);
         }
 
         emit Withdraw(wantToken.balanceOf(address(this)));
+    }
+
+    /*///////////////////////////////////////////////////////////////
+                      OPEN / CLOSE LOGIC
+  //////////////////////////////////////////////////////////////*/
+
+    /**
+   @notice To open staking position in Convex
+   @dev stakes the specified Curve Lp Tokens into Convex's Frax pool
+   @param _data Encoded AmountParams as _data with LP Token amount
+   */
+    function _openPosition(bytes calldata _data) internal override {
+        require(currentKekId == "", "POSITION_ALREADY_ACTIVE");
+
+        AmountParams memory openPositionParams = abi.decode(
+            _data,
+            (AmountParams)
+        );
+        require(
+            openPositionParams._amount <= lpToken.balanceOf(address(this)),
+            "INSUFFICIENT_BALANCE"
+        );
+
+        uint256 previousLpTokenBalance = lpToken.balanceOf(address(this));
+        currentKekId = convexVault.stakeLockedCurveLp(
+            openPositionParams._amount,
+            stakingPeriodSecs
+        );
+
+        require(
+            lpToken.balanceOf(address(this)) < previousLpTokenBalance,
+            "STAKING_UNSUCCESSFUL"
+        );
+    }
+
+    /**
+   @notice To close Convex Staking Position
+   @dev Unstakes from Convex position and gives back them as Curve Lp Tokens along with rewards like CRV, CVX.
+   @param _data param not needed here. Added to comply with the interface
+   */
+    function _closePosition(bytes calldata _data) internal override {
+        require(currentKekId != "", "NO_ACTIVE_POSITION");
+        /// TODO: validate balance
+        // require(
+        //   closePositionParams._amount <= baseRewardPool.balanceOf(address(this)),
+        //   "AMOUNT_EXCEEDS_BALANCE"
+        // );
+        uint256 previousLpTokenBalance = lpToken.balanceOf(address(this));
+        convexVault.withdrawLockedAndUnwrap(currentKekId);
+        currentKekId = "";
+
+        require(
+            lpToken.balanceOf(address(this)) > previousLpTokenBalance,
+            "WITHDRAW_UNSUCCESSFUL"
+        );
     }
 
     /*///////////////////////////////////////////////////////////////
