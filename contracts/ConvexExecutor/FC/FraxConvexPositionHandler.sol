@@ -397,4 +397,26 @@ abstract contract FraxConvexPositionHandler is BasePositionHandler {
 
         return fraxPool.calc_token_amount([0, _value], true);
     }
+
+    /**
+   @notice Keeper function to set max accepted slippage of swaps
+   @param _slippage Max accepted slippage during harvesting
+   */
+    function _setSlippage(uint256 _slippage) internal {
+        maxSlippage = _slippage;
+    }
+
+    /// @notice Governance function to set how position value should be calculated, i.e using virtual price or calc withdraw
+    /// @param _useVirtualPriceForPosValue bool signifying if virtual price should be used to calculate position value
+    function _setUseVirtualPriceForPosValue(bool _useVirtualPriceForPosValue)
+        internal
+    {
+        useVirtualPriceForPosValue = _useVirtualPriceForPosValue;
+    }
+
+    /// @notice Governance function to set the period to open a staking position for
+    /// @param _stakingPeriodSecs the staking period duration in seconds
+    function _setStakingPeriod(uint256 _stakingPeriodSecs) internal {
+        stakingPeriodSecs = _stakingPeriodSecs;
+    }
 }

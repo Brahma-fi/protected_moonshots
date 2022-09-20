@@ -24,6 +24,11 @@ abstract contract FraxConvexFraxPoolTradeExecutor is
         uint256 indexed oldSlippage,
         uint256 indexed newSlippage
     );
+    /// @notice event emitted when staking period is updated
+    event UpdatedStakingPeriod(
+        uint256 indexed oldStakingPeriod,
+        uint256 indexed newStakingPeriod
+    );
 
     /// @notice creates a new FraxConvexTradeExecutor with required state
     /// @param _harvester address of harvester
@@ -45,9 +50,7 @@ abstract contract FraxConvexFraxPoolTradeExecutor is
     /// @return totalBalance Total balance of contract in want token
     /// @return blockNumber Current block number
     function totalFunds() public view override returns (uint256, uint256) {
-        /// TODO: use positionInWantToken()
-        return (0, 0);
-        // return FraxConvexPositionHandler.positionInWantToken();
+        return FraxConvexPositionHandler.positionInWantToken();
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -59,8 +62,7 @@ abstract contract FraxConvexFraxPoolTradeExecutor is
     function setSlippage(uint256 _slippage) external onlyGovernance {
         uint256 oldSlippage = FraxConvexPositionHandler.maxSlippage;
 
-        /// TODO: _setSlipapge()
-        // FraxConvexPositionHandler._setSlippage(_slippage);
+        FraxConvexPositionHandler._setSlippage(_slippage);
         emit UpdatedSlippage(oldSlippage, _slippage);
     }
 
@@ -70,10 +72,21 @@ abstract contract FraxConvexFraxPoolTradeExecutor is
         external
         onlyGovernance
     {
-        /// TODO: setVirtualPriceForPosValue()
-        // FraxConvexPositionHandler._setUseVirtualPriceForPosValue(
-        //   _useVirtualPriceForPosValue
-        // );
+        FraxConvexPositionHandler._setUseVirtualPriceForPosValue(
+            _useVirtualPriceForPosValue
+        );
+    }
+
+    /// @notice Governance function to set the period to open a staking position for
+    /// @param _stakingPeriodSecs the staking period duration in seconds
+    function setStakingPeriod(uint256 _stakingPeriodSecs)
+        external
+        onlyGovernance
+    {
+        uint256 oldStakingPeriod = stakingPeriodSecs;
+        FraxConvexPositionHandler._setStakingPeriod(_stakingPeriodSecs);
+
+        emit UpdatedStakingPeriod(oldStakingPeriod, _stakingPeriodSecs);
     }
 
     /// @param _harvester address of harvester
@@ -92,7 +105,7 @@ abstract contract FraxConvexFraxPoolTradeExecutor is
     /// @dev Converts USDC to lp tokens via Curve
     /// @param _data Encoded AmountParams as _data with USDC amount
     function _initateDeposit(bytes calldata _data) internal override {
-        // TODO: FraxConvexPositionHandler._deposit(_data);
+        FraxConvexPositionHandler._deposit(_data);
         BaseTradeExecutor.confirmDeposit();
     }
 
@@ -100,7 +113,7 @@ abstract contract FraxConvexFraxPoolTradeExecutor is
     /// @dev  Converts Curve Lp Tokens  back to USDC.
     ///  @param _data Encoded WithdrawParams as _data with USDC token amount
     function _initiateWithdraw(bytes calldata _data) internal override {
-        // TODO: FraxConvexPositionHandler._withdraw(_data);
+        FraxConvexPositionHandler._withdraw(_data);
         BaseTradeExecutor.confirmWithdraw();
     }
 
@@ -120,7 +133,7 @@ abstract contract FraxConvexFraxPoolTradeExecutor is
     /// @dev stakes the specified Curve Lp Tokens into FraxConvex's FRAX/USDC
     /// @param _data Encoded AmountParams as _data with LP Token amount
     function openPosition(bytes calldata _data) public onlyKeeper nonReentrant {
-        // TODO: FraxConvexPositionHandler._openPosition(_data);
+        FraxConvexPositionHandler._openPosition(_data);
     }
 
     /// @notice To close Convex Staking Position
@@ -131,7 +144,7 @@ abstract contract FraxConvexFraxPoolTradeExecutor is
         onlyKeeper
         nonReentrant
     {
-        // TODO: FraxConvexPositionHandler._closePosition(_data);
+        FraxConvexPositionHandler._closePosition(_data);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -141,6 +154,6 @@ abstract contract FraxConvexFraxPoolTradeExecutor is
     /// @dev Claims Convex Staking position rewards, and converts them to wantToken i.e., USDC.
     /// @param _data is not needed here (empty param, to satisfy interface)
     function claimRewards(bytes calldata _data) public onlyKeeper nonReentrant {
-        // TODO: FraxConvexPositionHandler._claimRewards(_data);
+        FraxConvexPositionHandler._claimRewards(_data);
     }
 }
