@@ -424,6 +424,8 @@ abstract contract FraxConvexPositionHandler is BasePositionHandler {
         stakingPeriodSecs = _stakingPeriodSecs;
     }
 
+    /// @notice helper function to check if a position is active or inactive
+    /// @param isActive input to check if the position to check should be active or inactive
     function _checkPosition(bool isActive) internal view {
         require(
             convexStaking.lockedStakesOfLength(address(convexVault)) ==
