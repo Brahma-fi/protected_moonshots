@@ -237,7 +237,7 @@ contract Harvester is IHarvester, ReentrancyGuard {
         }
         // swap FXS to usdc
         if (fxsBalance > 0) {
-            address[] memory path = new address[](2);
+            address[] memory path = new address[](3);
             path[0] = address(fxs);
             path[1] = address(weth);
             path[2] = vault.wantToken();
