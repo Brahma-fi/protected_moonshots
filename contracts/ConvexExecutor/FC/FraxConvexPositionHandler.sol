@@ -53,7 +53,8 @@ contract FraxConvexPositionHandler is BasePositionHandler {
     /// @notice the max permitted slippage for swaps
     uint256 public maxSlippage = 30;
     /// @notice The duration to open a staking position for ( in secs )
-    uint256 public stakingPeriodSecs;
+    /// @dev initially initialised to 1 week
+    uint256 public stakingPeriodSecs = 604800;
     /// @notice the latest amount of rewards claimed and harvested
     uint256 public latestHarvestedRewards;
     /// @notice the total cummulative rewards earned so far
