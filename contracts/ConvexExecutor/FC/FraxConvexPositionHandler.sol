@@ -98,10 +98,6 @@ contract FraxConvexPositionHandler is BasePositionHandler {
 
         // Approve max LP tokens to FraxConvex booster
         lpToken.approve(address(_stakingVault), type(uint256).max);
-
-        // Approve max want tokens to frax2Pool.
-        wantToken.approve(address(fraxPool), type(uint256).max);
-
         // Approve max lp tokens to frax2Pool
         lpToken.approve(address(fraxPool), type(uint256).max);
     }
@@ -112,6 +108,9 @@ contract FraxConvexPositionHandler is BasePositionHandler {
     function _configHandler(address _harvester, address _wantToken) internal {
         wantToken = IERC20(_wantToken);
         harvester = IHarvester(_harvester);
+
+        // Approve max want tokens to frax2Pool.
+        wantToken.approve(address(fraxPool), type(uint256).max);
     }
 
     /*///////////////////////////////////////////////////////////////
