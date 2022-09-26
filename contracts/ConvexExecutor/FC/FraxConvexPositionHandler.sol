@@ -18,7 +18,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 /// @title FraxConvexPositionHandler
 /// @author PradeepSelva & BapireddyK;
 /// @notice A Position handler to handle FraxConvex for FRAX/USDC pool
-abstract contract FraxConvexPositionHandler is BasePositionHandler {
+contract FraxConvexPositionHandler is BasePositionHandler {
     using SafeERC20 for IERC20;
 
     /*///////////////////////////////////////////////////////////////

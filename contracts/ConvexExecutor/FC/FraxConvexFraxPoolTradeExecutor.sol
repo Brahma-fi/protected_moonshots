@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 /// @title FraxConvexFraxPoolTradeExecutor
 /// @author PradeepSelva
 /// @notice A contract to execute strategy's trade, on Frax Convex (frax)
-abstract contract FraxConvexFraxPoolTradeExecutor is
+contract FraxConvexFraxPoolTradeExecutor is
     BaseTradeExecutor,
     FraxConvexPositionHandler,
     ReentrancyGuard
