@@ -58,8 +58,6 @@ abstract contract FraxConvexPositionHandler is BasePositionHandler {
     uint256 public latestHarvestedRewards;
     /// @notice the total cummulative rewards earned so far
     uint256 public totalCummulativeRewards;
-    /// @notice _kek_id of current open convex position
-    bytes32 public currentKekId;
     /// @notice governance handled variable, that tells how to calculate position in want token
     /// @dev this is done to account for cases of depeg
     bool public useVirtualPriceForPosValue = true;
@@ -186,7 +184,7 @@ abstract contract FraxConvexPositionHandler is BasePositionHandler {
    @param _data Encoded AmountParams as _data with LP Token amount
    */
     function _openPosition(bytes calldata _data) internal override {
-        require(currentKekId == "", "POSITION_ALREADY_ACTIVE");
+        _checkPosition(false);
 
         AmountParams memory openPositionParams = abi.decode(
             _data,
@@ -198,7 +196,7 @@ abstract contract FraxConvexPositionHandler is BasePositionHandler {
         );
 
         uint256 previousLpTokenBalance = lpToken.balanceOf(address(this));
-        currentKekId = convexVault.stakeLockedCurveLp(
+        convexVault.stakeLockedCurveLp(
             openPositionParams._amount,
             stakingPeriodSecs
         );
@@ -215,11 +213,13 @@ abstract contract FraxConvexPositionHandler is BasePositionHandler {
    @param _data param not needed here. Added to comply with the interface
    */
     function _closePosition(bytes calldata _data) internal override {
-        require(currentKekId != "", "NO_ACTIVE_POSITION");
+        _checkPosition(true);
+        IConvexStaking.LockedStake memory _lockedStakeData = (
+            convexStaking.lockedStakesOf(address(convexVault))
+        )[0];
 
         uint256 previousLpTokenBalance = lpToken.balanceOf(address(this));
-        convexVault.withdrawLockedAndUnwrap(currentKekId);
-        currentKekId = "";
+        convexVault.withdrawLockedAndUnwrap(_lockedStakeData.kek_id);
 
         require(
             lpToken.balanceOf(address(this)) > previousLpTokenBalance,
@@ -422,5 +422,13 @@ abstract contract FraxConvexPositionHandler is BasePositionHandler {
     /// @param _stakingPeriodSecs the staking period duration in seconds
     function _setStakingPeriod(uint256 _stakingPeriodSecs) internal {
         stakingPeriodSecs = _stakingPeriodSecs;
+    }
+
+    function _checkPosition(bool isActive) internal view {
+        require(
+            convexStaking.lockedStakesOfLength(address(convexVault)) ==
+                (isActive ? 1 : 0),
+            isActive ? "NO_ACTIVE_POSITION" : "POSITION_ALREADY_ACTIVE"
+        );
     }
 }
