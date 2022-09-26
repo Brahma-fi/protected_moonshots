@@ -10,6 +10,7 @@ import "../interfaces/ICurve2Pool.sol";
 import "../interfaces/ICurveDepositZapper.sol";
 import "../interfaces/IHarvester.sol";
 import "../interfaces/IConvexStakingProxy.sol";
+import "../interfaces/IConvexStaking.sol";
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -82,14 +83,29 @@ abstract contract FraxConvexPositionHandler is BasePositionHandler {
 
     /// @notice FraxConvex staking vault
     IConvexStakingProxy public immutable convexVault;
+    /// @notice FraxConvex staking vault
+    IConvexStaking public immutable convexStaking;
 
     /*///////////////////////////////////////////////////////////////
                           INITIALIZING
     //////////////////////////////////////////////////////////////*/
     constructor() {
-        convexVault = IConvexStakingProxy(
-            fraxConvexBooster.createVault(FRAX_USDC_PID)
+        address _stakingVault = fraxConvexBooster.createVault(FRAX_USDC_PID);
+
+        // Create a staking proxy vault and get the actual staking contract
+        convexVault = IConvexStakingProxy(_stakingVault);
+        convexStaking = IConvexStaking(
+            IConvexStakingProxy(_stakingVault).stakingAddress()
         );
+
+        // Approve max LP tokens to FraxConvex booster
+        lpToken.approve(address(_stakingVault), type(uint256).max);
+
+        // Approve max want tokens to frax2Pool.
+        wantToken.approve(address(fraxPool), type(uint256).max);
+
+        // Approve max lp tokens to frax2Pool
+        lpToken.approve(address(fraxPool), type(uint256).max);
     }
 
     /// @notice configures ConvexPositionHandler with the required state
@@ -98,15 +114,6 @@ abstract contract FraxConvexPositionHandler is BasePositionHandler {
     function _configHandler(address _harvester, address _wantToken) internal {
         wantToken = IERC20(_wantToken);
         harvester = IHarvester(_harvester);
-
-        // Approve max LP tokens to FraxConvex booster
-        lpToken.approve(address(convexVault), type(uint256).max);
-
-        // Approve max want tokens to frax2Pool.
-        wantToken.approve(address(fraxPool), type(uint256).max);
-
-        // Approve max lp tokens to frax2Pool
-        lpToken.approve(address(fraxPool), type(uint256).max);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -209,11 +216,7 @@ abstract contract FraxConvexPositionHandler is BasePositionHandler {
    */
     function _closePosition(bytes calldata _data) internal override {
         require(currentKekId != "", "NO_ACTIVE_POSITION");
-        /// TODO: validate balance
-        // require(
-        //   closePositionParams._amount <= baseRewardPool.balanceOf(address(this)),
-        //   "AMOUNT_EXCEEDS_BALANCE"
-        // );
+
         uint256 previousLpTokenBalance = lpToken.balanceOf(address(this));
         convexVault.withdrawLockedAndUnwrap(currentKekId);
         currentKekId = "";
@@ -282,8 +285,9 @@ abstract contract FraxConvexPositionHandler is BasePositionHandler {
             uint256 usdcBalance
         )
     {
-        // TODO: uint256 stakedLpBalanceRaw = baseRewardPool.balanceOf(address(this));
-        uint256 stakedLpBalanceRaw = 0;
+        uint256 stakedLpBalanceRaw = convexStaking.lockedLiquidityOf(
+            address(convexVault)
+        );
         uint256 lpTokenBalanceRaw = lpToken.balanceOf(address(this));
 
         uint256 totalLpBalance = stakedLpBalanceRaw + lpTokenBalanceRaw;
