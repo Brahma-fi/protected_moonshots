@@ -1,0 +1,47 @@
+name: Slither Analysis
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      actions: read
+      contents: read
+      pull-requests: read
+      security-events: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install
+        run: npm install
+
+      - name: Install slither
+        run: pip3 install slither-analyzer
+
+      - name: Run slither
+        continue-on-error: true
+        run: rm results.sarif && slither . --sarif results.sarif
+
+      - name: Print all files
+        run: ls -la
+
+      - name: Print pwd
+        run: echo "$PWD"
+
+      - name: Search for results.sarif
+        run: find ./ -name results.sarif
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: "./results.sarif"

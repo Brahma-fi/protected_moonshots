@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 
 import "./interfaces/IHarvester.sol";
 import "./interfaces/IUniswapV3Router.sol";
+import "./interfaces/IUniswapV2Router.sol";
 import "./interfaces/ICurveV2Pool.sol";
 
 import "../../interfaces/IVault.sol";
@@ -54,6 +55,9 @@ contract Harvester is IHarvester, ReentrancyGuard {
     /// @notice address of snx token
     IERC20 public constant override snx =
         IERC20(0xC011a73ee8576Fb46F5E1c5751cA3B9Fe0af2a6F);
+    /// @notice address of fxs token
+    IERC20 public constant override fxs =
+        IERC20(0x3432B6A60D23Ca0dFCa7761B7ab56459D9C964D0);
     /// @notice address of 3CRV LP token
     IERC20 public constant override _3crv =
         IERC20(0x6c3F90f043a72FA612cbac8115EE7e52BDe6E490);
@@ -70,9 +74,12 @@ contract Harvester is IHarvester, ReentrancyGuard {
     /// @notice address of Curve's 3CRV metapool
     ICurveV2Pool public constant _3crvPool =
         ICurveV2Pool(0xbEbc44782C7dB0a1A60Cb6fe97d0b483032FF1C7);
-    /// @notice address of uniswap router
+    /// @notice address of uniswap router V3
     IUniswapV3Router public constant uniswapRouter =
         IUniswapV3Router(0xE592427A0AEce92De3Edee1F18E0157C05861564);
+    /// @notice address of uniswap router V2
+    IUniswapV2Router public constant uniswapRouterV2 =
+        IUniswapV2Router(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
 
     /// @notice chainlink data feed for CRV/ETH
     IAggregatorV3 public constant crvEthPrice =
@@ -83,6 +90,9 @@ contract Harvester is IHarvester, ReentrancyGuard {
     /// @notice chainlinkd ata feed for SNX/USD
     IAggregatorV3 public constant snxUsdPrice =
         IAggregatorV3(0xDC3EA94CD0AC27d9A86C180091e7f78C683d3699);
+    /// @notice chainlinkd ata feed for FXS/USD
+    IAggregatorV3 public constant fxsUsdPrice =
+        IAggregatorV3(0x6Ebc52C8C1089be9eB3945C4350B68B8E4C2233f);
     /// @notice chainlink data feed for ETH/USD
     IAggregatorV3 public constant ethUsdPrice =
         IAggregatorV3(0x5f4eC3Df9cbd43714FE2740f5E3616155c5b8419);
@@ -113,12 +123,15 @@ contract Harvester is IHarvester, ReentrancyGuard {
         weth.approve(address(uniswapRouter), type(uint256).max);
         // max approve SNX to uniswap router
         snx.approve(address(uniswapRouter), type(uint256).max);
+        // max approve SNX to uniswap router
+        fxs.approve(address(uniswapRouter), type(uint256).max);
 
-        rewards = new address[](4);
+        rewards = new address[](5);
         rewards[0] = address(crv);
         rewards[1] = address(cvx);
         rewards[2] = address(_3crv);
         rewards[3] = address(snx);
+        rewards[4] = address(fxs);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -172,6 +185,8 @@ contract Harvester is IHarvester, ReentrancyGuard {
         uint256 cvxBalance = cvx.balanceOf(address(this));
         uint256 _3crvBalance = _3crv.balanceOf(address(this));
         uint256 snxBalance = snx.balanceOf(address(this));
+        uint256 fxsBalance = snx.balanceOf(address(this));
+
         // swap convex to eth
         if (cvxBalance > 0) {
             uint256 expectedOut = (_getPriceForAmount(cvxEthPrice, cvxBalance));
@@ -220,6 +235,15 @@ contract Harvester is IHarvester, ReentrancyGuard {
                 snxUsdPrice
             );
         }
+        // swap FXS to usdc
+        if (fxsBalance > 0) {
+            address[] memory path = new address[](3);
+            path[0] = address(fxs);
+            path[1] = address(weth);
+            path[2] = vault.wantToken();
+
+            _swapToWantOnUniV2(path, fxsBalance, fxsUsdPrice);
+        }
 
         // send token usdc back to vault
         wantTokensReceived = IERC20(vault.wantToken()).balanceOf(address(this));
@@ -228,10 +252,11 @@ contract Harvester is IHarvester, ReentrancyGuard {
         emit Harvested(wantTokensReceived);
     }
 
-    /// @notice helper to perform swap snx -> usdc on uniswap v3
+    /// @notice helper to perform swap on uniswap v3
     /// @param tokenIn address of token to swap
     /// @param amount amount of token to swap
     /// @param fee fee % to use to perform swap
+    /// @param priceFeed the chainlink price feed of swap token
     function _swapToWantOnUniV3(
         address tokenIn,
         uint256 amount,
@@ -254,6 +279,28 @@ contract Harvester is IHarvester, ReentrancyGuard {
                 amount,
                 _getMinReceived(expectedOut)
             )
+        );
+    }
+
+    /// @notice helper to swap tokens on UniV2
+    /// @param path addresses denoting the path to take during swap
+    /// @param amount amount to swap
+    /// @param priceFeed the chainlink price feed of swap token
+    function _swapToWantOnUniV2(
+        address[] memory path,
+        uint256 amount,
+        IAggregatorV3 priceFeed
+    ) internal {
+        uint256 expectedOut = (_getPriceForAmount(priceFeed, amount) *
+            10**IERC20Metadata(vault.wantToken()).decimals()) /
+            ETH_NORMALIZATION_FACTOR;
+
+        uniswapRouterV2.swapExactTokensForTokens(
+            amount,
+            expectedOut,
+            path,
+            address(this),
+            block.timestamp
         );
     }
 
