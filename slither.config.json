@@ -1,0 +1,5 @@
+{
+  "solc_remaps": "@openzeppelin=node_modules/@openzeppelin/contracts",
+  "disable_color": false,
+  "filter_paths": "^(contracts/Vault.sol)"
+}

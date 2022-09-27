@@ -1,0 +1,60 @@
+name: Slither Analysis
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      actions: read
+      contents: read
+      pull-requests: read
+      security-events: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Install dependencies
+        run: forge install
+
+      - name: Build project
+        run: forge build --extra-output abi --extra-output userdoc --extra-output devdoc --extra-output evm.methodIdentifiers --force
+
+      - name: Install npm deps
+        run: npm i
+
+      - name: Run Slither
+        uses: crytic/slither-action@main
+        id: slither
+        with:
+          sarif: "results.sarif"
+          ignore-compile: true
+          node-version: 16
+          fail-on: none
+
+      - name: Print all files
+        run: ls -la
+
+      - name: Print pwd
+        run: echo "$PWD"
+
+      - name: Search for results.sarif
+        run: find ./ -name results.sarif
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: ${{ steps.slither.outputs.sarif }}
