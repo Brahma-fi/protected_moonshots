@@ -25,17 +25,11 @@ jobs:
       - name: Install
         run: npm install
 
-      - name: Compile
-        run: npx hardhat compile
+      - name: Install slither
+        run: pip3 install slither-analyzer
 
-      - name: Run Slither
-        uses: crytic/slither-action@main
-        id: slither
-        with:
-          sarif: "results.sarif"
-          ignore-compile: true
-          node-version: 16
-          fail-on: none
+      - name: Run slither
+        run: slither . --sarif results.sarif
 
       - name: Print all files
         run: ls -la
