@@ -22,19 +22,11 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install Foundry
-        uses: foundry-rs/foundry-toolchain@v1
-        with:
-          version: nightly
+      - name: Install
+        run: npm install
 
-      - name: Install dependencies
-        run: forge install
-
-      - name: Build project
-        run: forge build --extra-output abi --extra-output userdoc --extra-output devdoc --extra-output evm.methodIdentifiers --force
-
-      - name: Install npm deps
-        run: npm i
+      - name: Compile
+        run: npx hardhat compile
 
       - name: Run Slither
         uses: crytic/slither-action@main
